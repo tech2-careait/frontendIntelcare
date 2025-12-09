@@ -34,8 +34,32 @@ const TlcClientProfitability = (props) => {
     const [selectedActor, setSelectedActor] = useState("NDIS");
     const [syncEnabled, setSyncEnabled] = useState(false);
     const [payload, setPayload] = useState(null);
-   
+    const [isAllowed, setIsAllowed] = useState(null);
+
     const BASE_URL = "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net";
+    useEffect(() => {
+        const userEmail = user?.email?.toLowerCase().trim();
+        if (!userEmail) {
+            setIsAllowed(false);
+            return;
+        }
+
+        const allowedDomains = [
+            "tenderlovingcaredisability.com.au",
+            "tenderlovingcare.com.au",
+            "curki.ai",
+            "careait.com"
+        ];
+
+        const userDomain = userEmail.split("@")[1];
+
+        if (allowedDomains.includes(userDomain)) {
+            setIsAllowed(true);
+        } else {
+            setIsAllowed(false);
+        }
+    }, [user]);
+
 
     const handleUpload = async () => {
         try {
@@ -279,176 +303,203 @@ const TlcClientProfitability = (props) => {
             />
         );
     };
-useEffect(() => {
-    if (!responseData?.direct_service) return;
+    useEffect(() => {
+        if (!responseData?.direct_service) return;
 
-    const summary = responseData.direct_service.tables.by_reference;
-    const details = responseData.direct_service.tables.detail;
+        const summary = responseData.direct_service.tables.by_reference;
+        const details = responseData.direct_service.tables.detail;
 
-    const summaryCols = summary.columns || [];
-    const summaryRows = summary.rows || [];
-    const detailCols = details.columns || [];
-    const detailRows = details.rows || [];
+        const summaryCols = summary.columns || [];
+        const summaryRows = summary.rows || [];
+        const detailCols = details.columns || [];
+        const detailRows = details.rows || [];
 
-    // Normalize keys
-    const normalizeObjKeys = (obj) => {
-        const normalized = {};
-        Object.keys(obj || {}).forEach(k => {
-            normalized[k.trim().toLowerCase()] = obj[k];
+        // Normalize keys
+        const normalizeObjKeys = (obj) => {
+            const normalized = {};
+            Object.keys(obj || {}).forEach(k => {
+                normalized[k.trim().toLowerCase()] = obj[k];
+            });
+            return normalized;
+        };
+
+        const findIndex = (cols, keywords) =>
+            cols.findIndex(c =>
+                keywords.some(k =>
+                    c?.toString?.().toLowerCase().includes(k.toLowerCase())
+                )
+            );
+
+        const sNdisIndex = findIndex(summaryCols, ["ndis", "reference"]);
+        const sPartIndex = findIndex(summaryCols, ["participant"]);
+
+        const dNdisIndex = findIndex(detailCols, ["ndis", "reference"]);
+        const dPartIndex = findIndex(detailCols, ["participant"]);
+
+        if (sNdisIndex < 0 || sPartIndex < 0 || dNdisIndex < 0 || dPartIndex < 0) {
+            console.error("🏳️ Required key columns missing.");
+            return;
+        }
+
+        // Convert row → array by column order
+        const toRowArray = (obj, cols) => {
+            const norm = normalizeObjKeys(obj);
+            return cols.map(c => norm[c.toLowerCase()] ?? "");
+        };
+
+        // Identify detail-only columns
+        const detailOnlyCols = detailCols.filter(c => !summaryCols.includes(c));
+
+        // ---------------------------
+        // BUILD DETAIL MAP
+        // ---------------------------
+        const detailMap = {};
+
+        detailRows.forEach(dr => {
+            const norm = normalizeObjKeys(dr);
+
+            // Skip if detail is actually same as summary (happens when no extra columns)
+            if (detailOnlyCols.length === 0) return;
+
+            const ndis =
+                dr[detailCols[dNdisIndex]] ??
+                dr[dNdisIndex] ??
+                norm[detailCols[dNdisIndex].toLowerCase()] ??
+                "";
+
+            const part =
+                dr[detailCols[dPartIndex]] ??
+                dr[dPartIndex] ??
+                norm[detailCols[dPartIndex].toLowerCase()] ??
+                "";
+
+            const key = `${ndis}___${part}`;
+
+            if (!detailMap[key]) detailMap[key] = [];
+            detailMap[key].push(toRowArray(dr, detailCols));
         });
-        return normalized;
-    };
 
-    const findIndex = (cols, keywords) =>
-        cols.findIndex(c =>
-            keywords.some(k =>
-                c?.toString?.().toLowerCase().includes(k.toLowerCase())
-            )
+        // ---------------------------
+        // REMOVE DUPLICATE SUMMARY ROWS
+        // ---------------------------
+        const seenParents = new Set();
+        const uniqueSummaryRows = [];
+
+        summaryRows.forEach(sr => {
+            const parent = toRowArray(sr, summaryCols);
+
+            const sNdis =
+                sr[summaryCols[sNdisIndex]] ??
+                sr[sNdisIndex] ??
+                parent[sNdisIndex] ??
+                "";
+
+            const sPart =
+                sr[summaryCols[sPartIndex]] ??
+                sr[sPartIndex] ??
+                parent[sPartIndex] ??
+                "";
+
+            const key = `${sNdis}___${sPart}`;
+
+            if (!seenParents.has(key)) {
+                seenParents.add(key);
+                uniqueSummaryRows.push(sr);
+            }
+        });
+
+        // ---------------------------
+        // MERGE SUMMARY + DETAIL
+        // ---------------------------
+        const finalRows = uniqueSummaryRows.map(sr => {
+            const parent = toRowArray(sr, summaryCols);
+
+            const sNdis =
+                sr[summaryCols[sNdisIndex]] ??
+                sr[sNdisIndex] ??
+                parent[sNdisIndex] ??
+                "";
+
+            const sPart =
+                sr[summaryCols[sPartIndex]] ??
+                sr[sPartIndex] ??
+                parent[sPartIndex] ??
+                "";
+
+            const key = `${sNdis}___${sPart}`;
+
+            return {
+                parent,
+                children: detailMap[key] || [],
+                participant: sPart,
+                ndis: sNdis
+            };
+        });
+
+        // ---------------------------
+        // FILTER VALUES
+        // ---------------------------
+        const regions = new Set();
+        const depts = new Set();
+
+        const regionIdx = findIndex(detailCols, ["region"]);
+        const deptIdx = findIndex(detailCols, ["department", "dept"]);
+
+        detailRows.forEach(dr => {
+            const n = normalizeObjKeys(dr);
+
+            if (regionIdx >= 0) {
+                const r = n[detailCols[regionIdx].toLowerCase()];
+                if (r) regions.add(r);
+            }
+            if (deptIdx >= 0) {
+                const d = n[detailCols[deptIdx].toLowerCase()];
+                if (d) depts.add(d);
+            }
+        });
+
+        // ---------------------------
+        // SET FINAL OUTPUT
+        // ---------------------------
+        setDirectFinalTable({
+            columns: summaryCols,
+            rows: finalRows,
+            detailCols,
+            regions: [...regions],
+            departments: [...depts]
+        });
+
+    }, [responseData]);
+
+
+    console.log("directFinalTable", directFinalTable)
+
+    if (isAllowed === false) {
+        return (
+            <div style={{
+                textAlign: "center",
+                padding: "120px 20px",
+                fontFamily: "Inter, sans-serif",
+                color: "#1f2937"
+            }}>
+                <img
+                    src={TlcLogo}
+                    alt="Access Denied"
+                    style={{ width: "80px", opacity: 0.8, marginBottom: "20px" }}
+                />
+
+                <h2 style={{ fontSize: "24px", marginBottom: "12px", color: "#6C4CDC" }}>
+                    Access Restricted 🚫
+                </h2>
+
+                <p style={{ fontSize: "16px", color: "#555" }}>
+                    Sorry, your account (<strong>{user?.email}</strong>)
+                    is not authorized to view this page.
+                </p>
+            </div>
         );
-
-    const sNdisIndex = findIndex(summaryCols, ["ndis", "reference"]);
-    const sPartIndex = findIndex(summaryCols, ["participant"]);
-
-    const dNdisIndex = findIndex(detailCols, ["ndis", "reference"]);
-    const dPartIndex = findIndex(detailCols, ["participant"]);
-
-    if (sNdisIndex < 0 || sPartIndex < 0 || dNdisIndex < 0 || dPartIndex < 0) {
-        console.error("🏳️ Required key columns missing.");
-        return;
     }
 
-    // Convert row → array by column order
-    const toRowArray = (obj, cols) => {
-        const norm = normalizeObjKeys(obj);
-        return cols.map(c => norm[c.toLowerCase()] ?? "");
-    };
-
-    // Identify detail-only columns
-    const detailOnlyCols = detailCols.filter(c => !summaryCols.includes(c));
-
-    // ---------------------------
-    // BUILD DETAIL MAP
-    // ---------------------------
-    const detailMap = {};
-
-    detailRows.forEach(dr => {
-        const norm = normalizeObjKeys(dr);
-
-        // Skip if detail is actually same as summary (happens when no extra columns)
-        if (detailOnlyCols.length === 0) return;
-
-        const ndis =
-            dr[detailCols[dNdisIndex]] ??
-            dr[dNdisIndex] ??
-            norm[detailCols[dNdisIndex].toLowerCase()] ??
-            "";
-
-        const part =
-            dr[detailCols[dPartIndex]] ??
-            dr[dPartIndex] ??
-            norm[detailCols[dPartIndex].toLowerCase()] ??
-            "";
-
-        const key = `${ndis}___${part}`;
-
-        if (!detailMap[key]) detailMap[key] = [];
-        detailMap[key].push(toRowArray(dr, detailCols));
-    });
-
-    // ---------------------------
-    // REMOVE DUPLICATE SUMMARY ROWS
-    // ---------------------------
-    const seenParents = new Set();
-    const uniqueSummaryRows = [];
-
-    summaryRows.forEach(sr => {
-        const parent = toRowArray(sr, summaryCols);
-
-        const sNdis =
-            sr[summaryCols[sNdisIndex]] ??
-            sr[sNdisIndex] ??
-            parent[sNdisIndex] ??
-            "";
-
-        const sPart =
-            sr[summaryCols[sPartIndex]] ??
-            sr[sPartIndex] ??
-            parent[sPartIndex] ??
-            "";
-
-        const key = `${sNdis}___${sPart}`;
-
-        if (!seenParents.has(key)) {
-            seenParents.add(key);
-            uniqueSummaryRows.push(sr);
-        }
-    });
-
-    // ---------------------------
-    // MERGE SUMMARY + DETAIL
-    // ---------------------------
-    const finalRows = uniqueSummaryRows.map(sr => {
-        const parent = toRowArray(sr, summaryCols);
-
-        const sNdis =
-            sr[summaryCols[sNdisIndex]] ??
-            sr[sNdisIndex] ??
-            parent[sNdisIndex] ??
-            "";
-
-        const sPart =
-            sr[summaryCols[sPartIndex]] ??
-            sr[sPartIndex] ??
-            parent[sPartIndex] ??
-            "";
-
-        const key = `${sNdis}___${sPart}`;
-
-        return {
-            parent,
-            children: detailMap[key] || [],
-            participant: sPart,
-            ndis: sNdis
-        };
-    });
-
-    // ---------------------------
-    // FILTER VALUES
-    // ---------------------------
-    const regions = new Set();
-    const depts = new Set();
-
-    const regionIdx = findIndex(detailCols, ["region"]);
-    const deptIdx = findIndex(detailCols, ["department", "dept"]);
-
-    detailRows.forEach(dr => {
-        const n = normalizeObjKeys(dr);
-
-        if (regionIdx >= 0) {
-            const r = n[detailCols[regionIdx].toLowerCase()];
-            if (r) regions.add(r);
-        }
-        if (deptIdx >= 0) {
-            const d = n[detailCols[deptIdx].toLowerCase()];
-            if (d) depts.add(d);
-        }
-    });
-
-    // ---------------------------
-    // SET FINAL OUTPUT
-    // ---------------------------
-    setDirectFinalTable({
-        columns: summaryCols,
-        rows: finalRows,
-        detailCols,
-        regions: [...regions],
-        departments: [...depts]
-    });
-
-}, [responseData]);
-
-
-console.log("directFinalTable",directFinalTable)
 
     return (
         <div className="page-containersss">
