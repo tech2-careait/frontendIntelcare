@@ -464,41 +464,25 @@ export default function TlcCustomerReporting(props) {
     activeTabData?.selectedEmploymentType,
   ]);
   useEffect(() => {
-    const checkAccess = async () => {
-      try {
-        const userEmail = props?.user?.email?.trim().toLowerCase();
-        if (!userEmail) {
-          setIsAllowed(false);
-          return;
-        }
+    const userEmail = props?.user?.email?.trim()?.toLowerCase();
 
-        const res = await fetch(
-          "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/getAllTlcEmails"
-        );
+    if (!userEmail) {
+      setIsAllowed(false);
+      return;
+    }
 
-        const data = await res.json();
-        // console.log("Admin email list:", data);
+    const allowedDomains = [
+      "tenderlovingcaredisability.com.au",
+      "tenderlovingcare.com.au",
+      "curki.ai",
+      "careait.com"
+    ];
 
-        if (!res.ok || !data.emails) {
-          console.warn("⚠️ Invalid response from getAllTlcEmails API");
-          setIsAllowed(false);
-          return;
-        }
+    const userDomain = userEmail.split("@")[1];
 
-        const normalizedEmails = data.emails.map((e) => e.trim().toLowerCase());
-        // console.log("normalizedEmails", normalizedEmails)
-        const hasAccess = normalizedEmails.includes(userEmail);
-
-        setIsAllowed(hasAccess);
-        // console.log(`Access check for ${userEmail}:`, hasAccess);
-      } catch (err) {
-        console.error("❌ Error verifying access:", err);
-        setIsAllowed(false);
-      }
-    };
-
-    checkAccess();
+    setIsAllowed(allowedDomains.includes(userDomain));
   }, [props.user]);
+
   // -------------------- SAVE HANDLER --------------------
   const handleSaveToDatabase = async () => {
     if (!activeTabData) return;
@@ -654,7 +638,7 @@ export default function TlcCustomerReporting(props) {
       if (userEmail === "kris@curki.ai") {
         aiPayload.env = "sandbox";   // exactly payload = { ..., env: "sandbox" }
       }
-      console.log("ai payload",aiPayload)
+      console.log("ai payload", aiPayload)
       // ✅ Step 3: Send directly (no re-wrapping or redeclaration)
       const res = await fetch(
         "https://curki-backend-api-container.yellowflower-c21bea82.australiaeast.azurecontainerapps.io/tlc/payroll/ai-analysis-report",
@@ -949,7 +933,7 @@ export default function TlcCustomerReporting(props) {
     <div className="page-containersss">
       <div className="headerss">
         <div className="left-headerss">
-        {activeTabData.analysisData &&  <img src={TLCLogo} alt="Logo" className="tlclogo" />} 
+          {activeTabData.analysisData && <img src={TLCLogo} alt="Logo" className="tlclogo" />}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: "flex", alignItems: "center" }}>
               <div className="date-text">{formatDateRange()}</div>
