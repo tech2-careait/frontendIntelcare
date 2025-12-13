@@ -34,7 +34,7 @@ import SoftwareConnect from "./Modules/ConnectModule/SoftwareConnect";
 import RosteringDashboard from "./Modules/RosteringModule/SmartRostering";
 import HRAnalysis from "./Modules/SupportAtHomeModule.js/HRAnalysis";
 import IncidentAuditing from "./Modules/NDISModule/IncidentAuditing";
-import TlcCustomerReporting from "./Modules/FinancialModule/TlcCustomReporting";
+// import TlcCustomerReporting from "./Modules/FinancialModule/TlcCustomReporting";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -42,6 +42,7 @@ import rehypeHighlight from "rehype-highlight";
 import "highlight.js/styles/github.css";
 import incrementAnalysisCount from "./Modules/FinancialModule/TLcAnalysisCount";
 import TlcClientProfitability from "./Modules/FinancialModule/TlcClientProfitability";
+import TlcNewCustomerReporting from "./Modules/FinancialModule/TlcNewCustomReporting";
 
 const HomePage = () => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
@@ -508,7 +509,7 @@ const HomePage = () => {
 
                 <div style={{ display: selectedRole === "Payroll Analysis" ? "block" : "none" }}>
                   {/* <CustomReporting selectedRole="Custom Reporting" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} /> */}
-                  <TlcCustomerReporting user={user} setTlcAskAiPayload={setTlcAskAiPayload} tlcAskAiPayload={tlcAskAiPayload} setTlcAskAiHistoryPayload={setTlcAskAiHistoryPayload} tlcAskAiHistoryPayload={tlcAskAiHistoryPayload} />
+                  <TlcNewCustomerReporting user={user} setTlcAskAiPayload={setTlcAskAiPayload} tlcAskAiPayload={tlcAskAiPayload} setTlcAskAiHistoryPayload={setTlcAskAiHistoryPayload} tlcAskAiHistoryPayload={tlcAskAiHistoryPayload} />
                 </div>
 
                 <div style={{ display: selectedRole === 'Clients Profitability' ? "block" : "none" }}>
