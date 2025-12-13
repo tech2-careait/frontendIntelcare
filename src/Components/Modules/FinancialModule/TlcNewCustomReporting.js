@@ -1595,150 +1595,8 @@ export default function TlcNewCustomerReporting(props) {
                                 </div>
                             );
                         })}
-
-                        {/* analyse button */}
-                        {/* <div className="data-upload-analyse">
-                            <button
-                                className="data-upload-analyse-btn"
-                                onClick={handleAnalyse}
-                            >
-                                Analyse
-                            </button>
-                        </div> */}
                     </section>
                 )}
-
-
-            {/* {!activeTabData.viewingHistory && activeTabData.stage !== "overview" &&
-                (!activeTabData.analysisData ||
-                    Object.keys(activeTabData.analysisData).length === 0) && (
-                    <section className="uploads-containers">
-                        {[
-                            { key: "payroll", label: "Payroll Data" },
-                            { key: "people", label: "People and Teams Data" },
-                            { key: "employee", label: "Employee Update Data" },
-                        ].map((item) => (
-                            <div key={item.key} style={{ marginBottom: "16px" }}>
-                                <div
-                                    style={{
-                                        textAlign: "left",
-                                        fontSize: "12px",
-                                        fontFamily: "Inter",
-                                        fontWeight: 500,
-                                    }}
-                                >
-                                    Upload {item.label}
-                                </div>
-
-                                <div
-                                    className="upload-boxes"
-                                    style={{ cursor: "pointer" }}
-                                    onClick={(e) => {
-                                        if (!e.target.dataset.ignore) {
-                                            document.getElementById(`file-${activeTab}-${item.key}`).click();
-                                        }
-                                    }}
-                                >
-                                    <input
-                                        id={`file-${activeTab}-${item.key}`}
-                                        type="file"
-                                        multiple
-                                        accept=".xlsx, .xls, .csv"
-                                        data-type={item.key}
-                                        data-tab={activeTab}
-                                        onChange={(e) => handleFileChange(e, item.key)}
-                                        style={{ display: "none" }}
-                                    />
-
-                                    <div className="uploadss-iconss">
-                                        <img
-                                            src={UploadTlcIcon}
-                                            alt="uploadtlcIcon"
-                                            style={{ height: "48px", width: "48px" }}
-                                        />
-                                    </div>
-                                    <p
-                                        style={{
-                                            fontSize: "14px",
-                                            color: "#444",
-                                            fontFamily: "Inter",
-                                        }}
-                                    >
-                                        {activeTabData.fileNames[item.key].length === 0 ? (
-                                            <>
-                                                Click to upload{" "}
-                                                <span style={{ color: "#6C4CDC" }}>{item.label}</span>
-                                                <br />
-                                                <small>.XLSX, .XLS, .CSV</small>
-                                            </>
-                                        ) : (
-                                            "Uploaded files:"
-                                        )}
-                                    </p>
-
-                                    <div className="upload-content">
-                                        <div
-                                            style={{
-                                                marginTop: "8px",
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                gap: "4px",
-                                            }}
-                                        >
-                                            {activeTabData.fileNames[item.key].map((fileName, idx) => (
-                                                <div
-                                                    key={idx}
-                                                    style={{
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "space-between",
-                                                        background: "#DADADA",
-                                                        padding: "4px 8px",
-                                                        borderRadius: "6px",
-                                                        fontSize: "14px",
-                                                        fontFamily: "Inter",
-                                                    }}
-                                                    data-ignore="true"
-                                                >
-                                                    <span title={fileName}>
-                                                        {fileName.length > 30
-                                                            ? fileName.slice(0, 30) + "..."
-                                                            : fileName}
-                                                    </span>
-                                                    <span
-                                                        style={{
-                                                            cursor: "pointer",
-                                                            color: "#6C4CDC",
-                                                            fontWeight: "bold",
-                                                        }}
-                                                        data-ignore="true"
-                                                        onClick={() => {
-                                                            const updatedFiles =
-                                                                activeTabData.fileNames[item.key].filter(
-                                                                    (_, i) => i !== idx
-                                                                );
-                                                            updateTab({
-                                                                fileNames: {
-                                                                    ...activeTabData.fileNames,
-                                                                    [item.key]: updatedFiles,
-                                                                },
-                                                            });
-                                                        }}
-                                                    >
-                                                        ×
-                                                    </span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </section>
-                )} */}
-
-
-
             {activeTabData.stage === "loading" && (
                 <div className="inline-loader-wrapper">
                     <div className="loader"></div>
@@ -1749,49 +1607,12 @@ export default function TlcNewCustomerReporting(props) {
                     </div>
                 </div>
             )}
-
-
             <div className="search-section">
 
                 {activeTabData.stage === "overview" && activeTabData.analysisData && (
                     <section
                         className={`dashboard ${!isAnyAccordionOpen ? "dashboard-decrease-margin-bottom" : ""}`}
                     >
-
-                        {/* AI Analysis button */}
-                        {/* {!activeTabData.showReport && (
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    marginBottom: "24px",
-                                    marginTop: "-20px",
-                                }}
-                            >
-                                {!activeTabData.viewingHistory && (
-                                    <button
-                                        className="analyse-btn"
-                                        onClick={handleAiAnalysis}
-                                        disabled={activeTabData.aiLoading}
-                                    >
-                                        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                                            {activeTabData.aiLoading ? "Analyzing..." : "AI Analysis"}
-                                            <img src={star} alt="img" style={{ width: 20, height: 20 }} />
-                                        </div>
-                                    </button>
-                                )}
-                            </div>
-                        )} */}
-
-                        {/* AI Report */}
-                        {/* {activeTabData.showReport && (
-                            <AIAnalysisReportViewer
-                                reportText={activeTabData.aiReport}
-                                loading={activeTabData.aiLoading}
-                            />
-                        )} */}
-                        {/* ================= AI SUMMARY REPORT ================= */}
                         <AccordionHeader
                             title={`AI Summary Report ${activeTabData.startDate && activeTabData.endDate
                                 ? `(${formatDateRange()})`
@@ -1801,11 +1622,7 @@ export default function TlcNewCustomerReporting(props) {
                             showInsightIcon={true}
                             onClick={() => {
                                 const willOpen = !activeTabData.aiAccordion;
-
-                                // Accordion toggle
                                 updateTab({ aiAccordion: willOpen });
-
-                                // 🔥 API CALL SIRF TAB
                                 if (willOpen && !activeTabData.aiReport && !activeTabData.aiLoading) {
                                     handleAiAnalysis();
                                 }
