@@ -546,8 +546,8 @@ export default function TlcNewCustomerReporting(props) {
             if (selectedRole.length)
                 query.append("role", selectedRole.map((r) => r.value).join(","));
 
-            // const userEmail = props?.user?.email?.trim()?.toLowerCase();
-            const userEmail = "kris@curki.ai"
+            const userEmail = props?.user?.email?.trim()?.toLowerCase();
+            // const userEmail = "kris@curki.ai"
             const url = `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/payroll/filter?${query.toString()}&${userEmail}`;
 
             let analyzeData;
