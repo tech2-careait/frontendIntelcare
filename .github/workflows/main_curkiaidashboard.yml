@@ -90,7 +90,7 @@ jobs:
       # Step 4: Build React app with increased memory
       - name: Build React App
         run: |
-          echo "NODE_OPTIONS=--max-old-space-size=8192" >> $GITHUB_ENV
+          echo "NODE_OPTIONS=--max-old-space-size=8192"
           npm run build
 
       # Step 5: Upload build artifact
@@ -119,9 +119,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_B994B88DB6354D9A8E2D829E126E2DD7 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F9DD26871C5A4159B02175282866CEC9 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_B5381DAE0F8143BEABB938F0E6640505 }}
 
       # Step 3: Deploy to Azure Web App
       - name: Deploy to Azure Web App
@@ -130,6 +130,7 @@ jobs:
           app-name: 'curkiaidashboard'
           slot-name: 'Production'
           package: build
+
 
 
 
