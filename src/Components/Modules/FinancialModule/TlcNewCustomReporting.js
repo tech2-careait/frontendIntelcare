@@ -324,7 +324,7 @@ export default function TlcNewCustomerReporting(props) {
             await new Promise((r) => setTimeout(r, 300));
 
             for (const chart of charts) {
-                console.log("chart",chart)
+                console.log("chart", chart)
                 // ⛔ skip invisible / empty charts
                 if (!chart.offsetWidth || !chart.offsetHeight) continue;
 
@@ -372,9 +372,14 @@ export default function TlcNewCustomerReporting(props) {
         // ✅ Validate file names
         const validFiles = files.filter((file) => {
             const name = file.name.toLowerCase();
-            if (type === "payroll" && name.includes("pay journal")) return true;
-            if (type === "people" && name.includes("people - team members")) return true;
-            if (type === "employee" && name.includes("employeeupdate")) return true;
+            if (
+                name.includes("pay journal") ||
+                name.includes("people - team members") ||
+                name.includes("employeeupdate")
+            ) {
+                return true;
+            }
+
             return false;
         });
 
@@ -541,8 +546,8 @@ export default function TlcNewCustomerReporting(props) {
             if (selectedRole.length)
                 query.append("role", selectedRole.map((r) => r.value).join(","));
 
-            const userEmail = props?.user?.email?.trim()?.toLowerCase();
-            // const userEmail = "kris@curki.ai"
+            // const userEmail = props?.user?.email?.trim()?.toLowerCase();
+            const userEmail = "kris@curki.ai"
             const url = `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/payroll/filter?${query.toString()}&${userEmail}`;
 
             let analyzeData;
