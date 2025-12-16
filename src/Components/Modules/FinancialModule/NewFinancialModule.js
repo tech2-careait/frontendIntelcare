@@ -34,6 +34,8 @@ import TlcPayrollHistoryIcon from "../../../Images/TlcPayrollHistory.png"
 import TlcCompareAnalyseIcon from "../../../Images/Tlc_Compare_Analyse_Icon.png"
 import WhoAreYouToggle from "./WhoAreYouToggle";
 import "../../../Styles/TlcNewCustomReporting.css";
+import { useRef } from "react";
+
 const NewFinancialHealth = (props) => {
     const [financialReportFiles, setFinancialReportFiles] = useState([]);
     const [financialTemplate, setFinancialTemplate] = useState(null);
@@ -85,7 +87,8 @@ const NewFinancialHealth = (props) => {
     const [uiActiveTabId, setUiActiveTabId] = useState(1);
 
     const uiActiveTab = uiTabs.find(t => t.id === uiActiveTabId);
-
+    const previewRef = useRef(null);
+ 
     const handleUiNewTab = () => {
         const newId = uiTabs.length
             ? Math.max(...uiTabs.map(t => t.id)) + 1
@@ -311,7 +314,9 @@ const NewFinancialHealth = (props) => {
 
         return `${year}-${mm}-${dd}T00:00:00Z`;
     }
-
+    const handleDownloadReport = ()=>{
+        console.log("report download")
+    }
     const handleDownloadStandardExcel = async () => {
         if (
             !Array.isArray(standardFinancialExcelFile) ||
@@ -867,7 +872,7 @@ const NewFinancialHealth = (props) => {
                     <section className="data-upload-wrapper">
                         <TlcUploadBox
                             id="financial-health-files"
-                            title="Upload Financial Data"
+                            title="Upload Data"
                             subtitle="Upload multiple .xlsx, .csv or .xls files"
                             accept=".xlsx,.xls,.csv"
                             files={financialReportFiles}
@@ -900,7 +905,7 @@ const NewFinancialHealth = (props) => {
                                 <div
                                     style={{ display: "flex", alignItems: "center", gap: "10px" }}
                                 >
-                                    Analyse
+                                    AI Analyse
                                     <img
                                         src={star}
                                         alt="img"
@@ -910,7 +915,7 @@ const NewFinancialHealth = (props) => {
                             )}
                         </button>
                     </div>
-                    <div
+                    {/* <div
                         style={{
                             fontSize: "12px",
                             color: "grey",
@@ -921,11 +926,104 @@ const NewFinancialHealth = (props) => {
                         }}
                     >
                         **Estimated Time to Analyse 4 min**
-                    </div>
+                    </div> */}
                 </>
             ) : (
                 <>
+                    <div className="financial-header">
+                        <div
+                            className="role-selector"
+                            style={{ display: "flex", gap: "24px", alignItems: "center" }}
+                        >
+                            <WhoAreYouToggle
+                                value={selectedActor === "aged-care" ? "Aged Care" : "NDIS"}
+                                onChange={(val) => {
+                                    setSelectedActor(val === "Aged Care" ? "aged-care" : "NDIS");
+                                }}
+                            />
+
+                            <div style={{ minWidth: "180px" }}>
+                                <MultiSelectCustom
+                                    options={optionsRole}
+                                    selected={selectedRole}
+                                    setSelected={setSelectedRole}
+                                    placeholder="Role"
+                                    leftIcon={TlcPayrollRoleIcon}
+                                    rightIcon={TlcPayrollRoleDownArrowIcon}
+                                />
+                            </div>
+                        </div>
+
+
+                        {/* <h1 className="titless">FINANCIAL HEALTH</h1> */}
+                        <div className="sync-toggle">
+                            <div
+                                style={{
+                                    fontSize: "13px",
+                                    fontWeight: "500",
+                                    fontFamily: "Inter",
+                                }}
+                            >
+                                Sync With Your System
+                            </div>
+                            <Toggle
+                                checked={syncEnabled}
+                                onChange={() => setSyncEnabled(!syncEnabled)}
+                                className="custom-toggle"
+                                icons={false} // ✅ No icons
+                            />
+                        </div>
+                    </div>
                     <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            width: "100%",
+                        }}
+                    >
+                        {/* LEFT: UI TABS */}
+                        {renderUiTabBar()}
+
+                        {/* RIGHT: COMPARE & ANALYSE */}
+                        <div
+                            style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "8px",
+                                alignItems: "flex-end",
+                            }}
+                        >
+                            <button
+                                onClick={handleAnalyse} // existing financial analyse fn
+                                disabled={uiActiveTab?.loading || uiActiveTab?.uploading}
+                                style={{
+                                    background: "var(--Curki-2nd-Portal-1, #14C8A8)",
+                                    color: "#fff",
+                                    border: "none",
+                                    padding: "8px 16px",
+                                    borderRadius: "8px",
+                                    fontSize: "14px",
+                                    fontWeight: 400,
+                                    cursor: "pointer",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "8px",
+                                    marginTop: "17px",
+                                    opacity:
+                                        uiActiveTab?.loading || uiActiveTab?.uploading ? 0.6 : 1,
+                                }}
+                            >
+                                <img
+                                    src={TlcCompareAnalyseIcon}
+                                    alt="compare"
+                                    style={{ width: "14px", height: "14px" }}
+                                />
+                                Compare and Analyse
+                            </button>
+                        </div>
+                    </div>
+                    {/* <div
                         style={{
                             width: "100%",
                             display: "flex",
@@ -945,7 +1043,7 @@ const NewFinancialHealth = (props) => {
                             />
                             <div>New Report</div>
                         </button>
-                    </div>
+                    </div> */}
                     {/* ================= AI INSIGHT ================= */}
                     <AccordionHeader
                         title={
@@ -1093,6 +1191,7 @@ const NewFinancialHealth = (props) => {
                             apiExcelUrls={apiExcelUrls}
                             titles={titleArray}
                             financialReport={financialReport}
+                            ref={previewRef}
                         />
                     )}
 
@@ -1181,6 +1280,41 @@ const NewFinancialHealth = (props) => {
                 </>
             )}
             <section className="history-container">
+                {financialshowReport && financialReport && (
+                    <div
+                        style={{
+                            width: "100%",
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            marginBottom: "12px",
+                        }}
+                    >
+                        <button
+                            onClick={() => previewRef.current?.downloadAll()}
+                            style={{
+                                background: "var(--Curki-2nd-Portal-1, #14C8A8)",
+                                color: "#fff",
+                                border: "none",
+                                padding: "8px 16px",
+                                borderRadius: "8px",
+                                fontSize: "14px",
+                                fontWeight: 400,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                            }}
+                        >
+                            <img
+                                src={TlcCompareAnalyseIcon}
+                                alt="download"
+                                style={{ width: "14px", height: "14px" }}
+                            />
+                            Download Report
+                        </button>
+                    </div>
+                )}
+
                 {/* HEADER */}
                 <div
                     style={{

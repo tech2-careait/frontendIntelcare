@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useImperativeHandle,forwardRef } from "react";
 import * as XLSX from "xlsx";
 import icon2 from "../../../Images/Icon (2).png";
 import collapseIcon from "../../../Images/Vector.png";
@@ -16,7 +16,8 @@ import {
 } from "docx";
 import { saveAs } from "file-saver";
 
-const PreviewDataSection = ({ apiExcelUrls, tabTitles, financialReport }) => {
+const PreviewDataSection = forwardRef(
+  ({ apiExcelUrls, tabTitles, financialReport }, ref) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [sheets, setSheets] = useState({});
     const [activeSheet, setActiveSheet] = useState("");
@@ -368,6 +369,9 @@ const PreviewDataSection = ({ apiExcelUrls, tabTitles, financialReport }) => {
             alert("Error generating DOCX. Check console for details.");
         }
     };
+    useImperativeHandle(ref, () => ({
+        downloadAll: handleDownloadBoth,
+    }));
 
     return (
         <div style={{ margin: "20px 0", backgroundColor: "#fff", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
@@ -473,7 +477,7 @@ const PreviewDataSection = ({ apiExcelUrls, tabTitles, financialReport }) => {
                     </div>
 
                     {/* Download Button */}
-                    {apiExcelUrls && apiExcelUrls.length > 0 && (
+                    {/* {apiExcelUrls && apiExcelUrls.length > 0 && (
                         <button
                             onClick={handleDownloadBoth}
                             style={{
@@ -494,11 +498,12 @@ const PreviewDataSection = ({ apiExcelUrls, tabTitles, financialReport }) => {
                             <img src={icon2} alt="download" style={{ width: "12px", height: "12px" }} />
                         </button>
 
-                    )}
+                    )} */}
                 </div>
             )}
         </div>
     );
-};
+  }
+);
 
 export default PreviewDataSection;
