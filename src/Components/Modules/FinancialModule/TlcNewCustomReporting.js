@@ -1965,20 +1965,25 @@ export default function TlcNewCustomerReporting(props) {
                     </section>
                 )}
                 {activeTabData.stage === "filters" && !activeTabData.analysisData && (
-                    <button className="search-btn" onClick={handleAnalyse} disabled={activeTabData.loading} >
-                        {activeTabData.loading ? "Processing..." : "AI Analyse"}
-                        <img
-                            src={TlcPayrollInsightIcon}
-                            alt="AI Insight"
-                            style={{
-                                width: "18px",
-                                height: "18px",
-                                flexShrink: 0,
-                                filter: "brightness(0) invert(1)",
-                                marginLeft: "8px"
-                            }}
-                        />
+                    <button
+                        className="search-btn"
+                        onClick={handleAnalyse}
+                        disabled={activeTabData.loading}   // ✅ sirf loading ke time disable
+                    >
+                        {activeTabData.loading ? (
+                            "Processing..."
+                        ) : (
+                            <>
+                                AI Analyse
+                                <img
+                                    src={star}
+                                    alt="AI Insight"
+                                    style={{ width: "20px", height: "20px" }}
+                                />
+                            </>
+                        )}
                     </button>
+
                 )}
             </div>
 
