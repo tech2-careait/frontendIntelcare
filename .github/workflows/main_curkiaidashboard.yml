@@ -56,4 +56,11 @@ jobs:
           app-name: 'curkiaidashboard'
           slot-name: 'Production'
           package: .
-          
+
+
+
+
+
+
+
+
