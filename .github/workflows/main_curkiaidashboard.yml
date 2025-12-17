@@ -45,9 +45,9 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_B994B88DB6354D9A8E2D829E126E2DD7 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F9DD26871C5A4159B02175282866CEC9 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_B5381DAE0F8143BEABB938F0E6640505 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_0688C5F713604DBAB8E54289E4693B32 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_09350E022219448FA920F1AAC1DC6D9A }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_62DB46B755F146B98075274957712F0B }}
 
       - name: 'Deploy to Azure Web App'
         id: deploy-to-webapp
@@ -56,11 +56,4 @@ jobs:
           app-name: 'curkiaidashboard'
           slot-name: 'Production'
           package: .
-
-
-
-
-
-
-
-
+          
