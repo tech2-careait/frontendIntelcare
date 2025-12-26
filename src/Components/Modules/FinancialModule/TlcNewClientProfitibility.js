@@ -500,6 +500,7 @@ const TlcNewClientProfitability = (props) => {
             if (!res.ok) throw new Error(result.error || "Failed to load history");
 
             const record = result.data;
+            console.log("Loaded history record:", record);
             const { start, end } = record.filters || {};
 
             updateTab({
@@ -516,7 +517,12 @@ const TlcNewClientProfitability = (props) => {
 
                 isFromHistory: true,
             });
-
+            console.log("record.responseData.table", record.responseData.table)
+            if (record?.responseData?.table) {
+                onPrepareAiPayload({
+                    table_data: record?.responseData?.table, // ✅ EXACT structure backend expects
+                });
+            }
         } catch (err) {
             console.error("History load failed:", err);
             alert("Failed to load history");
