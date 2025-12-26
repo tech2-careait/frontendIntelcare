@@ -29,94 +29,265 @@ import TlcPayrollRoleDownArrowIcon from "../../../Images/TlcPayrollRoleDownArrow
 import TlcPayrollDepartmentIcon from "../../../Images/TlcPayrollDepartmentIcon.png"
 import TlcPayrollTypeIcon from "../../../Images/TlcPayrollType.png"
 import TlcPayrollStateIcon from "../../../Images/TlcPayrollStateIcon.png"
-import HistoryList from "./TlcHistoryList";
 import TlcPayrollHistoryIcon from "../../../Images/TlcPayrollHistory.png"
 import TlcCompareAnalyseIcon from "../../../Images/Tlc_Compare_Analyse_Icon.png"
 import WhoAreYouToggle from "./WhoAreYouToggle";
 import "../../../Styles/TlcNewCustomReporting.css";
+import { RiDeleteBin6Line } from "react-icons/ri";
 import { useRef } from "react";
 
 const NewFinancialHealth = (props) => {
-    const [financialReportFiles, setFinancialReportFiles] = useState([]);
+
     const [financialTemplate, setFinancialTemplate] = useState(null);
     const [standardFinancialExcelFile, setStandardFiancialExcelFile] = useState(
         []
     );
     const [uploadedFinancialExcelFile, setUploadedFinancialExcelFile] =
         useState(null);
-    const [financialReport, setFinancialReport] = useState(null);
-    const [financialVisualizations, setFinancialVisualizations] = useState([]);
+
+
     const [isFinancialProcessing, setIsFinancialProcessing] = useState(false);
     const [financialprogress, setFinancialProgress] = useState(0);
-    const [financialshowReport, setFinancialShowReport] = useState(false);
+
     const [isConsentChecked, setIsConsentChecked] = useState(false);
     // New Addition......
     const [selectedActor, setSelectedActor] = useState("NDIS");
     const [syncEnabled, setSyncEnabled] = useState(false);
-    const [dateRange, setDateRange] = useState([null, null]);
-    const [startDate, endDate] = dateRange;
 
-    const [selectedState, setSelectedState] = useState([]);
-    const [selectedDepartment, setSelectedDepartment] = useState([]);
-    const [selectedType, setSelectedType] = useState([]);
-    const [selectedRole, setSelectedRole] = useState([]);
 
-    const [apiExcelUrls, setApiExcelUrls] = useState([]);
+
+
+
+
     const [title, setTitle] = useState("");
     const raw = response
-
-    const [titleArray, setTitleArray] = useState([]);
-    const [accordions, setAccordions] = useState({
-        aiInsight: false,
-        charts: false,
-        summary: false,
-    });
-    const [aiInsightOpen, setAiInsightOpen] = useState(false);
     const [historyList, setHistoryList] = useState([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
-    const [reportType, setReportType] = useState(null);
+
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [selectedHistoryId, setSelectedHistoryId] = useState(null);
+    const [deleting, setDeleting] = useState(false);
+
 
     // ---------------- UI TABS (SAFE, ISOLATED) ----------------
-    const [uiTabs, setUiTabs] = useState([
+    const [tabs, setTabs] = useState([
         {
             id: 1,
             name: "Tab 1",
+
+            // 🔹 files
+            selectedFiles: [],
+
+            // 🔹 filters
+            dateRange: [null, null],
+            selectedState: [],
+            selectedDepartment: [],
+            selectedType: [],
+            selectedRole: [],
+
+            // 🔹 report result
+            responseData: null,
+            financialVisualizations: [],
+            apiExcelUrls: [],
+            excel_exports: {},
+            titleArray: [],
+            reportType: null,
+
+            // 🔹 UI / workflow
             loading: false,
             uploading: false,
+            progress: 0,
+            isFromHistory: false,
+
+            // 🔹 accordions
+            aiInsightOpen: false,
+            accordions: {
+                charts: false,
+                summary: false,
+            },
+            savingHistory: false,
         },
     ]);
 
-    const [uiActiveTabId, setUiActiveTabId] = useState(1);
+    const [activeTab, setActiveTab] = useState(1);
 
-    const uiActiveTab = uiTabs.find(t => t.id === uiActiveTabId);
+    const activeTabData = tabs.find(t => t.id === activeTab);
+    const [startDate, endDate] = activeTabData?.dateRange || [];
+
     const previewRef = useRef(null);
-
-    const handleUiNewTab = () => {
-        const newId = uiTabs.length
-            ? Math.max(...uiTabs.map(t => t.id)) + 1
+    const handleNewTab = () => {
+        const newId = tabs.length
+            ? Math.max(...tabs.map(t => t.id)) + 1
             : 1;
 
-        setUiTabs(prev => [
+        setTabs(prev => [
             ...prev,
             {
                 id: newId,
                 name: `Tab ${newId}`,
+
+                selectedFiles: [],
+
+                dateRange: [null, null],
+                selectedState: [],
+                selectedDepartment: [],
+                selectedType: [],
+                selectedRole: [],
+
+                responseData: null,
+                financialVisualizations: [],
+                apiExcelUrls: [],
+                excel_exports: {},
+                titleArray: [],
+                reportType: null,
+
                 loading: false,
                 uploading: false,
-            },
+                progress: 0,
+                isFromHistory: false,
+
+                aiInsightOpen: false,
+                accordions: {
+                    charts: false,
+                    summary: false,
+                },
+                savingHistory: false,
+            }
+
         ]);
 
-        setUiActiveTabId(newId);
+        setActiveTab(newId);
     };
 
-    const handleUiCloseTab = (id) => {
-        const remaining = uiTabs.filter(t => t.id !== id);
-        setUiTabs(remaining);
+    const updateTab = (updates) => {
+        setTabs(prev =>
+            prev.map(t =>
+                t.id === activeTab ? { ...t, ...updates } : t
+            )
+        );
+    };
+    const handleCloseTab = (id) => {
+        const remaining = tabs.filter(t => t.id !== id);
+        setTabs(remaining);
 
-        if (id === uiActiveTabId && remaining.length) {
-            setUiActiveTabId(remaining[0].id);
+        if (id === activeTab && remaining.length > 0) {
+            setActiveTab(remaining[0].id);
         }
     };
+    const formatDateRangeForTab = (startDate, endDate) => {
+        if (!startDate || !endDate) return null;
+
+        const format = (d) =>
+            d instanceof Date
+                ? d.toISOString().split("T")[0]
+                : new Date(d).toISOString().split("T")[0];
+
+        return `${format(startDate)} - ${format(endDate)}`;
+    };
+
+    const formatHistoryDateRange = (dateRange) => {
+        if (!Array.isArray(dateRange) || dateRange.length !== 2) return "–";
+
+        const [start, end] = dateRange;
+        if (!start || !end) return "–";
+
+        const format = (date) =>
+            new Date(date).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "2-digit",
+            });
+
+        return `${format(start)} – ${format(end)}`;
+    };
+
+    const rebuildExcelPreviewFromHistory = (excelExports = {}) => {
+
+        const mergedWorkbook = XLSX.utils.book_new();
+        const usedSheetNames = new Set();
+        const titleArray = [];
+
+        Object.entries(excelExports).forEach(([provider, files]) => {
+            if (!Array.isArray(files)) return;
+
+            files.forEach((file) => {
+                if (!file?.data_url) return;
+
+                titleArray.push(file.title);
+
+                const base64String = file.data_url.includes("base64,")
+                    ? file.data_url.split("base64,")[1]
+                    : file.data_url;
+
+                const binary = atob(base64String);
+                const buffer = new ArrayBuffer(binary.length);
+                const view = new Uint8Array(buffer);
+
+                for (let i = 0; i < binary.length; i++) {
+                    view[i] = binary.charCodeAt(i) & 0xff;
+                }
+
+                const workbook = XLSX.read(buffer, { type: "array" });
+
+                workbook.SheetNames.forEach((sheetName) => {
+                    let finalName = sheetName.slice(0, 31);
+                    let counter = 1;
+
+                    while (usedSheetNames.has(finalName)) {
+                        const suffix = `_${counter++}`;
+                        finalName = sheetName.slice(0, 31 - suffix.length) + suffix;
+                    }
+
+                    usedSheetNames.add(finalName);
+                    XLSX.utils.book_append_sheet(
+                        mergedWorkbook,
+                        workbook.Sheets[sheetName],
+                        finalName
+                    );
+                });
+            });
+        });
+
+        const wbout = XLSX.write(mergedWorkbook, {
+            bookType: "xlsx",
+            type: "binary",
+        });
+
+        const blob = new Blob([s2ab(wbout)], {
+            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+
+        return {
+            apiExcelUrls: [URL.createObjectURL(blob)], // ✅ SINGLE FILE
+            titleArray,
+        };
+    };
+
+
+
+    const setTabFiles = (updater) => {
+        setTabs(prevTabs =>
+            prevTabs.map(tab => {
+                if (tab.id !== activeTab) return tab;
+
+                const prevFiles = tab.selectedFiles || [];
+                const nextFiles =
+                    typeof updater === "function"
+                        ? updater(prevFiles)
+                        : updater;
+
+                const safeFiles = Array.isArray(nextFiles)
+                    ? nextFiles.filter(f => f && f.name)
+                    : [];
+
+                return {
+                    ...tab,
+                    selectedFiles: safeFiles,
+                };
+            })
+        );
+    };
+
     const formatAccordionDate = (date) => {
         if (!date) return "";
         return date.toLocaleDateString("en-US", {
@@ -135,37 +306,37 @@ const NewFinancialHealth = (props) => {
                 alignItems: "center",
                 marginBottom: "16px",
                 paddingTop: "16px",
-                marginTop: "12px"
+                marginTop: "12px",
             }}
         >
-            {uiTabs.map(tab => (
+            {tabs.map(tab => (
                 <div
                     key={tab.id}
-                    onClick={() => setUiActiveTabId(tab.id)}
+                    onClick={() => setActiveTab(tab.id)}
                     style={{
                         padding: "8px 16px",
                         borderRadius: "8px",
-                        background: tab.id === uiActiveTabId ? "#6C4CDC" : "#f3f4f6",
-                        color: tab.id === uiActiveTabId ? "#fff" : "#000",
+                        background: tab.id === activeTab ? "#6C4CDC" : "#f3f4f6",
+                        color: tab.id === activeTab ? "#fff" : "#000",
                         cursor: "pointer",
                         display: "flex",
                         alignItems: "center",
                         gap: "8px",
                         fontSize: "14px",
-                        fontWeight: tab.id === uiActiveTabId ? 600 : 400,
+                        fontWeight: tab.id === activeTab ? 600 : 400,
                     }}
                 >
                     {tab.name}
 
-                    {uiTabs.length > 1 && (
+                    {tabs.length > 1 && (
                         <span
                             onClick={(e) => {
                                 e.stopPropagation();
-                                handleUiCloseTab(tab.id);
+                                handleCloseTab(tab.id);
                             }}
                             style={{
                                 marginLeft: "4px",
-                                color: tab.id === uiActiveTabId ? "#ccc" : "#999",
+                                color: "#ddd",
                                 cursor: "pointer",
                                 fontWeight: "bold",
                                 fontSize: "18px",
@@ -178,7 +349,7 @@ const NewFinancialHealth = (props) => {
             ))}
 
             <button
-                onClick={handleUiNewTab}
+                onClick={handleNewTab}
                 style={{
                     background: "#e5e7eb",
                     borderRadius: "8px",
@@ -193,6 +364,7 @@ const NewFinancialHealth = (props) => {
             </button>
         </div>
     );
+
 
     const optionsState = [
         { label: "NSW", value: "NSW" },
@@ -217,22 +389,25 @@ const NewFinancialHealth = (props) => {
         { label: "Admin", value: "Admin" },
     ];
     const toggleAccordion = (key) => {
-        setAccordions((prev) => ({
-            ...prev,
-            [key]: !prev[key],
-        }));
+        updateTab({
+            accordions: {
+                ...activeTabData.accordions,
+                [key]: !activeTabData.accordions[key],
+            },
+        });
     };
+
 
     const handleButtonClick = () => {
         setIsConsentChecked(true);
     };
-    const handleFinancialFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        if (!files.length) return;
+    // const handleFinancialFileChange = (e) => {
+    //     const files = Array.from(e.target.files);
+    //     if (!files.length) return;
 
-        setFinancialReportFiles((prev) => [...prev, ...files]);
-        e.target.value = "";
-    };
+    //     setFinancialReportFiles((prev) => [...prev, ...files]);
+    //     e.target.value = "";
+    // };
 
     const AccordionHeader = ({ title, isOpen, onClick }) => {
         const showInsightIcon =
@@ -368,10 +543,204 @@ const NewFinancialHealth = (props) => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
     };
+    useEffect(() => {
+        const fetchFinancialHistory = async () => {
+            try {
+                setLoadingHistory(true);
+
+                const res = await fetch(
+                    "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/financial-module"
+                );
+
+                if (!res.ok) {
+                    throw new Error("Failed to fetch financial history");
+                }
+
+                const json = await res.json();
+                console.log("json", json)
+                setHistoryList(json.data || []);
+            } catch (err) {
+                console.error("Failed to load history", err);
+            } finally {
+                setLoadingHistory(false);
+            }
+        };
+
+        fetchFinancialHistory()
+    }, [props.user])
+
+    const handleSaveFinancialHistory = async () => {
+        // guard: already saving OR no analysis
+        if (activeTabData.savingHistory || !activeTabData.responseData) return;
+        // console.log("active tab data", activeTabData)
+        try {
+            // 🔹 START saving (PER TAB)
+            updateTab({ savingHistory: true });
+
+            const payload = {
+                email: props?.user?.email || "",
+
+                // 🔴 CORE DATA (THIS WAS MISSING)
+                responseData: activeTabData.responseData,
+                financialVisualizations: activeTabData.financialVisualizations || [],
+                apiExcelUrls: activeTabData.apiExcelUrls || [],
+                excelExports: activeTabData.excel_exports || {},
+                titleArray: activeTabData.titleArray || [],
+                reportType: activeTabData.reportType || null,
+
+                // 🔴 FILTERS (same as client profitability)
+                filters: {
+                    dateRange: activeTabData.dateRange,
+                    selectedState: activeTabData.selectedState,
+                    selectedDepartment: activeTabData.selectedDepartment,
+                    selectedType: activeTabData.selectedType,
+                    selectedRole: activeTabData.selectedRole,
+                },
+            };
+
+            // console.log("payload before saving history", payload)
+            const res = await fetch("https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/financial-module/save", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                throw new Error("Failed to save history");
+            }
+
+            alert("Saved successfully");
+        } catch (error) {
+            console.error("Save history failed:", error);
+            alert("Failed to save history");
+        } finally {
+            // 🔹 END saving (PER TAB)
+            updateTab({ savingHistory: false });
+        }
+    };
+
+
+    const handleHistoryClick = async (item) => {
+        try {
+            const res = await fetch(
+                `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/financial-module/${item.id}`
+            );
+
+            if (!res.ok) throw new Error("Failed to fetch history item");
+
+            const json = await res.json();
+            const data = json.data;
+
+            // console.log("data when clicked", data);
+
+            // ---- Date range parsing (common) ----
+            const rawRange = data.filters?.dateRange;
+            const parsedDateRange =
+                Array.isArray(rawRange) && rawRange.length === 2
+                    ? [
+                        rawRange[0] ? new Date(rawRange[0]) : null,
+                        rawRange[1] ? new Date(rawRange[1]) : null,
+                    ]
+                    : [null, null];
+            const historyTabName = formatDateRangeForTab(
+                parsedDateRange[0],
+                parsedDateRange[1]
+            );
+            // ---- Base payload (common for ALL types) ----
+            const baseTabPayload = {
+                responseData: data.responseData,
+                financialVisualizations: data.financialVisualizations || [],
+                reportType: data.reportType,
+
+                dateRange: parsedDateRange,
+                selectedState: data.filters?.selectedState || [],
+                selectedDepartment: data.filters?.selectedDepartment || [],
+                selectedType: data.filters?.selectedType || [],
+                selectedRole: data.filters?.selectedRole || [],
+
+                isFromHistory: true,
+                loading: false,
+                progress: 100,
+            };
+
+            // ---- TYPE-SPECIFIC HANDLING ----
+            if (data.reportType === "api") {
+                // ✅ API reports → rebuild excel preview
+                const { apiExcelUrls, titleArray } =
+                    rebuildExcelPreviewFromHistory(data.excelExports);
+
+                updateTab({
+                    ...baseTabPayload,
+                    apiExcelUrls,
+                    titleArray,
+                    excel_exports: data.excelExports || {},
+                    ...(historyTabName ? { name: historyTabName } : {}),
+                });
+
+            } else if (data.reportType === "upload") {
+                // ✅ Upload reports → NO excel rebuild
+                updateTab({
+                    ...baseTabPayload,
+                    apiExcelUrls: [],
+                    titleArray: [],
+                    excel_exports: {},
+                     ...(historyTabName ? { name: historyTabName } : {}),
+                });
+
+            } else {
+                // ✅ Fallback (future-proof)
+                console.warn("Unknown reportType:", data.reportType);
+                updateTab(baseTabPayload);
+            }
+
+        } catch (err) {
+            console.error("Failed to load history", err);
+        }
+    };
+
+
+    const handleDeleteHistory = async () => {
+        if (!selectedHistoryId) return;
+
+        try {
+            setDeleting(true);
+
+            const res = await fetch(`https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/financial-module`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    id: selectedHistoryId,
+                }),
+            });
+
+            if (!res.ok) {
+                throw new Error("Failed to delete history");
+            }
+
+            // remove from UI immediately (same as client profitability)
+            setHistoryList((prev) =>
+                prev.filter((item) => item.id !== selectedHistoryId)
+            );
+
+            setShowDeleteModal(false);
+            setSelectedHistoryId(null);
+
+            alert("History deleted successfully");
+        } catch (error) {
+            console.error("Delete history failed:", error);
+            alert("Failed to delete history");
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     const handleAnalyse = async () => {
         // Validation checks
-        if (financialReportFiles.length === 0 && !syncEnabled) {
+        if (activeTabData.selectedFiles.length === 0 && !syncEnabled) {
             alert("Please upload the report files or enable sync.");
             return;
         }
@@ -382,12 +751,18 @@ const NewFinancialHealth = (props) => {
 
 
         props.handleClick();
-        setIsFinancialProcessing(true);
-        setFinancialProgress(1);
+        updateTab({ loading: true, progress: 1 });
 
         const interval = setInterval(() => {
-            setFinancialProgress((prev) => (prev < 92 ? prev + 2 : prev));
+            setTabs(prev =>
+                prev.map(tab =>
+                    tab.id === activeTab
+                        ? { ...tab, progress: tab.progress < 92 ? tab.progress + 2 : tab.progress }
+                        : tab
+                )
+            );
         }, 5000);
+
 
         try {
             const formData = new FormData();
@@ -395,9 +770,11 @@ const NewFinancialHealth = (props) => {
             // Determine type correctly
             let type = "upload";
             // if (syncEnabled && financialReportFiles.length > 0) type = "hybrid";
-            if (syncEnabled && financialReportFiles.length === 0) type = "api";
+            if (syncEnabled && activeTabData.selectedFiles.length === 0) type = "api";
+            updateTab({
+                reportType: type,
+            });
 
-            setReportType(type);
 
             // Handle dates
             let fromDate, toDate;
@@ -423,7 +800,9 @@ const NewFinancialHealth = (props) => {
                 if (!fromDate || !toDate) {
                     alert("Please select valid start and end dates for sync mode.");
                     clearInterval(interval);
-                    setIsFinancialProcessing(false);
+                    updateTab({
+                        loading: false,
+                    });
                     return;
                 }
             } else {
@@ -435,7 +814,9 @@ const NewFinancialHealth = (props) => {
             if (!props.user?.email) {
                 alert("User email is required. Please log in again.");
                 clearInterval(interval);
-                setIsFinancialProcessing(false);
+                updateTab({
+                    loading: false,
+                });
                 return;
             }
 
@@ -462,13 +843,17 @@ const NewFinancialHealth = (props) => {
             //     financialReportFiles.forEach((file) => formData.append("files", file));
             // }
             if (type === "upload") {
-                if (financialReportFiles.length === 0) {
+                if (activeTabData.selectedFiles.length === 0) {
                     alert("No files selected for upload.");
                     clearInterval(interval);
-                    setIsFinancialProcessing(false);
+                    updateTab({
+                        loading: false,
+                    });
                     return;
                 }
-                financialReportFiles.forEach((file) => formData.append("files", file));
+                activeTabData.selectedFiles.forEach(file =>
+                    formData.append("files", file)
+                );
             }
 
             // --- Step 1: Call Analysis API ---
@@ -626,7 +1011,9 @@ const NewFinancialHealth = (props) => {
                             }
                         }
 
-                        setTitleArray(titlesArray);
+                        updateTab({
+                            titleArray: titlesArray,
+                        });
 
                         const wbout = XLSX.write(mergedWorkbook, { bookType: "xlsx", type: "binary" });
                         const blob = new Blob([s2ab(wbout)], {
@@ -634,23 +1021,31 @@ const NewFinancialHealth = (props) => {
                         });
 
                         const url = URL.createObjectURL(blob);
-                        setApiExcelUrls([url]);
+                        updateTab({
+                            apiExcelUrls: [url],
+                        });
                     } catch (err) {
                         console.error("Error merging API Excel files:", err);
                     }
                 }
             } else {
-                setApiExcelUrls([]); // clear for non-API types
+                updateTab({ apiExcelUrls: [] });
             }
             // console.log("apiExcelUrls in handle analyse", apiExcelUrls)
             const figures = normalizeFigures(vizData);
             // console.log("analysisData", analysisData)
             // --- Step 5: Save state ---
-            setFinancialReport(analysisData.final);
-            setFinancialVisualizations(figures);
-            setFinancialShowReport(true);
-            setIsFinancialProcessing(false);
-            setFinancialProgress(100);
+            const tabDateName = formatDateRangeForTab(startDate, endDate);
+            updateTab({
+                responseData: analysisData.final,
+                financialVisualizations: figures,
+                excel_exports: analysisData?.excel_exports,
+                loading: false,
+                progress: 100,
+                ...(tabDateName ? { name: tabDateName } : {}),
+            });
+
+
 
         } catch (err) {
             console.error("Error in analysis pipeline:", err);
@@ -664,41 +1059,246 @@ const NewFinancialHealth = (props) => {
             }
         } finally {
             clearInterval(interval);
-            setIsFinancialProcessing(false);
-            setFinancialProgress(100);
+            updateTab({
+                loading: false,
+                progress: 100,
+            });
         }
     };
 
-    const isButtonDisabled = !syncEnabled && financialReportFiles.length === 0;
+    const isButtonDisabled =
+        !syncEnabled && activeTabData.selectedFiles.length === 0;
+
 
     useEffect(() => {
-        if (financialshowReport) {
+        if (activeTabData?.responseData) {
             const timer = setTimeout(() => {
                 props.setShowFeedbackPopup(true);
-            }, 60000); // 1 minute
-
-            return () => clearTimeout(timer); // Clear on unmount or change
+            }, 60000);
+            return () => clearTimeout(timer);
         }
-    }, [financialshowReport]);
+    }, [activeTabData?.responseData]);
+
 
     const resetFinancialHealthState = () => {
-        setFinancialReportFiles([]);
-        setFinancialTemplate(null);
-        setStandardFiancialExcelFile([]);
-        setUploadedFinancialExcelFile(null);
-        setFinancialReport(null);
-        setFinancialVisualizations([]);
-        setIsFinancialProcessing(false);
-        setFinancialProgress(0);
-        setFinancialShowReport(false);
-        setIsConsentChecked(false);
+        updateTab({
+            responseData: null,
+            selectedFiles: [],
+            financialVisualizations: [],
+            apiExcelUrls: [],
+            titleArray: [],
+            reportType: null,
+            isFromHistory: false,
+            aiInsightOpen: false,
+            accordions: { charts: false, summary: false },
+        });
     };
+
     // console.log("financial Visualizations", financialVisualizations);
     // console.log("accordions", accordions)
+    const renderHistorySection = () => (
+        <section className="history-container">
+            {activeTabData?.responseData && (
+                <div
+                    style={{
+                        width: "100%",
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        marginBottom: "12px",
+                    }}
+                >
+                    <button
+                        // onClick={handleDownloadReport}
+                        style={{
+                            background: "var(--Curki-2nd-Portal-1, #14C8A8)",
+                            color: "#fff",
+                            border: "none",
+                            padding: "8px 16px",
+                            borderRadius: "8px",
+                            fontSize: "14px",
+                            fontWeight: 400,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "8px",
+                        }}
+                    >
+                        <img
+                            src={TlcCompareAnalyseIcon}
+                            alt="download"
+                            style={{ width: "14px", height: "14px" }}
+                        />
+                        Download Report
+                    </button>
+                </div>
+            )}
+
+            {/* HEADER */}
+            <div style={{ display: "flex", gap: "8px" }}>
+                <img
+                    src={TlcPayrollHistoryIcon}
+                    alt="icon"
+                    style={{ width: "22px", height: "21px", pointerEvents: "none" }}
+                />
+                <div className="history-title">History</div>
+            </div>
+
+            {/* BODY */}
+            {!loadingHistory && historyList.length > 0 && (
+                <div className="history-list">
+                    {historyList.map(item => (
+                        <div
+                            key={item.id}
+                            className="history-card-modern"
+                            onClick={() => handleHistoryClick(item)}
+                            style={{ position: "relative" }}
+                        >
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedHistoryId(item.id);
+                                    setShowDeleteModal(true);
+                                }}
+                                style={{
+                                    position: "absolute",
+                                    top: "10px",
+                                    right: "10px",
+                                    background: "transparent",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    color: "#6C4CDC",
+                                }}
+                                title="Delete"
+                            >
+                                <RiDeleteBin6Line size={18} />
+                            </button>
+
+                            {/* TOP ROW */}
+                            <div className="history-top">
+                                <div className="history-date-range">
+                                    <span className="label">Date Range: </span>
+                                    <span className="value">
+                                        {formatHistoryDateRange(item.filters?.dateRange)}
+
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* SAVED ON */}
+                            <div className="saved-on">
+                                <span className="saved-label">Saved on: </span>
+                                {new Date(item.createdAt).toLocaleString()}
+                            </div>
+
+                            {/* FILTER SUMMARY */}
+                            {item.filters && (
+                                <div className="history-filters">
+                                    {item.filters.state && (
+                                        <div className="filter-item">
+                                            <strong>State:</strong> {item.filters.state}
+                                        </div>
+                                    )}
+
+                                    {item.filters.department && (
+                                        <div className="filter-item">
+                                            <strong>Department:</strong> {item.filters.department}
+                                        </div>
+                                    )}
+
+                                    {item.filters.role && (
+                                        <div className="filter-item">
+                                            <strong>Role:</strong> {item.filters.role}
+                                        </div>
+                                    )}
+
+                                    {item.filters.employmentType && (
+                                        <div className="filter-item">
+                                            <strong>Employment Type:</strong> {item.filters.employmentType}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+            {showDeleteModal && (
+                <div
+                    style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(0,0,0,0.35)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 9999,
+                    }}
+                >
+                    <div
+                        style={{
+                            background: "#fff",
+                            borderRadius: "12px",
+                            padding: "20px 24px",
+                            minWidth: "360px",
+                            textAlign: "center",
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: "16px",
+                                fontWeight: 600,
+                                color: "#1f2937",
+                                marginBottom: "20px",
+                            }}
+                        >
+                            Are you sure you want to delete history?
+                        </div>
+
+                        <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setSelectedHistoryId(null);
+                                }}
+                                style={{
+                                    padding: "8px 22px",
+                                    borderRadius: "6px",
+                                    border: "none",
+                                    background: "#e5e7eb",
+                                    cursor: "pointer",
+                                    fontWeight: "500",
+                                }}
+                            >
+                                No
+                            </button>
+
+                            <button
+                                onClick={handleDeleteHistory}
+                                disabled={deleting}
+                                style={{
+                                    padding: "8px 22px",
+                                    borderRadius: "6px",
+                                    border: "none",
+                                    background: "#6C4CDC",
+                                    color: "#fff",
+                                    cursor: "pointer",
+                                    fontWeight: "500",
+                                }}
+                            >
+                                {deleting ? "..." : "Yes"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+        </section>
+    );
+
     return (
 
         <>
-            {!financialshowReport ? (
+            {!activeTabData.responseData ? (
                 <>
                     {/* <PreviewDataSection
             apiExcelUrls={apiExcelUrls}
@@ -721,12 +1321,13 @@ const NewFinancialHealth = (props) => {
                             <div style={{ minWidth: "180px" }}>
                                 <MultiSelectCustom
                                     options={optionsRole}
-                                    selected={selectedRole}
-                                    setSelected={setSelectedRole}
+                                    selected={activeTabData.selectedRole}
+                                    setSelected={(vals) => updateTab({ selectedRole: vals })}
                                     placeholder="Role"
                                     leftIcon={TlcPayrollRoleIcon}
                                     rightIcon={TlcPayrollRoleDownArrowIcon}
                                 />
+
                             </div>
                         </div>
 
@@ -772,7 +1373,7 @@ const NewFinancialHealth = (props) => {
                         >
                             <button
                                 onClick={handleAnalyse} // existing financial analyse fn
-                                disabled={uiActiveTab?.loading || uiActiveTab?.uploading}
+                                disabled={activeTabData.loading || activeTabData.uploading}
                                 style={{
                                     background: "var(--Curki-2nd-Portal-1, #14C8A8)",
                                     color: "#fff",
@@ -787,7 +1388,7 @@ const NewFinancialHealth = (props) => {
                                     gap: "8px",
                                     marginTop: "17px",
                                     opacity:
-                                        uiActiveTab?.loading || uiActiveTab?.uploading ? 0.6 : 1,
+                                        activeTabData?.loading || activeTabData?.uploading ? 0.6 : 1,
                                 }}
                             >
                                 <img
@@ -797,6 +1398,7 @@ const NewFinancialHealth = (props) => {
                                 />
                                 Compare and Analyse
                             </button>
+
                         </div>
                     </div>
 
@@ -857,15 +1459,16 @@ const NewFinancialHealth = (props) => {
                                 <DateRangePicker
                                     startDate={startDate}
                                     endDate={endDate}
-                                    onChange={(dates) => setDateRange(dates)}
+                                    onChange={(dates) => updateTab({ dateRange: dates })}
                                 />
+
                             </div>
 
                             {/* STATE */}
                             <MultiSelectCustom
                                 options={optionsState}
-                                selected={selectedState}
-                                setSelected={setSelectedState}
+                                selected={activeTabData.selectedState}
+                                setSelected={(vals) => updateTab({ selectedState: vals })}
                                 placeholder="State"
                                 leftIcon={TlcPayrollStateIcon}
                                 rightIcon={TlcPayrollDownArrow}
@@ -874,22 +1477,24 @@ const NewFinancialHealth = (props) => {
                             {/* DEPARTMENT FILTER */}
                             <MultiSelectCustom
                                 options={optionsDepartment}
-                                selected={selectedDepartment}
-                                setSelected={setSelectedDepartment}
+                                selected={activeTabData.selectedDepartment}
+                                setSelected={(vals) => updateTab({ selectedDepartment: vals })}
                                 placeholder="Department"
                                 leftIcon={TlcPayrollDepartmentIcon}
                                 rightIcon={TlcPayrollDownArrow}
                             />
 
+
                             {/* TYPE FILTER */}
                             <MultiSelectCustom
                                 options={optionsType}
-                                selected={selectedType}
-                                setSelected={setSelectedType}
+                                selected={activeTabData.selectedType}
+                                setSelected={(vals) => updateTab({ selectedType: vals })}
                                 placeholder="Type"
                                 leftIcon={TlcPayrollTypeIcon}
                                 rightIcon={TlcPayrollDownArrow}
                             />
+
 
                         </div>
                     </section>
@@ -900,8 +1505,8 @@ const NewFinancialHealth = (props) => {
                             title="Upload Data"
                             subtitle="Upload multiple .xlsx, .csv or .xls files"
                             accept=".xlsx,.xls,.csv"
-                            files={financialReportFiles}
-                            setFiles={setFinancialReportFiles}
+                            files={activeTabData.selectedFiles}
+                            setFiles={setTabFiles}
                             multiple
                             onTemplateDownload={() => {
                                 const link = document.createElement("a");
@@ -916,16 +1521,16 @@ const NewFinancialHealth = (props) => {
                     <div className="search-section">
                         <button
                             className="analyse-btn"
-                            disabled={isButtonDisabled || isFinancialProcessing}
+                            disabled={isButtonDisabled || activeTabData.loading}
                             style={{
                                 backgroundColor:
-                                    isButtonDisabled || isFinancialProcessing ? "#A1A1AA" : "#000",
-                                cursor: isFinancialProcessing ? "not-allowed" : "pointer",
+                                    isButtonDisabled || activeTabData.loading ? "#A1A1AA" : "#000",
+                                cursor: activeTabData.loading ? "not-allowed" : "pointer",
                             }}
                             onClick={handleAnalyse}
                         >
-                            {isFinancialProcessing ? (
-                                `${financialprogress}% Processing...`
+                            {activeTabData.loading ? (
+                                `${activeTabData.progress}% Processing...`
                             ) : (
                                 <div
                                     style={{ display: "flex", alignItems: "center", gap: "10px" }}
@@ -970,8 +1575,8 @@ const NewFinancialHealth = (props) => {
                             <div style={{ minWidth: "180px" }}>
                                 <MultiSelectCustom
                                     options={optionsRole}
-                                    selected={selectedRole}
-                                    setSelected={setSelectedRole}
+                                    selected={activeTabData.selectedRole}
+                                    setSelected={(vals) => updateTab({ selectedRole: vals })}
                                     placeholder="Role"
                                     leftIcon={TlcPayrollRoleIcon}
                                     rightIcon={TlcPayrollRoleDownArrowIcon}
@@ -1021,7 +1626,7 @@ const NewFinancialHealth = (props) => {
                         >
                             <button
                                 onClick={handleAnalyse} // existing financial analyse fn
-                                disabled={uiActiveTab?.loading || uiActiveTab?.uploading}
+                                disabled={activeTabData?.loading || activeTabData?.uploading}
                                 style={{
                                     background: "var(--Curki-2nd-Portal-1, #14C8A8)",
                                     color: "#fff",
@@ -1036,7 +1641,7 @@ const NewFinancialHealth = (props) => {
                                     gap: "8px",
                                     marginTop: "17px",
                                     opacity:
-                                        uiActiveTab?.loading || uiActiveTab?.uploading ? 0.6 : 1,
+                                        activeTabData?.loading || activeTabData?.uploading ? 0.6 : 1,
                                 }}
                             >
                                 <img
@@ -1046,6 +1651,25 @@ const NewFinancialHealth = (props) => {
                                 />
                                 Compare and Analyse
                             </button>
+                            {!activeTabData.isFromHistory && (
+                                <button
+                                    onClick={handleSaveFinancialHistory}
+                                    style={{
+                                        background: "#6C4CDC",
+                                        color: "#fff",
+                                        border: "none",
+                                        padding: "8px 16px",
+                                        borderRadius: "8px",
+                                        fontSize: "14px",
+                                        fontWeight: 400,
+                                        cursor: "pointer",
+                                        marginBottom: "10px"
+                                    }}
+                                >
+                                    {activeTabData.savingHistory ? "Saving..." : "Save"}
+                                </button>
+                            )}
+
                         </div>
                     </div>
                     {/* <div
@@ -1076,12 +1700,15 @@ const NewFinancialHealth = (props) => {
                                 ? `AI Insight (${startDate.toLocaleDateString("en-US")} - ${endDate.toLocaleDateString("en-US")})`
                                 : "AI Insight"
                         }
-                        isOpen={aiInsightOpen}
-                        onClick={() => setAiInsightOpen(!aiInsightOpen)}
+                        isOpen={activeTabData.aiInsightOpen}
+                        onClick={() =>
+                            updateTab({ aiInsightOpen: !activeTabData.aiInsightOpen })
+                        }
+
                     />
 
 
-                    {aiInsightOpen && (
+                    {activeTabData.aiInsightOpen && (
                         <div
                             className="reports-box"
                             style={{ height: "auto", marginTop: "20px", padding: "10px" }}
@@ -1094,7 +1721,7 @@ const NewFinancialHealth = (props) => {
                                 }}
                             >
                                 <SummaryReport
-                                    summaryText={financialReport}
+                                    summaryText={activeTabData.responseData}
                                     handleDownloadAnalyedReportUploadedCSV={
                                         handleDownloadUploadedExcel
                                     }
@@ -1105,13 +1732,15 @@ const NewFinancialHealth = (props) => {
                                     resetFinancialHealthState={resetFinancialHealthState}
                                 />
 
-                                {financialReport && apiExcelUrls?.length > 0 && (
+                                {activeTabData.responseData && activeTabData.apiExcelUrls?.length > 0 && (
                                     <PreviewDataSection
-                                        apiExcelUrls={apiExcelUrls}
-                                        titles={titleArray}
-                                        financialReport={financialReport}
+                                        apiExcelUrls={activeTabData.apiExcelUrls}
+                                        titles={activeTabData.titleArray}
+                                        financialReport={activeTabData.responseData}
+                                        ref={previewRef}
                                     />
                                 )}
+
 
                                 {/* Consent */}
                                 <div
@@ -1175,13 +1804,13 @@ const NewFinancialHealth = (props) => {
                                 ? `Financial Vizualization (${startDate.toLocaleDateString("en-US")} - ${endDate.toLocaleDateString("en-US")})`
                                 : "Financial Vizualization"
                         }
-                        isOpen={accordions.charts}
+                        isOpen={activeTabData.accordions.charts}
                         onClick={() => toggleAccordion("charts")}
                     />
 
-                    {accordions.charts && (
+                    {activeTabData.accordions.charts && (
                         <div className="graph-gridsss">
-                            {financialVisualizations.map((item, index) => (
+                            {activeTabData.financialVisualizations.map((item, index) => (
                                 <div key={index} style={{ marginBottom: "30px" }}>
                                     {item.figure && (
                                         <Plot
@@ -1216,24 +1845,26 @@ const NewFinancialHealth = (props) => {
                     )}
 
                     {/* ================= RAW DATA / EXPORT ================= */}
-                    {reportType === "api" && <AccordionHeader
+                    {activeTabData.reportType === "api" && <AccordionHeader
                         title={
                             startDate && endDate
                                 ? `Exported Data (${startDate.toLocaleDateString("en-US")} - ${endDate.toLocaleDateString("en-US")})`
                                 : "Exported Data"
                         }
-                        isOpen={accordions.summary}
+                        isOpen={activeTabData.accordions.summary}
                         onClick={() => toggleAccordion("summary")}
                     />}
 
-                    {accordions.summary && apiExcelUrls?.length > 0 && (
-                        <PreviewDataSection
-                            apiExcelUrls={apiExcelUrls}
-                            titles={titleArray}
-                            financialReport={financialReport}
-                            ref={previewRef}
-                        />
-                    )}
+                    {activeTabData.accordions.summary &&
+                        activeTabData.apiExcelUrls?.length > 0 && (
+                            <PreviewDataSection
+                                apiExcelUrls={activeTabData.apiExcelUrls}
+                                titles={activeTabData.titleArray}
+                                financialReport={activeTabData.responseData}
+                                ref={previewRef}
+                            />
+                        )}
+
 
                     {/* <div
                         className="reports-box"
@@ -1319,102 +1950,8 @@ const NewFinancialHealth = (props) => {
                     </div> */}
                 </>
             )}
-            <section className="history-container">
-                {financialshowReport && financialReport && (
-                    <div
-                        style={{
-                            width: "100%",
-                            display: "flex",
-                            justifyContent: "flex-end",
-                            marginBottom: "12px",
-                        }}
-                    >
-                        <button
-                            onClick={() => previewRef.current?.downloadAll()}
-                            style={{
-                                background: "var(--Curki-2nd-Portal-1, #14C8A8)",
-                                color: "#fff",
-                                border: "none",
-                                padding: "8px 16px",
-                                borderRadius: "8px",
-                                fontSize: "14px",
-                                fontWeight: 400,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                            }}
-                        >
-                            <img
-                                src={TlcCompareAnalyseIcon}
-                                alt="download"
-                                style={{ width: "14px", height: "14px" }}
-                            />
-                            Download Report
-                        </button>
-                    </div>
-                )}
+            {renderHistorySection()}
 
-                {/* HEADER */}
-                <div
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "8px",
-                    }}
-                >
-                    <img
-                        src={TlcPayrollHistoryIcon}
-                        alt="icon"
-                        style={{
-                            width: "22px",
-                            height: "21px",
-                            pointerEvents: "none",
-                            marginBottom: "13px",
-                        }}
-                    />
-
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            width: "100%",
-                        }}
-                    >
-                        <div className="history-title">History</div>
-                    </div>
-                </div>
-
-                {/* BODY */}
-                {loadingHistory ? (
-                    <p
-                        style={{
-                            textAlign: "center",
-                            color: "#555",
-                            marginTop: "12px",
-                            fontSize: "13px",
-                            fontFamily: "Inter",
-                        }}
-                    >
-                        Loading history...
-                    </p>
-                ) : historyList.length === 0 ? (
-                    <p
-                        style={{
-                            textAlign: "center",
-                            color: "#777",
-                            marginTop: "12px",
-                            fontSize: "13px",
-                            fontFamily: "Inter",
-                        }}
-                    >
-                        No saved history found.
-                    </p>
-                ) : (
-                    /* later you will map history cards here */
-                    null
-                )}
-            </section>
 
 
         </>

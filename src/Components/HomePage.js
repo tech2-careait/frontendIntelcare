@@ -46,7 +46,10 @@ import TlcNewCustomerReporting from "./Modules/FinancialModule/TlcNewCustomRepor
 import PopupModalLeft from "./ModalLeft";
 import NewFinancialHealth from "./Modules/FinancialModule/NewFinancialModule";
 import TlcNewClientProfitability from "./Modules/FinancialModule/TlcNewClientProfitibility";
-
+import crossIcon from "../Images/AskAiCross.png"
+import newChatBtnIcon from "../Images/AskAiNewChat.png"
+import newChatBtnNoteIcon from "../Images/AskAiNewChatPen.png"
+import askAiSearchIcon from "../Images/AskAiSearch.png"
 const HomePage = () => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [documentString, setDocumentString] = useState("");
@@ -89,17 +92,17 @@ const HomePage = () => {
       "Which 10 employees in NDIS have the highest overtime hours and overtime $ as a percentage of their total hours and pay?",
       "Which employees had negative amounts in any pay-related column (e.g. reversals/adjustments), and what were those values?",
       "By Cost Centre, what is the total Gross, Net, Tax and Super for this pay run, and which centres are the most expensive?",
-      "Top 5 Departments with the highest Gross for this pay run"
+      "Top 5 Departments with the highest Gross for this pay run."
     ],
     tlcClientProfitability: [
-      "Which Client has the highest gross margin?",
-      "who are the top 5 most profitable participants, and what are their total revenue, total costs and margin %?",
-      "Which region has the highest total revenue?",
-      "Top 5 Participants per Department"
+      "Which Client has the highest gross margin ?",
+      "who are the top 5 most profitable participants, and what are their total revenue, total costs and margin % ?",
+      "Which region has the highest total revenue ?",
+      "Top 5 Participants per Department."
     ],
     smart: [
-      "How many workers are available today?",
-      "How many rosters are having Carer as -1?"
+      "How many workers are available today ?",
+      "How many rosters are having Carer as -1 ?"
     ],
 
     default: []
@@ -607,7 +610,45 @@ const HomePage = () => {
               {showAIChat && (
                 <div style={{ position: "fixed", bottom: "85px", right: "30px", width: "45%", height: "80%", backgroundColor: "#FFFEFF", borderRadius: "24px", zIndex: 999, display: "flex", flexDirection: "column", justifyContent: "space-between", border: '1.09px solid #6C4CDC', boxShadow: '0px 4.36px 65.42px 0px #FFFFFF03', padding: ' 14px 30px' }}>
                   <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", borderTopRightRadius: "24px", borderTopLeftRadius: "24px", }}>
-                    <RxCrossCircled size={24} color="#6c4cdc" onClick={() => setShowAIChat(false)} style={{ cursor: "pointer" }} />
+                    <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "44px" }}>
+                      <div
+                        onClick={() => setMessages([])}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          padding: "6px 12px",
+                          borderRadius: "6px",
+                          backgroundColor: "#6c4cdc",
+                          cursor: "pointer"
+                        }}
+                      >
+                        <img
+                          src={newChatBtnNoteIcon}
+                          alt="new-chat"
+                          style={{ width: "14px", height: "14px" }}
+                        />
+                        <span
+                          style={{
+                            color: "#fff",
+                            fontSize: "12px",
+                            fontFamily: "Inter",
+                            fontWeight: 500
+                          }}
+                        >
+                          New Chat
+                        </span>
+                      </div>
+
+
+                      <img
+                        src={crossIcon}
+                        alt="close"
+                        style={{ cursor: "pointer", width: "28px" }}
+                        onClick={() => setShowAIChat(false)}
+                      />
+                    </div>
+
                   </div>
                   {messages.length === 0 &&
                     <div>
@@ -634,41 +675,79 @@ const HomePage = () => {
                           position: "relative"
                         }}
                       >
-                        <div style={{ display: "flex", flexDirection: "column", alignItems: msg.sender === "user" ? "flex-end" : "flex-start", position: "relative" }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', maxWidth: '75%' }}>
-                            <img
-                              src={aksAiPurpleStar}
-                              alt="user icon"
-                              style={{ width: "32px", height: "32px", display: msg.sender === 'user' ? 'none' : 'block' }}
-                            />
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: msg.sender === "user" ? "flex-end" : "flex-start", position: "relative", maxWidth: '100%' }}>
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', maxWidth: '100%' }}>
                             <div
                               style={{
-                                backgroundColor: "#F9F8FF",
-                                padding: "10px",
-                                borderRadius: "10px",
-                                maxWidth: "100%",
-                                fontSize: "14px",
-                                textAlign: "left",
-                                color: "black",
-                                fontFamily: "Inter",
-                                border: '1px solid #6c4cdc',
-                                overflow: 'auto'
+                                display: msg.sender === "user" ? "none" : "flex",
+                                flexDirection: "column",
+                                alignItems: "flex-start",
+                                gap: "6px"
                               }}
-                              className="ask-ai-res-div"
                             >
-                              <ReactMarkdown
-                                children={msg.text
-                                  .replace(/```(?:\w+)?\n?/, "")
-                                  .replace(/```$/, "")
-                                }
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[rehypeRaw, rehypeHighlight]}
+                              {/* ⭐ STAR */}
+                              <img
+                                src={aksAiPurpleStar}
+                                alt="ai star"
+                                style={{
+                                  width: "32px",
+                                  height: "32px"
+                                }}
                               />
+
+                              {/* 💬 ANSWER / GENERATING RESPONSE */}
+                              <div
+                                style={{
+                                  backgroundColor: "#F9F8FF",
+                                  padding: "16px 18px",
+                                  borderRadius: "26px",
+                                  width: "100%",        // ✅ full width
+                                  maxWidth: "100%",
+                                  fontSize: "14px",
+                                  lineHeight: "16px",
+                                  textAlign: "left",
+                                  color: "black",
+                                  fontFamily: "Inter",
+                                  border: "1px solid #6c4cdc",
+                                  overflowY: "auto",
+                                  scrollbarWidth: "none",
+                                  msOverflowStyle: "none"
+                                }}
+                                className="ask-ai-res-div"
+                              >
+                                <ReactMarkdown
+                                  children={msg.text
+                                    .replace(/```(?:\w+)?\n?/, "")
+                                    .replace(/```$/, "")
+                                  }
+                                  remarkPlugins={[remarkGfm]}
+                                  rehypePlugins={[rehypeRaw, rehypeHighlight]}
+                                />
+                              </div>
                             </div>
+                            {msg.sender === "user" && (
+                              <div
+                                style={{
+                                  backgroundColor: "#FFFFFF",
+                                  padding: "16px 18px",
+                                  borderRadius: "26px",
+                                  maxWidth: "90%",
+                                  fontSize: "14px",
+                                  lineHeight: "16px",
+                                  textAlign: "left",
+                                  color: "black",
+                                  fontFamily: "Inter",
+                                  border: "1px solid #6c4cdc"
+                                }}
+                              >
+                                {msg.text}
+                              </div>
+                            )}
+
                             <img
                               src={askAiPersonIcon}
                               alt="user icon"
-                              style={{ width: "38px", height: "38px", display: msg.sender === 'user' ? 'block' : 'none' }}
+                              style={{ width: "52px", height: "52px", display: msg.sender === 'user' ? 'block' : 'none' }}
                             />
                           </div>
                         </div>
@@ -681,15 +760,15 @@ const HomePage = () => {
                       <div>
                         {Suggestions.length !== 0 &&
                           <div style={{ textAlign: 'left', marginBottom: '14px', fontSize: '14px', fontWeight: '500', fontFamily: 'Inter' }}>
-                            Suggestions
+                            Predefined Prompts
                           </div>
                         }
-                        <div style={{ display: "flex", flexDirection: 'column', width: '45%' }}>
+                        <div style={{ display: "flex", flexDirection: 'column', width: '100%' }}>
                           {Suggestions.map((q, i) => (
                             <button
                               key={i}
                               onClick={() => handleSend(q)}
-                              style={{ padding: "10px", borderRadius: "8px", background: "#F9F8FF", border: "1px solid #6c4cdc", cursor: "pointer", marginBottom: '10px', textAlign: 'left' }}
+                              style={{ padding: "12px", borderRadius: "8px", background: "#F9F8FF", border: "1px solid #6c4cdc", cursor: "pointer", marginBottom: '10px', textAlign: 'left', width: "100%" }}
                             >
                               {q}
                             </button>
@@ -699,17 +778,50 @@ const HomePage = () => {
                     }
 
                     <div style={{ position: "relative", marginTop: "10px", marginBottom: "16px", width: "100%", display: "flex", alignSelf: "center" }}>
-                      <input
-                        type="text"
-                        placeholder="Type your question..."
+                      <img
+                        src={askAiSearchIcon}
+                        alt="search"
+                        style={{
+                          position: "absolute",
+                          left: "14px",
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          width: "18px",
+                          height: "18px",
+                          opacity: 0.7
+                        }}
+                      />
+
+                      <textarea
+                        rows={1}
+                        placeholder="Ask me anything..."
                         value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                        style={{ width: "100%", padding: "12px 40px 12px 12px", borderRadius: "30px", border: "1px solid  #1602114D" }}
+                        onChange={(e) => {
+                          setInput(e.target.value);
+                          e.target.style.height = "auto";
+                          e.target.style.height = e.target.scrollHeight + "px";
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            handleSend();
+                          }
+                        }}
+                        style={{
+                          width: "100%",
+                          resize: "none",
+                          padding: "10px 40px 10px 44px",
+                          borderRadius: "10px",
+                          border: "1px solid #1602114D",
+                          lineHeight: "22px",
+                          overflowY: "auto",
+                          scrollbarWidth: "none",
+                          msOverflowStyle: "none",
+                          maxHeight: "120px"
+                        }}
                       />
                       <FaCircleArrowRight onClick={handleSend} size={22} style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#6C4CDC" }} />
                     </div>
-
                   </div>
                 </div>
               )}

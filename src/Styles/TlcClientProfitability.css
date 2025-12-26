@@ -143,5 +143,51 @@
   gap: 12px;
   align-items: start; /* 👈 important */
 }
+/* ===============================
+   FIX HISTORY CARD FONT & COLOR
+   =============================== */
+
+.history-card-modern {
+  color: #333;
+  font-weight: 400;
+}
+
+/* Date range */
+.history-card-modern .history-date-range .label {
+  color: #6C4CDC;
+  font-weight: 600;
+}
+
+.history-card-modern .history-date-range .value {
+  color: #333;
+  font-weight: 500;
+}
+
+/* Saved on */
+.history-card-modern .saved-on {
+  color: #9ca3af; /* light grey */
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.history-card-modern .saved-label {
+  color: #6C4CDC;
+  font-weight: 500;
+}
+
+/* Filters */
+.history-card-modern .history-filters {
+  font-size: 13px;
+  color: #333;
+}
+
+.history-card-modern .filter-item {
+  font-weight: 400;
+}
+
+.history-card-modern .filter-item strong {
+  color: #6C4CDC;
+  font-weight: 600;
+}
 
 
