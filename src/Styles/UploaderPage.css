@@ -597,3 +597,6 @@ html,
 .ask-ai-res-div ul {
   margin-left: 30px;
 }
+.ask-ai-res-div::-webkit-scrollbar {
+  display: none;
+}
