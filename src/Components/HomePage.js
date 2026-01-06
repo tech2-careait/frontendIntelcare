@@ -52,6 +52,8 @@ import newChatBtnNoteIcon from "../Images/AskAiNewChatPen.png"
 import askAiSearchIcon from "../Images/AskAiSearch.png"
 import askAiSendBtn from "../Images/askaISendBtn.png"
 import newTlcLogo from "../Images/newTlcLogo.png"
+import PricingPlansModal from "./NewPricingModal";
+import NewSubscriptionStatus from "./NewSubscriptionStatus";
 const HomePage = () => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [documentString, setDocumentString] = useState("");
@@ -85,6 +87,8 @@ const HomePage = () => {
   const [manualResumeZip, setManualResumeZip] = useState(null);
   const [IsSmartRosteringHistory, SetIsSmartRosteringHistory] = useState(false);
   const [IsSmartRosteringDetails, SetIsSmartRosteringDetails] = useState(false);
+  const [subscriptionInfo, setSubscriptionInfo] = useState(null);
+  const [trialCountdown, setTrialCountdown] = useState("");
   const handleModalOpen = () => setModalVisible(true);
   const handleModalClose = () => setModalVisible(false);
   const handleLeftModalOpen = () => setLeftModalVisible(true);
@@ -109,6 +113,51 @@ const HomePage = () => {
 
     default: []
   };
+
+  useEffect(() => {
+    if (
+      !subscriptionInfo ||
+      subscriptionInfo.subscription_type !== "trial" ||
+      !subscriptionInfo.trial_end
+    ) {
+      setTrialCountdown("");
+      return;
+    }
+
+    const updateCountdown = () => {
+      const now = new Date();
+      const end = new Date(subscriptionInfo.trial_end);
+      const diffMs = end - now;
+
+      if (diffMs <= 0) {
+        setTrialCountdown("");
+        return;
+      }
+
+      const totalMinutes = Math.floor(diffMs / (1000 * 60));
+      const days = Math.floor(totalMinutes / (60 * 24));
+      const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+      const minutes = totalMinutes % 60;
+
+      if (days > 0) {
+        setTrialCountdown(
+          `Trial ends in ${days} day${days > 1 ? "s" : ""}`
+        );
+      } else {
+        setTrialCountdown(
+          `Trial ends in ${hours}h ${minutes}m`
+        );
+      }
+    };
+
+    // run immediately
+    updateCountdown();
+
+    // update every minute
+    const interval = setInterval(updateCountdown, 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, [subscriptionInfo]);
 
 
 
@@ -405,13 +454,32 @@ const HomePage = () => {
   };
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       setUser(currentUser);
-      setShowSignIn(!currentUser);
       setLoadingUser(false);
+
+      if (!currentUser) {
+        // Not logged in → show signin popup
+        setShowSignIn(true);
+        return;
+      }
+
+      // Reload user to get latest emailVerified value
+      await currentUser.reload();
+
+      if (!currentUser.emailVerified) {
+        // 🚫 Logged in BUT NOT verified → KEEP popup open
+        setShowSignIn(true);
+        return;
+      }
+
+      // ✅ Logged in AND verified → close popup
+      setShowSignIn(false);
     });
+
     return () => unsubscribe();
   }, []);
+
 
   useEffect(() => {
     getCount();
@@ -450,12 +518,14 @@ const HomePage = () => {
     setShowDropdown(false);
   };
 
-  SubscriptionStatus(user, setShowPricingModal);
+  // SubscriptionStatus(user, setShowPricingModal);
+  NewSubscriptionStatus(user, setShowPricingModal, setSubscriptionInfo);
 
   return (
     <>
       {showPricingModal ? (
-        <PricingModal onClose={() => setShowPricingModal(false)} email={user?.email} />
+        // <PricingModal onClose={() => setShowPricingModal(false)} email={user?.email} />
+        <PricingPlansModal onClose={() => setShowPricingModal(false)} email={user?.email} firstName={user?.displayName} setSubscriptionInfo={setSubscriptionInfo}/>
       ) : (
         <div className="page-container">
           {sidebarVisible ? (
@@ -492,7 +562,7 @@ const HomePage = () => {
               className="typeofreportmaindiv"
               style={{
                 display: "flex",
-                justifyContent: "space-between", 
+                justifyContent: "space-between",
                 alignItems: "center",
                 width: "100%",
                 borderBottom: "1px solid #E8ECEF",
@@ -505,7 +575,7 @@ const HomePage = () => {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "20px", 
+                  gap: "20px",
                 }}
               >
                 {(isTlcPage || isTlcClientProfitabilityPage) && (
@@ -540,9 +610,34 @@ const HomePage = () => {
 
 
               {/* RIGHT */}
-              <div className="page-title-btn" onClick={handleModalOpen}>
-                <IoMdInformationCircleOutline size={20} color="#5B36E1" /> Accepted Types Of Reports
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px",
+                }}
+              >
+                <div className="page-title-btn" onClick={handleModalOpen}>
+                  <IoMdInformationCircleOutline size={20} color="#5B36E1" /> Accepted Types Of Reports
+                </div>
+
+                {trialCountdown && (
+                  <div
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 500,
+                      color: "#6C4CDC",
+                      background: "#F4F1FF",
+                      padding: "6px 10px",
+                      borderRadius: "8px",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {trialCountdown}
+                  </div>
+                )}
               </div>
+
             </div>
 
 
@@ -630,7 +725,7 @@ const HomePage = () => {
             </div>
 
             {showAIChat && (
-              <div style={{ position: "fixed", bottom: "85px", right: "30px", width: "76%", height: "80%", backgroundColor: "#FFFEFF", borderRadius: "24px", zIndex: 999, display: "flex", flexDirection: "column", justifyContent: "space-between", border: '1.09px solid #6C4CDC', boxShadow: '0px 4.36px 65.42px 0px #FFFFFF03', padding: ' 14px 30px', marginBottom: "8px" }}>
+              <div style={{ position: "fixed", bottom: "20px", right: "21px", width: "76%", height: "80%", backgroundColor: "#FFFEFF", borderRadius: "24px", zIndex: 999, display: "flex", flexDirection: "column", justifyContent: "space-between", border: '1.09px solid #6C4CDC', boxShadow: '0px 4.36px 65.42px 0px #FFFFFF03', padding: ' 14px 30px', marginBottom: "8px" }}>
                 <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", borderTopRightRadius: "24px", borderTopLeftRadius: "24px", }}>
                   <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "44px" }}>
                     <div
@@ -791,7 +886,7 @@ const HomePage = () => {
                       <div
                         style={{
                           width: "60%",
-                          maxHeight: "240px",
+                          maxHeight: "150px",
                           overflowY: "auto",
                           boxSizing: "border-box",
                           paddingTop: "10px",       // ✅ ADD

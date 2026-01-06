@@ -48,6 +48,7 @@ import Tippy from '@tippyjs/react';
 import 'tippy.js/dist/tippy.css';
 import TooltipPlaceholder from '../Images/TooltipPlaceholder.png';
 import customPlaceHolder from '../Images/customPlaceholder.jpeg';
+import PricingPlansModal from "./NewPricingModal";
 
 
 const Sidebar = ({ onCollapse, selectedRole, setSelectedRole, showReport, setShowReport, showFinalZipReport, setShowFinalZipReport, showUploadedReport, setShowUploadReport, activeReportType, setActiveReportType, analysedReportdata, setAnalysedReportdata, majorTypeofReport, setMajorTypeOfReport, setReportFiles, user, handleLogout, setShowSignIn, setShowDropdown, showDropdown }) => {
@@ -1400,7 +1401,7 @@ const UploaderPage = () => {
     return (
         <>
             {showPricingModal === true ?
-                <PricingModal onClose={() => setShowPricingModal(false)} email={user?.email} />
+                <PricingPlansModal onClose={() => setShowPricingModal(false)} email={user?.email} />
                 :
                 <div className="page-container">
                     {sidebarVisible ? (

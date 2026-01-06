@@ -1304,14 +1304,14 @@ const TlcNewClientProfitability = (props) => {
                             <TlcUploadBox
                                 id="client-profit-files"
                                 title="Upload Data"
-                                subtitle=".XLSX, .XLS"
-                                accept=".xlsx,.xls"
+                                subtitle=".XLSX, .XLS, .CSV"
+                                accept=".xlsx,.xls,.csv"
                                 files={activeTabData.selectedFiles}
                                 setFiles={setTabFiles}
                                 onTemplateDownload={() => {
                                     const link = document.createElement("a");
-                                    link.href = "/templates/ClientProfitabilityTemplate.xlsx";
-                                    link.download = "ClientProfitabilityTemplate.xlsx";
+                                    link.href = "/templates/ClientProfitibilityTemplate.xlsx";
+                                    link.download = "ClientProfitibilityTemplate.xlsx";
                                     document.body.appendChild(link);
                                     link.click();
                                     document.body.removeChild(link);
@@ -1321,7 +1321,7 @@ const TlcNewClientProfitability = (props) => {
 
                         </section>
                         <div className="search-section">
-                            <button className="analyse-btn" disabled={activeTabData?.loading} style={{ backgroundColor: '#000' }} onClick={handleAnalyse}>
+                            <button className="analyse-btn" disabled={activeTabData?.loading} style={{ backgroundColor: '#000', marginTop: activeTabData.isFromHistory ? 0 : "40px", }} onClick={handleAnalyse}>
                                 {activeTabData?.loading ? `Analysing...` : <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>AI Analyse<img src={star} alt='img' style={{ width: '20px', height: '20px' }} /></div>}
                             </button>
                         </div>
@@ -1331,6 +1331,35 @@ const TlcNewClientProfitability = (props) => {
             ) : (
                 <>
 
+                    {activeTabData?.isFromHistory && (
+                        <div
+                            className="tlc-profitibility-history-back-btn"
+                            onClick={() => {
+                                updateTab({
+                                    // 🔁 history mode off
+                                    isFromHistory: false,
+
+                                    // 🧹 clear analysis
+                                    responseData: null,
+                                    aiSummary: "",
+                                    directFinalTable: null,
+
+                                    // 📅 clear date range
+                                    dateRange: [null, null],
+
+                                    // 🧠 close accordions
+                                    aiAccordionOpen: false,
+                                    chartsAccordionOpen: false,
+                                    jsonTableAccordionOpen: false,
+
+                                    // 🏷️ reset tab name
+                                    name: `Tab ${activeTab}`,
+                                });
+                            }}
+                        >
+                            ← Back
+                        </div>
+                    )}
 
                     {/* AI Panel */}
                     {/* ================= AI INSIGHT ACCORDION ================= */}

@@ -1,0 +1,377 @@
+/* Overlay (only fixed thing) */
+* {
+    font-family: 'Inter';
+}
+
+.pricing-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    /* ✅ NOT center */
+
+    padding: 24px;
+    overflow-y: auto;
+    /* ✅ allow overlay scroll */
+}
+
+
+/* Modal */
+.pricing-container {
+    background: #fff;
+    border-radius: 20px;
+    width: 100%;
+    max-width: 1270px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Top */
+.pricing-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.pricing-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+/* Header */
+.pricing-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+
+}
+
+.pricing-header h2 {
+    margin-bottom: 0;
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 44px;
+}
+
+.pricing-header span {
+    color: #2C73DD;
+    font-weight: 600;
+}
+
+/* Toggle */
+.billing-toggle {
+    display: flex;
+    gap: 6px;
+    background: #F7F4FF;
+    padding: 4px;
+    border-radius: 20px;
+    height: 44px;
+    width: 228px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.billing-toggle button {
+    border: none;
+    background: transparent;
+    color: #707493;
+    padding: 8px 16px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.billing-toggle .active {
+    background: #ffffff;
+    border-radius: 16px;
+    color: black;
+}
+
+/* Plans */
+.plans-wrapper {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+/* Card */
+.plan-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 32px;
+    width: 289px;
+    height: 483px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-align: left;
+    font-size: 16px;
+    font-weight: 500;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.plan-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.plan-card ul {
+    padding-left: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 14px;
+    min-height: 204px;
+}
+
+.plan-card.popular {
+    background:
+        conic-gradient(from 180deg at 50% 50%,
+            rgba(108, 76, 220, 0.18),
+            rgba(250, 245, 253, 0.95),
+            rgba(108, 76, 220, 0.18)),
+        #FAF5FD;
+}
+
+.plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.plan-header h4 {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 24px;
+}
+
+.popular-badge {
+    background: linear-gradient(101.4deg, #9B88FF 9.25%, #3D2B99 88.44%);
+    color: white;
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+
+/* Buttons */
+.primary-btn {
+    margin-top: auto;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 78px;
+    /* pill shape like Figma */
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: background-color 0.2s ease,
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+    color: #6c4cdc;
+    height: 52px;
+    width: 225px;
+}
+
+.primary-btn:hover {
+    transform: translateY(-1px);
+    background-color: #6548FF;
+    color: #fff;
+}
+
+.primary-btn:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.popular-btn {
+    border: 1px solid #6c4cdc;
+    /* color: #2C73DD; */
+    background: transparent;
+}
+
+/* Actions wrapper (button + compare link) */
+.plan-actions {
+    display: flex;
+    flex-direction: column;
+    /* align-items: center; */
+    gap: 14px;
+    /* clean spacing like Figma */
+    margin-top: auto;
+    /* pushes actions to bottom */
+    margin-bottom: 24px;
+}
+
+.compare {
+    text-align: center;
+    font-size: 13px;
+    color: #707493;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+
+.compare:hover {
+    color: #6c4cdc;
+}
+
+/* Outline */
+.outline-btn {
+    background: transparent;
+    border: 1px solid #6c4cdc;
+    color: #6c4cdc;
+    padding: 8px 18px;
+    border-radius: 78px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 12px 20px 12px 20px;
+    height: 52px;
+    width: 225px;
+}
+
+/* Enterprise container */
+.enterprise {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 28px;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    gap: 24px;
+    height: 134px;
+}
+
+.enterprise:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Title */
+.enterprise-title {
+    font-size: 20px;
+    font-weight: 700;
+    font-size: 32px;
+    white-space: nowrap;
+}
+
+/* Features wrapper */
+.enterprise-features {
+    display: flex;
+    gap: 26px;
+    flex-wrap: wrap;
+}
+
+/* Feature list */
+.enterprise-features ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Feature item */
+.enterprise-features li {
+    font-size: 15px;
+    font-weight: 500;
+    color: #111827;
+
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Remove default bullets */
+.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Each feature row */
+.feature-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #3C3B42;
+    height: 24px;
+}
+
+/* Tick icon */
+.feature-list img {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* Default outline button (non-popular) */
+.outline-plan-btn {
+    background: transparent;
+    color: #6c4cdc;
+    border: 1.5px solid #6c4cdc;
+}
+
+/* Price wrapper */
+.price {
+    display: flex;
+    align-items: baseline;
+    gap: 2px;
+    height: 32px;
+    margin-top: -10px;
+    margin-bottom: 18px;
+}
+
+/* Dollar sign (small) */
+.price-currency {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    position: relative;
+    top: -12px;
+    /* subtle lift like Figma */
+}
+
+/* Main amount (big) */
+.price-amount {
+    font-size: 32px;
+    font-weight: 700;
+    color: #111827;
+}
+
+/* /month or /year */
+.price-duration {
+    font-size: 14px;
+    font-weight: 500;
+    color: #6b7280;
+    margin-left: 2px;
+}
+
+
+/* Mobile */
+@media (max-width: 768px) {
+    .enterprise {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .enterprise-features {
+        gap: 20px;
+    }
+}

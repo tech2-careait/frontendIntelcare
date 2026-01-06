@@ -1,0 +1,156 @@
+.compare-wrapper {
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #fff;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* HEADER */
+.compare-header {
+  display: flex;
+  background: #faf5fd;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 20px 30px 10px 30px;
+  align-items: flex-start;
+  gap: 15px;
+}
+
+/* DESCRIPTION */
+.desc-row {
+  display: flex;
+  padding: 12px 0;
+  border-bottom: 1px solid #eef2f7;
+  align-items: flex-start;
+  padding-left: 31px;
+  padding-right: 31px;
+
+}
+
+/* ROW */
+.compare-row {
+  display: flex;
+  padding-left: 31px;
+  padding-right: 31px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  align-items: flex-start;
+  /* gap: 45px; */
+}
+
+/* ONLY rows that need divider */
+.row-divider {
+  border-bottom: 1px solid #eef2f7;
+}
+
+/* SECTION HEADER */
+.section-header {
+  display: flex;
+  /* padding: 24px 0 12px; */
+}
+
+.section-top-space {
+  margin-top: 30px;
+  margin-left: 31px;
+  margin-right: 31px;
+}
+
+/* COLUMNS */
+.feature-col {
+  flex: 2;
+  padding: 0 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+  text-align: justify;
+  align-items: flex-start;
+  /* margin-top: 10px; */
+}
+
+.feature-col-stack {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.feature-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 378px;
+  height: 24px;
+  justify-content: flex-start;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.plan-col {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  text-align: center;
+  font-size: 13px;
+  color: #6c4cdc;
+  line-height: 19.6px;
+  font-weight: 500;
+}
+
+/* TEXT */
+
+.blue-text {
+  color: #6c4cdc;
+  font-weight: 500;
+}
+
+.feature-subtext {
+  /* margin-left: 30px; */
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.plan-compare-section-title {
+  font-weight: 600;
+}
+
+
+
+
+/* ICONS */
+.icon-img {
+  width: 24px;
+  height: 22px;
+}
+
+.icon-placeholder {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  /* background: linear-gradient(135deg, #667eea, #764ba2); */
+  /* color: #fff; */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.compare-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  margin-top: 6px;
+  /* fine-tune vertical centering */
+  /* margin-right: 45px; */
+}
+.header-feature-text{
+    width: 74px;
+    height: 27px;
+    font-size: 18px;
+    font-weight: 400;
+    /* padding: 20px 30px 10px 30px; */
+}

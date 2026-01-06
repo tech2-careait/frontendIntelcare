@@ -156,7 +156,7 @@ body {
 /* ---------------- SEARCH ---------------- */
 .search-section {
     text-align: center;
-    margin-top: 40px;
+    /* margin-top: 40px; */
 }
 
 .search-btn {
@@ -177,7 +177,7 @@ body {
 
 /* ---------------- HISTORY (NEW STYLE) ---------------- */
 .history-container {
-    margin-top: 50px;
+    margin-top: 120px;
 }
 
 .history-title {
@@ -615,29 +615,24 @@ body {
 /* ---------------- SEARCH ---------------- */
 .search-section {
     text-align: center;
-    margin-top: 40px;
+    /* margin-top: 40px; */
 }
 
 .search-btn {
-  color: white;
-  padding: 10px 20px;
-  border: none;
-  border-radius: 20px;
-  font-size: 16px;
-  cursor: pointer;
-  background-color: #6C4CDC;
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #6C4CDC;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .search-btn:hover {
     background: #6C4CDC;
-}
-
-/* ---------------- HISTORY (NEW STYLE) ---------------- */
-.history-container {
-    margin-top: 50px;
 }
 
 .history-title {
@@ -1137,4 +1132,22 @@ body {
     display: flex;
     flex-direction: column;
     gap: 8px;
+}
+
+.history-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  cursor: pointer;
+  color: #6C4CDC;
+  font-weight: 600;
+  font-size: 15px;
+  margin-left: 4px;
+  margin-bottom: 14px;
+  margin-top: 6px;
+}
+
+.history-back-btn:hover {
+  color: #4b2cc0;
 }

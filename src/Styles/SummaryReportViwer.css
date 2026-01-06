@@ -123,6 +123,7 @@
   margin-left: 20px;
   padding-left: 10px;
 }
+
 .financial-health-markdown ol {
   margin-left: 20px;
   padding-left: 10px;
@@ -136,12 +137,14 @@
   margin: 10px 0px;
   line-height: 1.5;
 }
-.financial-health-markdown > p:first-of-type {
+
+.financial-health-markdown>p:first-of-type {
   text-align: center;
 }
 
-.financial-health-markdown h1{
-text-align: center;
+.financial-health-markdown h1 {
+  text-align: center;
+  margin-bottom: 20px;
 }
 
 .financial-health-markdown h2,
@@ -150,6 +153,7 @@ text-align: center;
   font-weight: 600;
   margin-bottom: 10px;
 }
+
 .financial-health-markdown table {
   width: 100%;
   border-collapse: collapse;
@@ -268,7 +272,8 @@ text-align: center;
 .sirs-markdown ul {
   margin-left: 30px;
 }
-.download-reportsss-btnsss{
+
+.download-reportsss-btnsss {
   background-color: rgb(108, 76, 220);
   color: rgb(255, 255, 255);
   border: none;

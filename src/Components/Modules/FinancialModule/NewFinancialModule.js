@@ -54,11 +54,6 @@ const NewFinancialHealth = (props) => {
     const [selectedActor, setSelectedActor] = useState("NDIS");
     const [syncEnabled, setSyncEnabled] = useState(false);
 
-
-
-
-
-
     const [title, setTitle] = useState("");
     const raw = response
     const [historyList, setHistoryList] = useState([]);
@@ -1529,6 +1524,7 @@ const NewFinancialHealth = (props) => {
                                 backgroundColor:
                                     isButtonDisabled || activeTabData.loading ? "#A1A1AA" : "#000",
                                 cursor: activeTabData.loading ? "not-allowed" : "pointer",
+                                marginTop: activeTabData.isFromHistory ? 0 : "40px",
                             }}
                             onClick={handleAnalyse}
                         >
@@ -1675,6 +1671,44 @@ const NewFinancialHealth = (props) => {
 
                         </div>
                     </div>
+                    {activeTabData.isFromHistory && (
+                        <div
+                            className="financial-health-history-back-btn"
+                            onClick={() => {
+                                updateTab({
+                                    // 🔁 history mode off
+                                    isFromHistory: false,
+
+                                    // 🧹 clear report
+                                    responseData: null,
+                                    financialVisualizations: [],
+                                    apiExcelUrls: [],
+                                    excel_exports: {},
+                                    titleArray: [],
+                                    reportType: null,
+
+                                    // 📅 clear filters
+                                    dateRange: [null, null],
+                                    selectedState: [],
+                                    selectedDepartment: [],
+                                    selectedType: [],
+                                    selectedRole: [],
+
+                                    // 🧠 close accordions
+                                    aiInsightOpen: false,
+                                    accordions: {
+                                        charts: false,
+                                        summary: false,
+                                    },
+
+                                    // 🏷️ reset tab name
+                                    name: `Tab ${activeTab}`,
+                                });
+                            }}
+                        >
+                            ← Back
+                        </div>
+                    )}
                     {/* <div
                         style={{
                             width: "100%",

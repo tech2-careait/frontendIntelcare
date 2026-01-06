@@ -190,4 +190,22 @@
   font-weight: 600;
 }
 
+.tlc-profitibility-history-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  cursor: pointer;
+  color: #6C4CDC;
+  font-weight: 600;
+  font-size: 15px;
+  margin-left: 4px;
+  margin-bottom: 14px;
+  margin-top: 6px;
+}
+
+.tlc-profitibility-history-back-btn:hover {
+  color: #4b2cc0;
+}
+
 

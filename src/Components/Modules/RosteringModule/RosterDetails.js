@@ -33,6 +33,31 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
             }
         };
     }, []);
+    const normalizeAuPhone = (input) => {
+        if (!input || typeof input !== "string") return null;
+
+        // 1. Remove all non-digit characters
+        let digits = input.replace(/\D/g, "");
+
+        // 2. Remove leading country code variants
+        if (digits.startsWith("61")) {
+            digits = digits.slice(2);
+        }
+
+        // 3. Remove leading zero (mobile numbers start with 04)
+        if (digits.startsWith("0")) {
+            digits = digits.slice(1);
+        }
+
+        // 4. Validate mobile number length (9 digits after removing 0)
+        if (digits.length !== 9) {
+            console.warn("Invalid AU phone number:", input);
+            return null;
+        }
+
+        // 5. Return E.164 format
+        return `+61${digits}`;
+    };
     const formatDateTime = (isoString) => {
         if (!isoString) return "N/A";
 
@@ -136,7 +161,7 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
                     DateOfBirth: selectedClient.dob || null,
 
                     // ✔ Phone
-                    Phone: selectedClient.phone,
+                    Phone: normalizeAuPhone(selectedClient.phone),
 
                     // ✔ Address (auto split)
                     Address1: selectedClient.address || "",
@@ -157,7 +182,7 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
                 staffList: selectedStaff.map(s => ({
                     staffId: s.id || s.staffId,
                     name: s.name,
-                    phone: s?.phone,
+                    phone: normalizeAuPhone(s?.phone),
                     email: s.email,
                     gender: s.gender || s.sex,
                     location: s.location,
@@ -359,7 +384,7 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
                         }
                         setScreen(1);
                     }}
-                    style={{top:"-51px"}}
+                    style={{ top: "-51px" }}
                 >
                     <GoArrowLeft size={22} color="#6C4CDC" />
                     <span>Back</span>

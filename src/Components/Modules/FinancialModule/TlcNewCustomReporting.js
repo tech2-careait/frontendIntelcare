@@ -33,7 +33,7 @@ import html2canvas from "html2canvas";
 
 export default function TlcNewCustomerReporting(props) {
     // -------------------- MULTI TAB SUPPORT --------------------
-    const USE_DUMMY_DATA = true;
+    const USE_DUMMY_DATA = false;
     const [tabs, setTabs] = useState([
         {
             id: 1,
@@ -1589,7 +1589,7 @@ export default function TlcNewCustomerReporting(props) {
 
             </div>
             {!activeTabData.viewingHistory && (
-                <section className="filters-card">
+                <section className="filters-card" style={{ marginBottom: activeTabData?.isFromHistory ? "0px" : "40px" }}>
                     <div className="filters-grid">
                         <div>
                             <DatePicker
@@ -1689,8 +1689,8 @@ export default function TlcNewCustomerReporting(props) {
                                             className="data-upload-template"
                                             onClick={() => {
                                                 const link = document.createElement("a");
-                                                link.href = "/templates/SmartRosteringTemplate.xlsx";
-                                                link.download = "Payroll Template.xlsx";
+                                                link.href = "/templates/PayrollAnalysisTemplate.xlsx";
+                                                link.download = "PayrollAnalysisTemplate.xlsx";
                                                 document.body.appendChild(link);
                                                 link.click();
                                                 document.body.removeChild(link);
@@ -1723,7 +1723,7 @@ export default function TlcNewCustomerReporting(props) {
                                         <input
                                             id={`file-${activeTab}-${item.key}`}
                                             type="file"
-                                            accept=".xlsx,.xls"
+                                            accept=".xlsx,.xls,.csv"
                                             multiple
                                             hidden
                                             onChange={(e) => handleFileChange(e, item.key)}
@@ -1733,7 +1733,7 @@ export default function TlcNewCustomerReporting(props) {
                                             <div className="data-upload-empty">
                                                 <img src={UploadTlcIcon} alt="upload" />
                                                 <div className="data-upload-cta">Click to upload</div>
-                                                <div className="data-upload-format">.XLSX, .XLS</div>
+                                                <div className="data-upload-format">.XLSX, .XLS, .CSV</div>
                                             </div>
                                         ) : (
                                             <div className="data-upload-filelist">
@@ -1795,10 +1795,54 @@ export default function TlcNewCustomerReporting(props) {
             <div className="search-section">
 
                 {activeTabData.stage === "overview" && activeTabData.analysisData && (
+
                     <section
                         ref={reportRef}
                         className={`dashboard ${!isAnyAccordionOpen ? "dashboard-decrease-margin-bottom" : ""}`}
                     >
+                        {activeTabData.viewingHistory && (
+                            <div
+                                className="history-back-btn"
+                                onClick={() => {
+                                    updateTab({
+                                        // exit history mode
+                                        viewingHistory: false,
+                                        isFromHistory: false,
+
+                                        // reset flow
+                                        stage: "filters",
+                                        analysisData: null,
+
+                                        // IMPORTANT: reset AI summary
+                                        aiReport: null,
+                                        aiLoading: false,
+                                        showReport: false,
+
+                                        // reset dates & filters
+                                        startDate: null,
+                                        endDate: null,
+                                        selectedState: [],
+                                        selectedDepartment: [],
+                                        selectedRole: [],
+                                        selectedEmploymentType: [],
+
+                                        // reset tab name
+                                        name: `Tab ${activeTab}`,
+
+                                        // close accordions
+                                        aiAccordion: false,
+                                        page1: false,
+                                        page2: false,
+                                        page3: false,
+                                        page4: false,
+                                    });
+                                }}
+
+                            >
+                                ← Back
+                            </div>
+                        )}
+
                         <AccordionHeader
                             title={`AI Insight ${activeTabData.startDate && activeTabData.endDate
                                 ? `(${formatDateRange()})`
@@ -1821,7 +1865,7 @@ export default function TlcNewCustomerReporting(props) {
                             <div style={{ marginTop: "16px" }}>
                                 {activeTabData.aiLoading && (
                                     <p style={{ textAlign: "center", color: "#6C4CDC" }}>
-                                        🤖 Generating AI summary...
+                                        ⏳ Generating AI summary...
                                     </p>
                                 )}
 
@@ -1969,6 +2013,9 @@ export default function TlcNewCustomerReporting(props) {
                         className="search-btn"
                         onClick={handleAnalyse}
                         disabled={activeTabData.loading}   // ✅ sirf loading ke time disable
+                        style={{
+                            marginTop: activeTabData.isFromHistory ? 0 : "40px",
+                        }}
                     >
                         {activeTabData.loading ? (
                             "Processing..."
