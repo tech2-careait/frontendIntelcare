@@ -1863,7 +1863,7 @@ export default function TlcNewCustomerReporting(props) {
                         />
 
                         {activeTabData.aiAccordion && (
-                            <div style={{ marginTop: "16px" }}>
+                            <div style={{ marginTop: "16px" ,marginBottom:"16px"}}>
                                 {activeTabData.aiLoading && (
                                     <p style={{ textAlign: "center", color: "#6C4CDC" }}>
                                         ⏳ Generating AI summary...
