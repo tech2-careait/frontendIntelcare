@@ -64,7 +64,9 @@ const TlcNewClientProfitability = (props) => {
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedHistoryId, setSelectedHistoryId] = useState(null);
+    const [aiProgressDisplay, setAiProgressDisplay] = useState(0);
     const [deleting, setDeleting] = useState(false);
+    const aiProgressRef = useRef({});
     const reportRef = useRef(null);
 
     const [tabs, setTabs] = useState([
@@ -355,6 +357,9 @@ const TlcNewClientProfitability = (props) => {
         );
     };
 
+    useEffect(() => {
+        setAiProgressDisplay(aiProgressRef.current[activeTab] || 0);
+    }, [activeTab]);
 
     useEffect(() => {
         const userEmail = user?.email?.toLowerCase().trim();
@@ -553,7 +558,9 @@ const TlcNewClientProfitability = (props) => {
                 // ⛔ HOLD AT 70%
                 if (progress > 70) progress = 70;
 
-                updateTab({ aiProgress: Math.floor(progress) });
+                // updateTab({ aiProgress: Math.floor(progress) });
+                aiProgressRef.current[activeTab] = Math.floor(progress);
+                setAiProgressDisplay(aiProgressRef.current[activeTab]);
             }, 600);
 
             const res = await fetch(
@@ -572,7 +579,6 @@ const TlcNewClientProfitability = (props) => {
             updateTab({
                 aiSummary: data.summary_md || data.report_md || "",
                 aiLoading: false,
-                aiProgress: 100,   // 🎯 DONE
             });
         } catch (err) {
             console.error(err);
@@ -1647,7 +1653,7 @@ const TlcNewClientProfitability = (props) => {
                                 <ClientProfitabilityAIAnalysisReportViewer
                                     reportText={activeTabData.aiSummary}
                                     loading={activeTabData.aiLoading}
-                                    progress={activeTabData.aiProgress}
+                                    progress={aiProgressDisplay}
                                 />
                             </div>
                         )}
