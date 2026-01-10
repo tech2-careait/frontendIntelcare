@@ -141,15 +141,16 @@ const JsonTableCard = ({ title, data }) => {
   const COLUMN_WIDTHS = {
     "Client Name": "210px",
     "Region": "80px",
-    "Department": "110px",
+    "Department": "130px",
     "Revenue": "130px",
-    "Direct Cost": "125px",
+    "Direct Cost": "130px",
     "Gross Profit": "130px",
-    "Gross Profit %": "140px",
+    "Gross Profit %": "135px",
     "Gross Margin": "130px",
     "Gross Margin %": "127px",
     "Indirect Cost": "130px",
     "Allocated Cost": "140px",
+    "Total Expense": "140px",
   };
 
   const [selectedRegion, setSelectedRegion] = useState("ALL");
