@@ -55,7 +55,7 @@ const RosterHistory = (props) => {
 
     const requireManagerApproval =
         workflowFlags.require_manager_approval ?? true;
-    console.log("requireManagerApproval",requireManagerApproval)    
+    // console.log("requireManagerApproval",requireManagerApproval)    
     // === Load clients from API and map to old structure (id, name, address, phone)
     const maskDetailsIfKris = (value, type) => {
         const isKris = userEmail?.toLowerCase() === "kris@curki.ai";
@@ -121,7 +121,7 @@ const RosterHistory = (props) => {
                     // keep original for future use
                     __raw: c
                 }));
-                console.log("mapped", mapped)
+                // console.log("mapped", mapped)
                 setDummyClients(mapped);
             } catch (err) {
                 console.error("Failed to fetch clients:", err);
@@ -313,7 +313,7 @@ const RosterHistory = (props) => {
             console.error("Failed to send RM message:", err);
         }
     };
-    console.log("selectedAssignment", selectedAssignment)
+    // console.log("selectedAssignment", selectedAssignment)
     // === approve/reject handlers (call API, update local assignmentsData)
     const approveStaff = async (recordId, staffPhone) => {
         try {
@@ -551,10 +551,10 @@ const RosterHistory = (props) => {
 
 
 
-    console.log("staffInfoList", staffInfoList)
+    // console.log("staffInfoList", staffInfoList)
     // input value for chat (kept like original)
     const [inputValue, setInputValue] = useState("");
-    console.log("selectedAssignment", selectedAssignment)
+    // console.log("selectedAssignment", selectedAssignment)
     const staffStatus = selectedAssignment?.originalStaffObject?.status;
 
     const isStaffAccepted = staffStatus === "accepted";
@@ -796,7 +796,7 @@ const RosterHistory = (props) => {
                                         )}
 
                                         {/* ❌ Staff said NO → only Reject */}
-                                        {!isRMDecided && isStaffRejected && (
+                                        {/* {!isRMDecided && isStaffRejected && (
                                             <button
                                                 style={{
                                                     padding: '8px 16px',
@@ -816,7 +816,7 @@ const RosterHistory = (props) => {
                                             >
                                                 Reject
                                             </button>
-                                        )}
+                                        )} */}
                                     </div>
 
 

@@ -31,7 +31,31 @@ const SmartRostering = (props) => {
     const [manualMetrics, setManualMetrics] = useState(null);
     const [currentIndex, setCurrentIndex] = useState(1);
     const [openRosterSetting, setOpenRosterSetting] = useState(false);
+    const [rosteringSettings, setRosteringSettings] = useState(null);
+
     // console.log("unallocatedClients", unallocatedClients)
+    useEffect(() => {
+        if (!userEmail) return;
+
+        const domain = userEmail.split("@")[1];
+
+        const fetchRosteringSettings = async () => {
+            try {
+                const res = await axios.get(
+                    `${API_BASE}/api/rosteringSettings/${domain}`
+                );
+
+                if (res.data?.data?.length) {
+                    setRosteringSettings(res.data.data[0]);
+                }
+            } catch (err) {
+                console.error("Failed to fetch rostering settings", err);
+            }
+        };
+
+        fetchRosteringSettings();
+    }, [userEmail]);
+    // console.log("rostering settings in smart rostering main page", rosteringSettings)
     const handleScroll = () => {
         const container = document.getElementById("unallocated-scroll-container");
         if (!container) return;
@@ -48,9 +72,10 @@ const SmartRostering = (props) => {
 
     const [startIndex, setStartIndex] = useState(0);
     const visibleCount = 3;
-    const [visualCareCreds, setVisualCareCreds] = useState(null);
     const [unauthorized, setUnauthorized] = useState(false);
-    const uploadDisabled = !!visualCareCreds;  // true when creds exist
+    const visualCareCreds =
+        rosteringSettings?.integrations?.softwares?.visualcare?.creds || null;
+
     // console.log("unallocatedClients.length", unallocatedClients.length)
     const formatDateDMY = (dateStr) => {
         if (!dateStr) return "";
@@ -75,7 +100,7 @@ const SmartRostering = (props) => {
             sex: client.sex || "N/A",
         };
     };
-    console.log("selectedFile", selectedFile)
+    // console.log("selectedFile", selectedFile)
     const runManualMetrics = async () => {
         try {
             const form = new FormData();
@@ -86,7 +111,7 @@ const SmartRostering = (props) => {
                 form // ❌ NO custom headers
             );
 
-            console.log("res in runManualMetrics", res);
+            // console.log("res in runManualMetrics", res);
 
             const m = res.data;
 
@@ -103,40 +128,52 @@ const SmartRostering = (props) => {
         }
     };
 
-    console.log("manual metrics", manualMetrics)
-    console.log("rosteringMetrics", rosteringMetrics)
+    // console.log("manual metrics", manualMetrics)
+    // console.log("rosteringMetrics", rosteringMetrics)
+
+
+    // 🔹 rostering managers list
+    const rosteringManagers =
+        rosteringSettings?.rostering?.rostering_managers || [];
+    const isRosteringManager = rosteringManagers.some(
+        rm => rm.email?.toLowerCase() === userEmail?.toLowerCase()
+    );
+    const canUseVisualCare =
+        !!visualCareCreds && isRosteringManager;
+
+    const uploadDisabled = !!canUseVisualCare;  // true when creds exist
+    // useEffect(() => {
+    //     const fetchVisualCareCreds = async () => {
+    //         try {
+    //             const res = await axios.get(`${API_BASE}/get-visualcare-creds`);
+    //             // console.log("res", res)
+    //             if (res.data?.success && res.data?.data?.length > 0) {
+    //                 // Find the record where logged-in user's email is in rosteringManager.emails[]
+    //                 const matched = res.data.data.find((entry) =>
+    //                     entry.rosteringManager?.emails?.includes(userEmail)
+    //                 );
+
+    //                 if (!matched) {
+    //                     setUnauthorized(true);
+    //                 }
+
+    //                 setVisualCareCreds(matched.creds); // ✅ Save credentials for later API use
+    //                 // console.log("Authorized VisualCare credentials loaded:", matched.creds);
+    //             } else {
+    //                 alert("No VisualCare credentials found in the database.");
+    //             }
+    //         } catch (err) {
+    //             console.error("❌ Error fetching VisualCare creds:", err);
+    //             // alert("Failed to load VisualCare credentials.");
+    //         }
+    //     };
+
+    //     if (userEmail) fetchVisualCareCreds();
+    // }, [userEmail]);
 
     useEffect(() => {
-        const fetchVisualCareCreds = async () => {
-            try {
-                const res = await axios.get(`${API_BASE}/get-visualcare-creds`);
-                // console.log("res", res)
-                if (res.data?.success && res.data?.data?.length > 0) {
-                    // Find the record where logged-in user's email is in rosteringManager.emails[]
-                    const matched = res.data.data.find((entry) =>
-                        entry.rosteringManager?.emails?.includes(userEmail)
-                    );
+        if (!canUseVisualCare) return;
 
-                    if (!matched) {
-                        setUnauthorized(true);
-                    }
-
-                    setVisualCareCreds(matched.creds); // ✅ Save credentials for later API use
-                    // console.log("Authorized VisualCare credentials loaded:", matched.creds);
-                } else {
-                    alert("No VisualCare credentials found in the database.");
-                }
-            } catch (err) {
-                console.error("❌ Error fetching VisualCare creds:", err);
-                // alert("Failed to load VisualCare credentials.");
-            }
-        };
-
-        if (userEmail) fetchVisualCareCreds();
-    }, [userEmail]);
-
-    useEffect(() => {
-        if (!visualCareCreds) return;
 
         // If manual metrics exist → do NOT load VC metrics
         if (manualMetrics) {
@@ -178,15 +215,15 @@ const SmartRostering = (props) => {
                 const user = visualCareCreds?.user;
                 const key = visualCareCreds?.key;
                 const secret = visualCareCreds?.secret;
-                const days = 3;
+                const days = rosteringSettings?.rostering?.unallocated_shifts_visible_days;
                 const res = await axios.get(
                     `${API_BASE}/getUnallocatedShifts`,
                     {
-                        params: { user, key, secret, userEmail },
+                        params: { user, key, secret, userEmail, days },
                     }
                 );
 
-                console.log("res in fetchUnallocatedShifts", res)
+                // console.log("res in fetchUnallocatedShifts", res)
                 const grouped = res.data || {};
                 const allClients = grouped?.grouped.map((shift) => {
                     const start = shift.start_time;              // "10:00"
@@ -319,7 +356,7 @@ const SmartRostering = (props) => {
                 { headers: { "Content-Type": "application/json" } }
             );
 
-            console.log("Smart Rostering Response:", response.data);
+            // console.log("Smart Rostering Response:", response.data);
             if (userEmail) {
                 await incrementAnalysisCount(userEmail, "smart-rostering", response?.data?.llm_cost?.total_usd);
             }
@@ -363,7 +400,7 @@ const SmartRostering = (props) => {
                     form,
                     { headers: { "Content-Type": "multipart/form-data" } }
                 );
-                console.log("manualResponse", manualResponse);
+                // console.log("manualResponse", manualResponse);
                 if (userEmail) {
                     await incrementAnalysisCount(userEmail, "manual-smart-rostering", manualResponse?.data?.llm_cost?.total_usd);
                 }
@@ -407,7 +444,7 @@ const SmartRostering = (props) => {
                 { prompt: query, userEmail },
                 { headers: { "Content-Type": "application/json" } }
             );
-            console.log("response in prompt based rostering", response)
+            // console.log("response in prompt based rostering", response)
             const promptCost = response?.data?.filler?.llm_cost?.total_usd || 0;
             const rosteringCost = response?.data?.rostering_llm_cost?.total_usd || 0;
             const totalCost = promptCost + rosteringCost;
@@ -502,6 +539,15 @@ const SmartRostering = (props) => {
                         <div style={{ display: 'flex', gap: '14px' }}>
                             <button className="roster-settings-btn" onClick={() => setScreen(3)}><MdOutlineHistory size={18} color="#707493" /> History </button>
                             <button className="roster-settings-btn" onClick={() => setOpenRosterSetting(true)}><RiSettingsLine size={18} color="#707493" />Rostering Settings</button>
+                            {/* {canUseVisualCare && (
+                                <button
+                                    className="roster-settings-btn"
+                                    onClick={() => setOpenRosterSetting(true)}
+                                >
+                                    <RiSettingsLine size={18} color="#707493" />
+                                    Rostering Settings
+                                </button>
+                            )} */}
                         </div>
                     </div>
 
@@ -617,7 +663,7 @@ const SmartRostering = (props) => {
                         </div>
                     </div>
 
-                    {visualCareCreds && <div className="unallocated-shifts-section" style={{ marginTop: "40px" }}>
+                    {canUseVisualCare && <div className="unallocated-shifts-section" style={{ marginTop: "40px" }}>
                         <h3
                             style={{
                                 fontFamily: "Inter",
@@ -814,7 +860,7 @@ const SmartRostering = (props) => {
                 </div>
             )}
             {openRosterSetting && (
-                <OnboardingForm onClose={() => setOpenRosterSetting(false)} userEmail={userEmail}/>
+                <OnboardingForm onClose={() => setOpenRosterSetting(false)} userEmail={userEmail} />
             )}
         </>
     );
