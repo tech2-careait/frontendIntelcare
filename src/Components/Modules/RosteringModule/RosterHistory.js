@@ -29,7 +29,33 @@ const RosterHistory = (props) => {
     const [dummyClients, setDummyClients] = useState([]); // will hold clients in old shape
     const [assignmentsData, setAssignmentsData] = useState([]); // will hold assignment objects in old shape
     const [messages, setMessages] = useState([]); // chat messages in old shape
+    const [rosteringSettings, setRosteringSettings] = useState(null);
+    useEffect(() => {
+        if (!userEmail) return;
 
+        const domain = userEmail.split("@")[1];
+
+        const fetchRosteringSettings = async () => {
+            try {
+                const res = await axios.get(
+                    `${API_BASE}/api/rosteringSettings/${domain}`
+                );
+
+                if (res.data?.data?.length) {
+                    setRosteringSettings(res.data.data[0]);
+                }
+            } catch (err) {
+                console.error("Failed to fetch rostering settings", err);
+            }
+        };
+
+        fetchRosteringSettings();
+    }, [userEmail]);
+    const workflowFlags = rosteringSettings?.workflow_flags || {};
+
+    const requireManagerApproval =
+        workflowFlags.require_manager_approval ?? true;
+    console.log("requireManagerApproval",requireManagerApproval)    
     // === Load clients from API and map to old structure (id, name, address, phone)
     const maskDetailsIfKris = (value, type) => {
         const isKris = userEmail?.toLowerCase() === "kris@curki.ai";
@@ -148,33 +174,26 @@ const RosterHistory = (props) => {
             // Build assignments array in old shape
             const built = [];
             history.forEach(record => {
-                const baseDate = record.createdAt ? record.createdAt.split("T")[0] : new Date().toISOString().split("T")[0];
-                const timeStr = formatTimeRange(record);
 
                 (record.staffMembers || []).forEach(staff => {
-                    let status;
 
-                    //RM accepted
+                    const baseDate =
+                        staff.DateOfService ||
+                        record.createdAt?.split("T")[0] ||
+                        new Date().toISOString().split("T")[0];
+
+                    const timeStr = formatTimeRange(record);
+
+                    let status;
                     if (staff.status === "accepted" && staff.managerApproved === true) {
                         status = "accepted";
-                    }
-
-                    //RM rejected
-                    else if (staff.status === "rejected" && staff.rejectedByRM === true) {
+                    } else if (staff.status === "rejected" && staff.rejectedByRM === true) {
                         status = "rejected";
-                    }
-
-                    //Staff Y / Staff N / Pending → waiting
-                    else {
+                    } else {
                         status = "waiting";
                     }
 
-
-
-                    // compute day/dayName/monthName as old UI expects these to appear
                     const d = new Date(baseDate);
-                    const dayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()];
-                    const monthName = d.toLocaleString("default", { month: "long" });
 
                     built.push({
                         clientId: record.clientId,
@@ -182,16 +201,15 @@ const RosterHistory = (props) => {
                         carer: staff.name || "Unknown",
                         time: timeStr,
                         status,
-                        // preserve original for details
                         originalRecord: record,
                         originalStaffObject: staff,
-                        // old UI date pieces:
-                        dayName,
+                        dayName: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()],
                         day: d.getDate(),
-                        monthName
+                        monthName: d.toLocaleString("default", { month: "long" })
                     });
                 });
             });
+
 
             setAssignmentsData(built);
             // Also set messages empty for now — chat loads when user opens assignment
@@ -712,21 +730,28 @@ const RosterHistory = (props) => {
                                         }}
                                     >
                                         {/* ❌ RM already decided → NO buttons */}
-                                        {isRMDecided && (
-                                            <span style={{ fontWeight: 600, color: '#6B7280' }}>
+                                        {!requireManagerApproval && isStaffAccepted && (
+                                            <span style={{ fontWeight: 600, color: "#4CAF50" }}>
+                                                Auto-approved (Manager approval not required)
+                                            </span>
+                                        )}
+
+                                        {requireManagerApproval && isRMDecided && (
+                                            <span style={{ fontWeight: 600, color: "#6B7280" }}>
                                                 Decision already taken
                                             </span>
                                         )}
 
+
                                         {/* ❌ Staff has not replied */}
-                                        {!isRMDecided && isStaffPending && (
+                                        {/* {!isRMDecided && isStaffPending && (
                                             <span style={{ color: '#9CA3AF', fontWeight: 500 }}>
                                                 Waiting for staff response
                                             </span>
-                                        )}
+                                        )} */}
 
                                         {/* ✅ Staff said YES → show BOTH buttons */}
-                                        {!isRMDecided && isStaffAccepted && (
+                                        {!isRMDecided && requireManagerApproval && (
                                             <>
                                                 <button
                                                     style={{
