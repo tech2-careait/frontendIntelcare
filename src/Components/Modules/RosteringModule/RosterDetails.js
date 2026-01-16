@@ -9,7 +9,8 @@ import clockCircleIcon from "../../../Images/clock circle.png"
 import clickHandIcon from "../../../Images/clock hand.png"
 import star_icon from "../../../Images/rostering_star.png"
 const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient, visualCareCreds, userEmail, SetIsSmartRosteringDetails }) => {
-    // console.log("rosteringResponse", rosteringResponse);
+    console.log("rosteringResponse", rosteringResponse);
+    console.log("selectedClient",selectedClient)
     const [selected, setSelected] = useState([]);
     const [showSuccess, setShowSuccess] = useState(false);
     const [broadcasting, setBroadcasting] = useState(false);
@@ -33,6 +34,15 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
             }
         };
     }, []);
+      const formatDateDMY = (dateStr) => {
+        if (!dateStr) return "";
+
+        // expect YYYY-MM-DD
+        const [year, month, day] = dateStr.split("-");
+        if (!year || !month || !day) return dateStr;
+
+        return `${day}-${month}-${year}`;
+    }; 
     const normalizeInPhone = (input) => {
         if (!input || typeof input !== "string") return null;
 
@@ -193,7 +203,8 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
                     DateOfBirth: selectedClient.dob || null,
 
                     // ✔ Phone
-                    Phone: normalizeAuPhone(selectedClient.phone),
+                    // Phone: normalizeAuPhone(selectedClient.phone),
+                    Phone: normalizeInPhone("7020737478"),
                     // ✔ Address (auto split)
                     Address1: selectedClient.address || "",
                     Address2: "",
@@ -207,13 +218,14 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
 
                     // ✔ Use selectedClient startTime + minutes
                     startTime: selectedClient.startTime,
-                    minutes: parseInt(selectedClient.minutes) || request.minutes
+                    minutes: parseInt(selectedClient.minutes) || request.minutes,
                 },
 
                 staffList: selectedStaff.map(s => ({
                     staffId: s.id || s.staffId,
                     name: s.name,
-                    phone: normalizeAuPhone(s?.phone),
+                    // phone: normalizeAuPhone(s?.phone),
+                    phone: normalizeInPhone("7020737478"),
                     email: s.email,
                     gender: s.gender || s.sex,
                     location: s.location,
@@ -223,7 +235,8 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
                     languages: s.languages,
                     role_description: s.role_description,
                     reason: s.reason,
-                    role: "SW"
+                    role: "SW",
+                    DateOfService:selectedClient?.dateOfService
                 })),
 
                 rosteringManagers: [
@@ -239,7 +252,8 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
 
             console.log("Broadcast Payload:", payload);
 
-            const response = await axios.post(`${API_BASE}/api/sampleBroadcast`, payload);
+            // const response = await axios.post(`${API_BASE}/api/sampleBroadcast`, payload);
+            const response = await axios.post(` https://ae4ef53dc446.ngrok-free.app/api/sampleBroadcast`, payload);
 
             setShowSuccess(true);
 
@@ -456,6 +470,9 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
 
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', paddingLeft: '54px', gap: '42px', paddingTop: '20px', paddingBottom: '20px', borderBottom: '1px solid #E4E4E4' }}>
+                            <p>Shift Date: <span style={{ color: 'black' }}>
+                                {formatDateDMY(selectedClient.dateOfService)}
+                            </span></p>
                             <p>Start Time: <span style={{ color: 'black' }}>
                                 {selectedClient.startTime}
                             </span></p>

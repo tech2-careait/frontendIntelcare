@@ -32,7 +32,7 @@
 .voice-divider {
   height: 1px;
   background: #e5e7eb;
-  margin: 24px 0 40px;
+  margin: 24px 0 20px;
 }
 
 /* ================= ADMIN ================= */
@@ -776,6 +776,7 @@
 .vm-template-menu div:hover {
   background: #f4f4fb;
 }
+
 /* ===============================
    VOICE MODULE – DELETE CONFIRM MODAL
 ================================ */
@@ -864,11 +865,13 @@
     opacity: 0;
     transform: scale(0.96);
   }
+
   to {
     opacity: 1;
     transform: scale(1);
   }
 }
+
 /* ================= TEMPLATE ACTIONS ================= */
 
 .vm-template-right {
@@ -949,6 +952,210 @@
 .vm-dropdown-item.danger {
   color: #d32f2f;
 }
+
+/* ===== STAFF RECORDER ===== */
+
+.staff-recorder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+
+.staff-rec-circle {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: #f4f2ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+}
+
+.staff-rec-circle img {
+  width: 90px;
+}
+
+.staff-audio-preview-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.staff-wave-container {
+  padding: 10px 16px;
+  border-radius: 999px;
+}
+
+.staff-wave-small {
+  width: 180px;
+  /* 👈 Figma approx */
+  height: auto;
+}
+.staff-wave-small {
+  animation: waveMove 1.2s infinite linear;
+}
+.staff-wave-small {
+  opacity: 0.6;
+}
+
+.staff-wave-small.playing {
+  animation: waveMove 1.2s infinite ease-in-out;
+  opacity: 1;
+}
+@keyframes waveMove {
+  0% {
+    transform: translateX(0);
+    opacity: 0.6;
+  }
+  50% {
+    transform: translateX(-6px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 0.6;
+  }
+}
+
+.staff-rec-actions {
+  display: flex;
+  gap: 18px;
+}
+
+.staff-primary,
+.staff-outline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 42px 13px 42px;
+  border-radius: 999px;
+  font-size: 14px;
+  width: auto;
+  height: 46px;
+}
+
+.staff-primary {
+  background: #6c4cdc;
+  color: #fff;
+  border: none;
+}
+
+.staff-outline {
+  background: #fff;
+  border: 1px solid #d1d5db;
+}
+
+/* ===== TEMPLATE DRAWER ===== */
+
+.staff-template-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 999;
+}
+
+.staff-template-header {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.staff-template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.staff-template-item {
+  display: flex;
+  gap: 12px;
+  padding: 15px;
+  border: 1px solid #ececf3;
+  border-radius: 10px;
+  font-size: 14px;
+  text-align: left;
+  width: 264px;
+}
+/* ===== STAFF TEMPLATE SELECTED STATE ===== */
+
+.staff-template-item.active {
+  background: #edeaff;
+  border-color: #6c4cdc;
+}
+
+.staff-template-item.active .staff-template-name {
+  color: #6c4cdc;
+  font-weight: 600;
+}
+
+.staff-template-item.active::after {
+  content: "✓";
+  margin-left: auto;
+  font-weight: 700;
+  color: #6c4cdc;
+}
+
+.staff-template-btn {
+  width: 161px;
+  height: 44px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 13px;
+}
+
+/* ===== TEMPLATE DRAWER (RIGHT SMALL) ===== */
+
+.staff-template-drawer {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 290px;
+  /* 🔹 small width */
+  height: 100%;
+  background: #ffffff;
+  padding: 14px;
+  animation: slideInRight 0.25s ease;
+  box-shadow: -6px 0 20px rgba(0, 0, 0, 0.08);
+}
+
+/* Right slide animation */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+.staff-audio-preview {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.staff-play-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.staff-audio-time {
+  font-size: 12px;
+  color: #6b7280;
+}
+
 
 /* ================= RESPONSIVE ADJUSTMENTS ================= */
 @media (max-width: 768px) {
