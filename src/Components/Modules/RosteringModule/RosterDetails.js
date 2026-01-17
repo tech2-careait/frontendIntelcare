@@ -250,8 +250,8 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
 
             console.log("Broadcast Payload:", payload);
 
-            // const response = await axios.post(`${API_BASE}/api/sampleBroadcast`, payload);
-            const response = await axios.post(` https://ae4ef53dc446.ngrok-free.app/api/sampleBroadcast`, payload);
+            const response = await axios.post(`${API_BASE}/api/sampleBroadcast`, payload);
+            // const response = await axios.post(` https://ae4ef53dc446.ngrok-free.app/api/sampleBroadcast`, payload);
 
             setShowSuccess(true);
 
