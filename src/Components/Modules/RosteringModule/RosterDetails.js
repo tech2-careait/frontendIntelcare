@@ -266,7 +266,7 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
                     DateOfBirth: activeClient?.dob || null,
 
                     // ✔ Phone
-                    Phone: userEmail === "kris@curki.ai" ? normalizeAuPhone("419 015 351") : normalizeAuPhone(activeClient?.phone),
+                    Phone: normalizeAuPhone(activeClient?.phone),
                     Address1: activeClient?.address || "",
                     Address2: "",
 
