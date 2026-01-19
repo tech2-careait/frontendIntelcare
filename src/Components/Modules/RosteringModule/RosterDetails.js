@@ -62,8 +62,8 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
     }, [bulkQueue]);
 
 
-    console.log("rosteringResponse", rosteringResponse);
-    console.log("selectedClient", selectedClient)
+    // console.log("rosteringResponse", rosteringResponse);
+    // console.log("selectedClient", selectedClient)
 
     const [selected, setSelected] = useState([]);
     const [showSuccess, setShowSuccess] = useState(false);
@@ -143,7 +143,7 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
             console.warn("Invalid IN mobile prefix:", input);
             return null;
         }
-        console.log(`normalized Indian number +91${digits}`)
+        // console.log(`normalized Indian number +91${digits}`)
         // 6. Return E.164 format
         return `+91${digits}`;
     };
@@ -275,7 +275,6 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
                     DateOfBirth: activeClient?.dob || null,
                     // ✔ Phone
                     Phone: normalizeAuPhone(activeClient?.phone),
-                    // Phone: normalizeInPhone("7020737478"),
                     Address1: activeClient?.address || "",
                     Address2: "",
                     Suburb: "",
@@ -292,7 +291,6 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
                     staffId: s.id || s.staffId,
                     name: s.name,
                     phone: userEmail === "kris@curki.ai" ? normalizeAuPhone("419 015 351") : normalizeAuPhone(s?.phone),
-                    // phone: normalizeInPhone("7020737478"),
                     email: s.email,
                     gender: s.gender || s.sex,
                     location: s.location,
@@ -317,7 +315,7 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
 
 
 
-            console.log("Broadcast Payload:", payload);
+            // console.log("Broadcast Payload:", payload);
 
             const response = await axios.post(`${API_BASE}/api/sampleBroadcast`, payload);
 
@@ -450,7 +448,7 @@ const RosterDetails = ({ setScreen, rosteringResponse, API_BASE, selectedClient,
     useEffect(() => {
         setSelected([]);
     }, [activeTab]);
-    console.log("rankedStaff length", rankedStaff?.length)
+    // console.log("rankedStaff length", rankedStaff?.length)
     const ClockIcon = () => (
         <div
             style={{
