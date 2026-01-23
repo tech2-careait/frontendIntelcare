@@ -32,7 +32,8 @@ import careVoiceCross from "../../../Images/careVoiceCross.png"
 import { GoArrowLeft } from "react-icons/go";
 import { FiEdit } from "react-icons/fi";
 import { FiCheck, FiX } from "react-icons/fi";
-
+import { GoPencil } from "react-icons/go";
+import TlcUploadBox from "../FinancialModule/TlcUploadBox";
 const VoiceModule = (props) => {
     const userEmail = props?.user?.email;
     const domain = userEmail?.split("@")[1] || "";
@@ -106,6 +107,9 @@ const VoiceModule = (props) => {
     const [mapperMode, setMapperMode] = useState("view");
     // "view" | "edit"
     const [staffStep, setStaffStep] = useState("landing");
+    const [downloadingFileKey, setDownloadingFileKey] = useState(null);
+    const [uploadedTranscriptFiles, setUploadedTranscriptFiles] = useState([]);
+    const [currentTranscriptIndex, setCurrentTranscriptIndex] = useState(0);
     useEffect(() => {
         if (role === "Admin") {
             setShowUploadSection(true);
@@ -130,33 +134,11 @@ const VoiceModule = (props) => {
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "space-between",
+                // justifyContent: "space-between",
                 marginBottom: "12px",
+                gap: "10px"
             }}
         >
-            {/* LEFT SIDE */}
-            <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                {/* ICON */}
-                {icon && (
-                    <img
-                        src={icon}
-                        alt="accordion-icon"
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                )}
-
-                {/* TITLE + SUBTITLE */}
-                <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
-                    <span style={{ fontSize: "16px", fontWeight: 600, color: "#000" }}>{title}</span>
-                    {subtitle && (
-                        <span style={{ fontSize: "Body/Size Medium", color: "#6B7280", fontWeight: 400 }}>
-                            {subtitle}
-                        </span>
-                    )}
-                </div>
-            </div>
-
-            {/* RIGHT ARROW */}
             <img
                 src={TlcPayrollDownArrow}
                 alt="toggle"
@@ -167,6 +149,26 @@ const VoiceModule = (props) => {
                     transition: "transform 0.2s ease",
                 }}
             />
+            {/* LEFT SIDE */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                {/* ICON */}
+
+
+                {/* TITLE + SUBTITLE */}
+                <div style={{ display: "flex", flexDirection: "column", textAlign: "left" }}>
+                    <span style={{ fontSize: "16px", fontWeight: 600, color: "#000" }}>{title}</span>
+                </div>
+                {icon === TlcPayrollInsightIcon && (
+                    <img
+                        src={icon}
+                        alt="accordion-icon"
+                        style={{ width: "20px", height: "20px" }}
+                    />
+                )}
+            </div>
+
+            {/* RIGHT ARROW */}
+
         </div>
     );
 
@@ -1095,13 +1097,114 @@ const VoiceModule = (props) => {
     const canGoNext = templateIndex + CARDS_PER_VIEW < templates.length;
 
     const handlePrev = () => {
-        if (canGoPrev) setTemplateIndex(prev => prev - 1);
+        if (canGoPrev) {
+            setTemplateIndex(prev => prev - CARDS_PER_VIEW);
+        }
     };
 
     const handleNext = () => {
-        if (canGoNext) setTemplateIndex(prev => prev + 1);
+        if (canGoNext) {
+            setTemplateIndex(prev => prev + CARDS_PER_VIEW);
+        }
     };
     const sections = parseVoiceExplanation(analysisText);
+    const totalPages = Math.ceil(templates.length / CARDS_PER_VIEW);
+    const currentPage = Math.floor(templateIndex / CARDS_PER_VIEW);
+    const isSingleView =
+        templates.length === 1
+    const processSingleTranscript = async (file, index, total) => {
+        setCurrentTranscriptIndex(index);
+        setCurrentTask(`Processing transcript ${index + 1} of ${total}`);
+        setIsGenerating(true);
+
+        const formData = new FormData();
+
+        formData.append("templateBlobName", selectedTemplate.templateBlobName);
+        formData.append("templateMimeType", selectedTemplate.templateMimeType);
+        formData.append("templateOriginalName", selectedTemplate.templateOriginalName);
+
+        formData.append(
+            "sampleBlobs",
+            JSON.stringify(selectedTemplate.sampleBlobs || [])
+        );
+
+        formData.append("prompt", selectedTemplate.prompt);
+
+        const parsedJson = JSON.parse(selectedTemplate.mappings);
+        const normalizedMapper = {
+            ...parsedJson,
+            mapper: parsedJson?.mapper?.mapper ?? parsedJson?.mapper
+        };
+
+        formData.append("mapper", JSON.stringify(normalizedMapper));
+        formData.append("transcript_data", file, file.name);
+
+        const res = await fetch(`${API_BASE}/api/document-filler`, {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+
+        if (data.success && data.filled_document) {
+            downloadBase64File(
+                data.filled_document,
+                `Generated_${index + 1}_${file.name}.docx`
+            );
+        }
+    };
+    const submitMultipleTranscripts = async () => {
+        if (!selectedTemplate || uploadedTranscriptFiles.length === 0) return;
+
+        for (let i = 0; i < uploadedTranscriptFiles.length; i++) {
+            await processSingleTranscript(
+                uploadedTranscriptFiles[i],
+                i,
+                uploadedTranscriptFiles.length
+            );
+        }
+
+        setIsGenerating(false);
+        setCurrentTask("");
+    };
+
+    const handleDownloadBlob = async ({
+        fileKey,
+        templateId,
+        blobName,
+        originalName,
+    }) => {
+        try {
+            setDownloadingFileKey(fileKey);
+
+            const query = new URLSearchParams({
+                organizationId,
+                ...(blobName ? { blobName } : {}) // ✅ only if exists
+            }).toString();
+
+            const res = await fetch(
+                `${API_BASE}/api/voiceModuleTemplate/${templateId}/download?${query}`
+            );
+
+            const data = await res.json();
+            if (!data.success) throw new Error("Download failed");
+
+            const link = document.createElement("a");
+            link.href = data.url;
+            link.download = originalName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+
+        } catch (err) {
+            console.error("[DOWNLOAD ERROR]", err);
+            alert("Failed to download file");
+        } finally {
+            setDownloadingFileKey(null);
+        }
+    };
+    const transcriptInputRef = useRef(null);
+
 
     return (
         <div className="voice-container">
@@ -1212,7 +1315,23 @@ const VoiceModule = (props) => {
 
                                 </div>
                                 <div className="vm-file-list" style={{ display: "flex", gap: "10px" }}>
-                                    <div className="vm-file-item" style={{ width: "435px", height: "78px" }}>
+                                    <div
+                                        className="vm-file-item"
+                                        style={{
+                                            width: "435px",
+                                            height: "78px",
+                                            cursor: downloadingFileKey ? "not-allowed" : "pointer",
+                                            opacity: downloadingFileKey ? 0.6 : 1,
+                                        }}
+                                        onClick={() =>
+                                            !downloadingFileKey &&
+                                            handleDownloadBlob({
+                                                fileKey: `template-${activeTemplate.id}`,
+                                                templateId: activeTemplate.id,
+                                                originalName: activeTemplate.templateOriginalName,
+                                            })
+                                        }
+                                    >
                                         <div className="vm-file-left" style={{ flexDirection: "column", alignItems: "flex-start" }}>
                                             {/* DOC ICON ADD HERE */}
                                             <div style={{ display: "flex", gap: "10px" }}>
@@ -1223,10 +1342,14 @@ const VoiceModule = (props) => {
                                                 />
                                                 <div style={{ display: "flex", flexDirection: "column" }}>
                                                     <div className="vm-file-name">
-                                                        Template Structure
+                                                        {downloadingFileKey === `template-${activeTemplate.id}`
+                                                            ? "Downloading..."
+                                                            : "Template Structure"}
                                                     </div>
                                                     <div className="vm-file-status">
-                                                        {activeTemplate.templateOriginalName}
+                                                        {downloadingFileKey === `template-${activeTemplate.id}`
+                                                            ? "Please wait"
+                                                            : activeTemplate.templateOriginalName}
                                                     </div>
                                                 </div>
                                             </div>
@@ -1237,9 +1360,28 @@ const VoiceModule = (props) => {
                                         // Check file extension for icon
                                         const fileExt = file.originalName?.split('.').pop()?.toLowerCase();
                                         const isPDF = fileExt === 'pdf';
-
+                                        const fileKey = `sample-${activeTemplate.id}-${i}`;
+                                        const isDownloading = downloadingFileKey === fileKey;
                                         return (
-                                            <div key={i} className="vm-file-item" style={{ width: "435px", height: "78px" }}>
+                                            <div
+                                                key={i}
+                                                className="vm-file-item"
+                                                style={{
+                                                    width: "435px",
+                                                    height: "78px",
+                                                    cursor: downloadingFileKey ? "not-allowed" : "pointer",
+                                                    opacity: isDownloading ? 0.6 : 1,
+                                                }}
+                                                onClick={() =>
+                                                    !downloadingFileKey &&
+                                                    handleDownloadBlob({
+                                                        fileKey,
+                                                        templateId: activeTemplate.id,
+                                                        blobName: file.blobName,
+                                                        originalName: file.originalName,
+                                                    })
+                                                }
+                                            >
                                                 <div className="vm-file-left" style={{ flexDirection: "column", alignItems: "flex-start" }}>
                                                     {/* PDF/DOC ICON BASED ON FILE TYPE */}
                                                     <div style={{ display: "flex", gap: "10px" }}>
@@ -1250,10 +1392,10 @@ const VoiceModule = (props) => {
                                                         />
                                                         <div style={{ display: "flex", flexDirection: "column" }}>
                                                             <div className="vm-file-name">
-                                                                Sample Document
+                                                                {isDownloading ? "Downloading..." : "Sample Document"}
                                                             </div>
                                                             <div className="vm-file-status">
-                                                                {file.originalName}
+                                                                {isDownloading ? "Please wait" : file.originalName}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1358,9 +1500,11 @@ const VoiceModule = (props) => {
                                 {/* SLIDER WINDOW */}
                                 <div className="vm-template-slider">
                                     <div
-                                        className="vm-template-track"
+                                        className={`vm-template-track ${isSingleView ? "single-template" : ""}`}
                                         style={{
-                                            transform: `translateX(-${templateIndex * (100 / CARDS_PER_VIEW)}%)`
+                                            transform: isSingleView
+                                                ? "none"
+                                                : `translateX(-${templateIndex * (100 / CARDS_PER_VIEW)}%)`
                                         }}
                                     >
                                         {templates.map((tpl, index) => (
@@ -1430,7 +1574,9 @@ const VoiceModule = (props) => {
                                                                     ) : (
                                                                         <>
                                                                             <span className="vm-template-name-text">
-                                                                                {tpl.templateName || `Voice Template ${index + 1}`}
+                                                                                {(tpl.templateName || `Voice Template ${index + 1}`).length > 30
+                                                                                    ? (tpl.templateName || `Voice Template ${index + 1}`).slice(0, 30) + "..."
+                                                                                    : (tpl.templateName || `Voice Template ${index + 1}`)}
                                                                             </span>
 
                                                                             <span
@@ -1441,7 +1587,7 @@ const VoiceModule = (props) => {
                                                                                     setTempName(tpl.templateName || "");
                                                                                 }}
                                                                             >
-                                                                                <FiEdit size={14} />
+                                                                                <GoPencil size={14} />
                                                                             </span>
                                                                         </>
                                                                     )}
@@ -1456,7 +1602,7 @@ const VoiceModule = (props) => {
                                                                             setOpenMenuId(openMenuId === tpl.id ? null : tpl.id);
                                                                         }}
                                                                     >
-                                                                        ⋮
+                                                                        ...
                                                                     </span>
 
                                                                     {openMenuId === tpl.id && (
@@ -1531,153 +1677,63 @@ const VoiceModule = (props) => {
                                 </div>
 
                             </div>
+                            {totalPages > 1 && (
+                                <div className="vm-slider-dots">
+                                    {Array.from({ length: totalPages }).map((_, i) => (
+                                        <span
+                                            key={i}
+                                            className={`vm-slider-dot ${i === currentPage ? "active" : ""
+                                                }`}
+                                        />
+                                    ))}
+                                </div>
+                            )}
 
                         </div>
                     )}
 
 
                     {/* Upload Section - Hidden when analyze clicked OR during processing */}
-
+                    {stage !== "processing" && stage !== "completed" && stage !== "review" && !activeTemplate && <div className="vm-admin-heading">
+                        <h2 className="vm-admin-title">
+                            Make Care Voice Template
+                        </h2>
+                        <p className="vm-admin-subtitle">
+                            Turn your document structure into a template you can reuse anytime.
+                        </p>
+                    </div>}
                     {showUploadSection && stage !== "processing" && !activeTemplate && (
                         <>
                             <div className="voice-upload-row">
                                 {/* ================= TEMPLATE COLUMN ================= */}
-                                <div className="voice-upload-col">
-                                    <div className="voice-upload-title-admin">
-                                        Upload Templates*
-                                    </div>
-                                    {!templateFile && (
-                                        <div
-                                            className="voice-upload-box"
-                                            onClick={() =>
-                                                document.getElementById("voice-template").click()
-                                            }
-                                        >
-                                            <input
-                                                id="voice-template"
-                                                type="file"
-                                                accept=".doc"
-                                                hidden
-                                                onChange={(e) => {
-                                                    console.log("[UI] Template selected:", e.target.files[0]?.name);
-                                                    setTemplateFile(e.target.files[0]);
-                                                }}
-                                            />
-
-                                            <FiUploadCloud className="voice-icon" />
-                                            <div className="voice-text">Drop file or browse</div>
-                                            <div className="voice-subtext">Format: .doc only</div>
-
-                                            {/* <button className="voice-browse-btn">
-                                                Browse Files
-                                            </button> */}
-                                        </div>
-                                    )}
-
-
-                                    {templateFile && (
-                                        <div className="vm-file-list">
-                                            <div className="vm-file-item vm-file-item-uploaded">
-                                                <div className="vm-file-left">
-                                                    <div className="vm-file-icon">📄</div>
-
-                                                    <div>
-                                                        <div className="vm-file-name">
-                                                            {templateFile.name}
-                                                        </div>
-                                                        <div className="vm-file-status">
-                                                            Uploaded • 100%
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="vm-file-actions">
-                                                    <span className="vm-file-check">✓</span>
-                                                    <RiDeleteBin6Line
-                                                        className="vm-file-delete"
-                                                        onClick={() => setTemplateFile(null)}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                    )}
+                                <div className="voice-upload-col" style={{width:"35%"}}>
+                                    <TlcUploadBox
+                                        id="admin-template-upload"
+                                        title="Upload Templates*"
+                                        subtitle=".DOC, .DOCX"
+                                        accept=".doc,.docx"
+                                        files={templateFile ? [templateFile] : []}
+                                        multiple={false}
+                                        setFiles={(files) => {
+                                            setTemplateFile(files[0] || null);
+                                        }}
+                                    />
                                 </div>
+
 
                                 {/* ================= SAMPLES COLUMN ================= */}
-                                <div className="voice-upload-col">
-                                    <div className="voice-upload-title-admin">
-                                        Upload Samples
-                                    </div>
-
-                                    {sampleFiles.length === 0 && (
-                                        <div
-                                            className="voice-upload-box"
-                                            onClick={() =>
-                                                document.getElementById("voice-sample").click()
-                                            }
-                                        >
-                                            <input
-                                                id="voice-sample"
-                                                type="file"
-                                                accept=".doc,.pdf"
-                                                multiple
-                                                hidden
-                                                onChange={(e) => {
-                                                    const files = Array.from(e.target.files);
-                                                    console.log("[UI] Samples selected:", files.map(f => f.name));
-                                                    setSampleFiles(files);
-                                                }}
-                                            />
-
-                                            <FiUploadCloud className="voice-icon" />
-                                            <div className="voice-text">Drop file or browse</div>
-                                            <div className="voice-subtext">
-                                                Format: .doc or .pdf only
-                                            </div>
-
-                                            {/* <button className="voice-browse-btn">
-                                                Browse Files
-                                            </button> */}
-                                        </div>
-                                    )}
-
-                                    {sampleFiles.length > 0 && (
-                                        <div className="vm-file-list">
-                                            {sampleFiles.map((file, index) => (
-                                                <div key={index} className="vm-file-item vm-file-item-uploaded">
-                                                    <div className="vm-file-left">
-                                                        <div className="vm-file-icon">📄</div>
-
-                                                        <div>
-                                                            <div className="vm-file-name">
-                                                                {file.name}
-                                                            </div>
-                                                            <div className="vm-file-status">
-                                                                Uploaded • 100%
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="vm-file-actions">
-                                                        <span className="vm-file-check">✓</span>
-
-                                                        <RiDeleteBin6Line
-                                                            className="vm-file-delete"
-                                                            onClick={() => {
-                                                                console.log("[UI] Sample removed:", file.name);
-                                                                setSampleFiles(prev =>
-                                                                    prev.filter((_, i) => i !== index)
-                                                                );
-                                                            }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                    )}
+                                <div className="voice-upload-col" style={{width:"35%"}}>
+                                    <TlcUploadBox
+                                        id="admin-sample-upload"
+                                        title="Upload Samples"
+                                        subtitle=".DOC, .PDF"
+                                        accept=".doc,.docx,.pdf"
+                                        files={sampleFiles}
+                                        multiple
+                                        setFiles={setSampleFiles}
+                                    />
                                 </div>
+
                             </div>
 
                             {/* Save & Analyze Button */}
@@ -2018,88 +2074,46 @@ const VoiceModule = (props) => {
                         <span className="voice-or-line" />
                     </div>
 
-                    {/* ===== UPLOAD TRANSCRIPT ===== */}
-                    {/* ===== UPLOAD TRANSCRIPT (FINAL – SINGLE SOURCE) ===== */}
                     <div className="voice-upload-col">
-                        <div className="voice-title">Upload Transcript</div>
+                        <TlcUploadBox
+                            id="staff-transcript-upload"
+                            title="Upload Transcript"
+                            subtitle=".DOC, .PDF, .TXT"
+                            accept=".doc,.docx,.pdf,.txt"
+                            files={uploadedTranscriptFiles}
+                            multiple
+                            setFiles={(files) => {
+                                setUploadedTranscriptFiles(files);
+                                setTranscriptSource("file");
+                                setCurrentTranscriptIndex(0);
+                            }}
+                        />
 
-                        <div className="voice-subtext">
-                            Upload single transcript or folder of transcripts
-                        </div>
-
-                        {/* Upload box */}
-                        {!uploadedTranscriptFile && (
-                            <div
-                                className="voice-upload-box"
-                                onClick={() => document.getElementById("staff-transcript").click()}
-                            >
-                                <input
-                                    id="staff-transcript"
-                                    type="file"
-                                    accept=".doc,.pdf,.txt"
-                                    hidden
-                                    onChange={(e) => {
-                                        setUploadedTranscriptFile(e.target.files[0]);
-                                        setTranscriptSource("file");
-                                    }}
-                                />
-
-                                <FiUploadCloud className="voice-icon" />
-                                <div className="voice-text">Drop file or browse</div>
-                                <div className="voice-subtext">Format: .doc or .pdf only</div>
-                                {/* <button className="voice-browse-btn">Browse Files</button> */}
-                            </div>
-                        )}
-
-                        {/* FILE PREVIEW */}
-                        {uploadedTranscriptFile && (
-                            <div className="vm-file-list" style={{ marginTop: "12px" }}>
-                                <div className="vm-file-item vm-file-item-uploaded">
-                                    <div className="vm-file-left">
-                                        <div className="vm-file-icon">📄</div>
-
-                                        <div>
-                                            <div className="vm-file-name">
-                                                {uploadedTranscriptFile.name}
-                                            </div>
-                                            <div className="vm-file-status">
-                                                Uploaded • 100%
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div className="vm-file-actions">
-                                        <span className="vm-file-check">✓</span>
-
-                                        <RiDeleteBin6Line
-                                            className="vm-file-delete"
-                                            onClick={() => {
-                                                setUploadedTranscriptFile(null);
-                                                setTranscriptSource(null);
-                                            }}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-
-                        )}
-
-                        {/* Generate Document */}
+                        {/* ✅ GENERATE DOCUMENT BUTTON (PUT BACK) */}
                         <div style={{ textAlign: "right", marginTop: "24px" }}>
                             <button
                                 className="staff-primary"
-                                onClick={submitToDocumentFiller}
+                                onClick={
+                                    uploadedTranscriptFiles.length > 0
+                                        ? submitMultipleTranscripts
+                                        : submitToDocumentFiller
+                                }
                                 disabled={
                                     isGenerating ||
                                     !selectedTemplate ||
-                                    (!transcriptData && !uploadedTranscriptFile)
+                                    (
+                                        uploadedTranscriptFiles.length === 0 &&
+                                        !transcriptData
+                                    )
                                 }
                             >
                                 {isGenerating ? "Generating..." : "✓ Generate Document"}
                             </button>
-
                         </div>
                     </div>
+
+
+
 
 
                 </>
@@ -2164,7 +2178,9 @@ const VoiceModule = (props) => {
 
                                             <div className="template-select-info">
                                                 <div className="template-select-name">
-                                                    {tpl.templateName || "Voice Template"}
+                                                    {(tpl.templateName || "Voice Template").length > 30
+                                                        ? (tpl.templateName || "Voice Template").slice(0, 30) + "..."
+                                                        : (tpl.templateName || "Voice Template")}
                                                 </div>
                                                 <div className="template-select-date">
                                                     ⏱ {timeAgo(tpl.createdAt)}

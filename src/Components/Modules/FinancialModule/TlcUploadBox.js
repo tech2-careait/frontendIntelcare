@@ -14,6 +14,31 @@ const TlcUploadBox = ({
   onTemplateDownload,
   multiple = true,
 }) => {
+  const getFileIcon = (fileName = "") => {
+    const ext = fileName.split(".").pop().toLowerCase();
+
+    switch (ext) {
+      case "pdf":
+        return "https://cdn-icons-png.flaticon.com/512/337/337946.png";
+
+      case "doc":
+      case "docx":
+        return "https://cdn-icons-png.flaticon.com/512/281/281760.png"; // ✅ WORD icon
+
+      case "xls":
+      case "xlsx":
+        return "https://cdn-icons-png.flaticon.com/512/732/732220.png"; // ✅ EXCEL icon
+
+      case "ppt":
+      case "pptx":
+        return "https://cdn-icons-png.flaticon.com/512/732/732224.png"; // PPT only
+
+      default:
+        return "https://cdn-icons-png.flaticon.com/512/732/732220.png"; // ✅ NICE generic file icon
+    }
+  };
+
+
   return (
     <div className="data-upload-card">
       {/* HEADER */}
@@ -52,8 +77,13 @@ const TlcUploadBox = ({
           multiple={multiple}
           hidden
           onChange={(e) => {
-            const selected = Array.from(e.target.files);
-            setFiles((prev) => [...prev, ...selected]);
+            const selected = Array.from(e.target.files || []);
+            if (!selected.length) return;
+
+            // ✅ ALWAYS pass array to parent
+            setFiles(multiple ? selected : [selected[0]]);
+
+            // ✅ allow re-selecting same file
             e.target.value = "";
           }}
         />
@@ -70,7 +100,7 @@ const TlcUploadBox = ({
               <div key={idx} className="data-upload-file">
                 <div className="data-upload-fileinfo">
                   <img
-                    src="https://cdn-icons-png.flaticon.com/512/732/732220.png"
+                    src={getFileIcon(file.name)}
                     alt="xls"
                   />
                   <div>
