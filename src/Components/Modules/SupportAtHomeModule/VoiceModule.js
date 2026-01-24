@@ -34,6 +34,8 @@ import { FiEdit } from "react-icons/fi";
 import { FiCheck, FiX } from "react-icons/fi";
 import { GoPencil } from "react-icons/go";
 import TlcUploadBox from "../FinancialModule/TlcUploadBox";
+import CareVoiceExplainationMarkdown from "./CareVoiceExplainationMarkdown";
+import { mapperToRows } from "./carevoiceMapperObject";
 const VoiceModule = (props) => {
     const userEmail = props?.user?.email;
     const domain = userEmail?.split("@")[1] || "";
@@ -477,68 +479,22 @@ const VoiceModule = (props) => {
         console.log("template", template);
         console.log("[UI][EDIT] Editing template", template.id);
 
-        // 🔐 RAW SOURCE (FROM DB)
+        // 🔐 RAW SOURCE
         setRawPrompt(template.prompt || "");
         setRawMapper(template.mappings || null);
 
         // 🎨 UI
-        const cleanedText = cleanText(template.prompt || "");
         setAnalysisText(template.prompt);
 
-        let parsedMappings;
-        try {
-            parsedMappings = typeof template.mappings === "string"
-                ? JSON.parse(template.mappings)
-                : template.mappings;
-        } catch (err) {
-            console.error("[UI] Failed to parse mappings:", err);
-            parsedMappings = null;
-        }
-
-        setRawMapper(parsedMappings);
-
-        console.log("[DEBUG] Parsed mappings in edit:", parsedMappings);
-
-        let rowsArray = [];
-
-        if (parsedMappings?.mapper?.field_mappings) {
-            // ✅ THIS IS YOUR REAL STRUCTURE
-            rowsArray = Object.entries(parsedMappings.mapper.field_mappings).map(
-                ([key, value]) => ({
-                    template_field: key,
-                    source: Array.isArray(value?.source)
-                        ? value.source.join(", ")
-                        : value?.source || "",
-                    type: value?.type || "text",
-                    required: !!value?.required,
-                    validation: value?.validation || "",
-                    transform: value?.transform || ""
-                })
-            );
-        } else if (parsedMappings?.mapper?.mapper?.field_mappings) {
-            // (future-proof, just in case)
-            rowsArray = Object.entries(
-                parsedMappings.mapper.mapper.field_mappings
-            ).map(([key, value]) => ({
-                template_field: key,
-                source: Array.isArray(value?.source)
-                    ? value.source.join(", ")
-                    : value?.source || "",
-                type: value?.type || "text",
-                required: !!value?.required,
-                validation: value?.validation || "",
-                transform: value?.transform || ""
-            }));
-        }
-
-        console.log("[DEBUG] Final rows in edit:", rowsArray);
-        setMapperRows(rowsArray);
+        // ✅ ONLY ONE MAPPER: mapper.mapper.... flatten into rows
+        setMapperRows(mapperToRows(template.mappings));
 
         setEditingTemplateId(template.id);
         setShowUploadSection(false);
         setStage("completed");
         setOpenMenuId(null);
     };
+
 
 
     const saveTemplateName = async (templateId) => {
@@ -772,8 +728,7 @@ const VoiceModule = (props) => {
     };
 
 
-    /* ================= POLL LATEST ================= */
-    /* ================= POLL LATEST ================= */
+
     const pollLatest = (id) => {
         console.log("[UI] Polling latest event:", id);
 
@@ -822,64 +777,23 @@ const VoiceModule = (props) => {
                     clearInterval(interval);
                 }
 
-                // In pollLatest function (around line 393-395):
                 if (data.type === "final_result") {
                     pushEvent("Final document generated", 4);
 
                     setRawPrompt(data.prompt || "");
                     setRawMapper(data?.mapper || null);
 
-                    const cleanedText = cleanText(data.prompt || "");
                     setAnalysisText(data.prompt);
 
-                    // 🔥 UPDATED EXTRACTION LOGIC
-                    let rowsArray = [];
+                    // ✅ ONLY mapper.mapper flatten
+                    setMapperRows(mapperToRows(data?.mapper));
 
-                    if (data?.mapper?.mapper && typeof data.mapper.mapper === "object") {
-                        const mapperObj = data.mapper.mapper;
-
-                        // Check if field_mappings exists as a property
-                        if (mapperObj.field_mappings && typeof mapperObj.field_mappings === "object") {
-                            // Extract from field_mappings property
-                            rowsArray = Object.entries(mapperObj.field_mappings).map(([key, value]) => ({
-                                template_field: key,
-                                source: Array.isArray(value.source) ? value.source.join(", ") : value.source || "",
-                                type: value.type || "text",
-                                required: !!value.required,
-                                validation: value.validation || "",
-                                transform: value.transform || ""
-                            }));
-                        } else {
-                            // Extract directly from mapper object, but exclude non-field properties
-                            rowsArray = Object.entries(mapperObj)
-                                .filter(([key]) => !["template", "field_mappings", "fields", "fieldMappings"].includes(key))
-                                .map(([key, value]) => {
-                                    // Skip if value is not an object with field properties
-                                    if (!value || typeof value !== "object" || Array.isArray(value)) {
-                                        return null;
-                                    }
-
-                                    return {
-                                        template_field: key,
-                                        source: Array.isArray(value?.source) ? value.source.join(", ") : value?.source || "",
-                                        type: value?.type || "text",
-                                        required: !!value?.required,
-                                        validation: value?.validation || "",
-                                        transform: value?.transform || ""
-                                    };
-                                })
-                                .filter(Boolean); // Remove null entries
-                        }
-                    }
-
-                    console.log("[DEBUG] Extracted rows in pollLatest:", rowsArray);
-
-                    setMapperRows(rowsArray);
                     setProcessingProgress(100);
                     stopProgress();
                     setStage("completed");
                     clearInterval(interval);
                 }
+
 
             } catch (error) {
                 console.error("[UI] Polling error:", error);
@@ -1108,76 +1022,32 @@ const VoiceModule = (props) => {
     const handleStaffTemplateSelect = (tpl) => {
         console.log("[STAFF] Selected template:", tpl.id);
 
-        // 🔐 RAW — Python ke liye
-        setSelectedTemplate(prev => {
-            // first selection
+        // 🔐 RAW — selection logic unchanged
+        setSelectedTemplate((prev) => {
             if (!prev || !prev.isMulti) {
                 return {
                     isMulti: true,
-                    templates: [tpl]
+                    templates: [tpl],
                 };
             }
 
-            const exists = prev.templates.find(t => t.id === tpl.id);
+            const exists = prev.templates.find((t) => t.id === tpl.id);
 
             return {
                 isMulti: true,
                 templates: exists
-                    ? prev.templates.filter(t => t.id !== tpl.id)
-                    : [...prev.templates, tpl]
+                    ? prev.templates.filter((t) => t.id !== tpl.id)
+                    : [...prev.templates, tpl],
             };
         });
 
-
-        // 🎨 UI
-        const cleanedText = cleanText(tpl.prompt || "");
+        // 🎨 UI prompt
         setAnalysisText(tpl.prompt);
 
-        // Parse mappings
-        let parsedMappings;
-        try {
-            parsedMappings = typeof tpl.mappings === "string"
-                ? JSON.parse(tpl.mappings)
-                : tpl.mappings;
-        } catch (err) {
-            console.error("[STAFF] Failed to parse mappings:", err);
-            parsedMappings = null;
-        }
-
-        let rowsArray = [];
-
-        if (parsedMappings?.mapper?.field_mappings) {
-            rowsArray = Object.entries(parsedMappings.mapper.field_mappings).map(
-                ([key, value]) => ({
-                    template_field: key,
-                    source: Array.isArray(value?.source)
-                        ? value.source.join(", ")
-                        : value?.source || "",
-                    type: value?.type || "text",
-                    required: !!value?.required,
-                    validation: value?.validation || "",
-                    transform: value?.transform || ""
-                })
-            );
-        } else if (parsedMappings?.mapper?.mapper?.field_mappings) {
-            rowsArray = Object.entries(
-                parsedMappings.mapper.mapper.field_mappings
-            ).map(([key, value]) => ({
-                template_field: key,
-                source: Array.isArray(value?.source)
-                    ? value.source.join(", ")
-                    : value?.source || "",
-                type: value?.type || "text",
-                required: !!value?.required,
-                validation: value?.validation || "",
-                transform: value?.transform || ""
-            }));
-        }
-
-        setMapperRows(rowsArray);
-
-
+        // ✅ ONLY mapper.mapper flatten
+        setMapperRows(mapperToRows(tpl.mappings));
     };
+
 
     console.log("selectedTemplate?.mappings", selectedTemplate?.mappings)
     // console.log(analysisText)
@@ -1693,7 +1563,7 @@ const VoiceModule = (props) => {
                                     Available Template
                                 </div>
 
-                                {templates.length > 1 && (
+                                {templates.length > 2 && (
                                     <div className="vm-template-header-arrows">
                                         <button
                                             className="vm-slider-arrow"
@@ -1735,57 +1605,14 @@ const VoiceModule = (props) => {
                                             <div key={tpl.id} className="vm-template-slide">
                                                 <div className="vm-template-card" onClick={() => {
                                                     if (openMenuId) return;
+
                                                     setActiveTemplate(tpl);
                                                     setMapperMode("view");
 
-                                                    // Parse mappings
-                                                    let parsedMappings;
-                                                    try {
-                                                        parsedMappings = typeof tpl.mappings === "string"
-                                                            ? JSON.parse(tpl.mappings)
-                                                            : tpl.mappings;
-                                                    } catch (err) {
-                                                        console.error("[UI] Failed to parse mappings:", err);
-                                                        parsedMappings = null;
-                                                    }
-
-                                                    console.log("[DEBUG] Parsed mappings for template view:", parsedMappings);
-
-                                                    // 🔥 DIRECT EXTRACTION
-                                                    let rowsArray = [];
-
-                                                    if (parsedMappings?.mapper?.field_mappings) {
-                                                        rowsArray = Object.entries(parsedMappings.mapper.field_mappings).map(
-                                                            ([key, value]) => ({
-                                                                template_field: key,
-                                                                source: Array.isArray(value?.source)
-                                                                    ? value.source.join(", ")
-                                                                    : value?.source || "",
-                                                                type: value?.type || "text",
-                                                                required: !!value?.required,
-                                                                validation: value?.validation || "",
-                                                                transform: value?.transform || ""
-                                                            })
-                                                        );
-                                                    } else if (parsedMappings?.mapper?.mapper?.field_mappings) {
-                                                        rowsArray = Object.entries(
-                                                            parsedMappings.mapper.mapper.field_mappings
-                                                        ).map(([key, value]) => ({
-                                                            template_field: key,
-                                                            source: Array.isArray(value?.source)
-                                                                ? value.source.join(", ")
-                                                                : value?.source || "",
-                                                            type: value?.type || "text",
-                                                            required: !!value?.required,
-                                                            validation: value?.validation || "",
-                                                            transform: value?.transform || ""
-                                                        }));
-                                                    }
-
-                                                    console.log("[DEBUG] Rows for template view (FIXED):", rowsArray);
-                                                    setMapperRows(rowsArray);
-
-                                                }}>
+                                                    // ✅ show only mapper.mapper.* flattened in table
+                                                    setMapperRows(mapperToRows(tpl.mappings));
+                                                }}
+                                                >
                                                     <div className="vm-template-left">
                                                         <div className="vm-template-icon">
                                                             <img src={templateIcon} alt="template" />
@@ -2052,21 +1879,6 @@ const VoiceModule = (props) => {
                             </div>
 
                             {/* ===== ANALYSIS CONTENT ===== */}
-                            <div className="analysis-box">
-                                {sections.map(section => (
-                                    <div key={section.id} className="voice-explanation-section">
-                                        <h4 className="voice-explanation-title">
-                                            {cleanText(section.title)}
-                                        </h4>
-
-                                        <div className="voice-explanation-content">
-                                            {cleanText(section.content)}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* ===== FEEDBACK BOX ===== */}
                             {showFeedbackBox && (
                                 <div className="analysis-feedback-section">
                                     <div className="analysis-feedback-label">
@@ -2092,6 +1904,21 @@ const VoiceModule = (props) => {
                                     </div>
                                 </div>
                             )}
+                            <div className="analysis-box" style={{ padding: "26px" }}>
+                                {sections.map((section) => (
+                                    <div key={section.id} className="voice-explanation-section">
+                                        <h4 className="voice-explanation-title">
+                                            {cleanPromptText(section.title)}
+                                        </h4>
+
+                                        {/* ✅ Markdown parse properly (tables included) */}
+                                        <CareVoiceExplainationMarkdown content={section.content} />
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* ===== FEEDBACK BOX ===== */}
+
 
                         </div>
                     )}
