@@ -1904,7 +1904,7 @@ const VoiceModule = (props) => {
                                     </div>
                                 </div>
                             )}
-                            <div className="analysis-box" style={{ padding: "26px" }}>
+                            <div className="analysis-box" style={{ padding: "2rem" }}>
                                 {sections.map((section) => (
                                     <div key={section.id} className="voice-explanation-section">
                                         {/* ✅ Markdown parse properly (tables included) */}
