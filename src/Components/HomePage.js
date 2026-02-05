@@ -56,6 +56,7 @@ import newTlcLogo from "../Images/newTlcLogo.png"
 import PricingPlansModal from "./NewPricingModal";
 import NewSubscriptionStatus from "./NewSubscriptionStatus";
 import VoiceModule from "./Modules/SupportAtHomeModule/VoiceModule";
+import dummyLogo from "../Images/tlcDummyLogo.svg";
 const HomePage = () => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [documentString, setDocumentString] = useState("");
@@ -97,6 +98,9 @@ const HomePage = () => {
   const handleModalClose = () => setModalVisible(false);
   const handleLeftModalOpen = () => setLeftModalVisible(true);
   const handleLeftModalClose = () => setLeftModalVisible(false);
+  // console.log("user?.email",user?.email)
+  const userEmail = user?.email
+  // const userEmail = "kris@curki.ai";
   const moduleSuggestions = {
     tlc: [
       "Which 10 employees in NDIS Department have the highest overtime hours and overtime $ ?",
@@ -342,13 +346,20 @@ const HomePage = () => {
         //   }
         // )
         console.log("tlcClientProfitabilityPayload in homepage", tlcClientProfitabilityPayload)
+        const payload = {
+          question: finalQuery,
+          table_data: tlcClientProfitabilityPayload,
+        };
+
+        // only for kris add env
+        if (userEmail === "kris@curki.ai") {
+          payload.env = "sandbox";
+        }
+
         const response = await axios.post(
           `https://curki-backend-api-container.yellowflower-c21bea82.australiaeast.azurecontainerapps.io/header_modules/clients_profitability/ask_ai`,
-          {
-            question: finalQuery,
-            table_data: tlcClientProfitabilityPayload
-          }
-        )
+          payload
+        );
 
         console.log("response of tlc client profit ask ai ", response)
         const botReply =
@@ -412,7 +423,7 @@ const HomePage = () => {
         const userEmail = user?.email
         // const userEmail = "kris@curki.ai" 
         if (userEmail === "kris@curki.ai") {
-          payload.env = "sandbox";   // exactly payload = { ..., env: "sandbox" }
+          payload.env = "sandbox";
         }
         const response = await axios.post(apiURL, payload);
 
@@ -440,7 +451,7 @@ const HomePage = () => {
       let payload = { query: finalQuery };
       if (documentString) payload.document = documentString;
 
-      console.log("🟡 Default Ask AI Payload:", payload);
+      // console.log("🟡 Default Ask AI Payload:", payload);
 
       const response = await axios.post(
         "https://curki-backend-api-container.yellowflower-c21bea82.australiaeast.azurecontainerapps.io/askai",
@@ -606,7 +617,7 @@ const HomePage = () => {
                       >
                         {(isTlcPage || isTlcClientProfitabilityPage) && (
                           <img
-                            src={newTlcLogo}
+                            src={userEmail === "kris@curki.ai" ? dummyLogo : newTlcLogo}
                             alt="TLC"
                             style={{
                               height: "32px",
@@ -682,7 +693,23 @@ const HomePage = () => {
                       </button>
                     </div>
                   )}
-                </div>{isMobileOrTablet && showMobileMenu && (
+                </div>
+                {isMobileOrTablet && showMobileMenu && (
+                  <>
+                    {userEmail === "kris@curki.ai" && (
+                      <p
+                        style={{
+                          fontSize: "16px",
+                          color: "#374151", // darker gray for better visibility
+                          marginTop: "4px",
+                          fontWeight: 700, // bold
+                          letterSpacing: "0.2px",
+                        }}
+                      >
+                        Product Demo with Dummy Data
+                      </p>
+                    )}
+                  {/* RIGHT */}
                   <div
                     onClick={() => setShowMobileMenu(false)}
                     style={{
@@ -743,6 +770,7 @@ const HomePage = () => {
                       </button>
                     </div>
                   </div>
+                  </>
                 )}
 
 
