@@ -99,7 +99,7 @@ const HomePage = () => {
   const handleLeftModalOpen = () => setLeftModalVisible(true);
   const handleLeftModalClose = () => setLeftModalVisible(false);
   // console.log("user?.email",user?.email)
-  const userEmail = user?.email
+  const userEmail = user?.email;
   // const userEmail = "kris@curki.ai";
   const moduleSuggestions = {
     tlc: [
@@ -385,67 +385,86 @@ const HomePage = () => {
 
       // 🟢 TLC PAYROLL MODE (existing code)
       if (isTlcPage) {
-        let payload = {};
+        try {
+          let objectsPayload = [];
 
-        if (tlcAskAiPayload && tlcAskAiPayload.length > 0) {
-          payload = {
-            objects: Array.isArray(tlcAskAiPayload) ? tlcAskAiPayload : [tlcAskAiPayload],
+          // ✅ Case 1: Direct Ask AI payload
+          if (tlcAskAiPayload && tlcAskAiPayload.length > 0) {
+            objectsPayload = Array.isArray(tlcAskAiPayload)
+              ? tlcAskAiPayload
+              : [tlcAskAiPayload];
+          }
+
+          // ✅ Case 2: History-based payload (filter API)
+          else if (tlcAskAiHistoryPayload) {
+            const { start, end } = tlcAskAiHistoryPayload.filters;
+
+            const queryParams = new URLSearchParams({
+              start: new Date(start).toISOString().split("T")[0],
+              end: new Date(end).toISOString().split("T")[0],
+            });
+
+            const userEmail = user?.email;
+
+            const filterApiResponse = await axios.get(
+              `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/payroll/filter?${queryParams}&${userEmail}`
+            );
+
+            objectsPayload = filterApiResponse.data?.payload || [];
+          }
+
+          // ❌ No payload guard
+          if (!objectsPayload || objectsPayload.length === 0) {
+            console.warn("⚠️ No valid TLC AskAI payload found");
+            return;
+          }
+
+          // ✅ Final payload (same pattern as AI Analysis)
+          const requestPayload = {
+            objects: objectsPayload,
             query: finalQuery,
           };
-        } else if (tlcAskAiHistoryPayload) {
-          const { start, end } = tlcAskAiHistoryPayload.filters;
 
-          const query = new URLSearchParams({
-            start: new Date(start).toISOString().split("T")[0],
-            end: new Date(end).toISOString().split("T")[0],
-          });
-          const userEmail = user?.email
-          const filterApiResponse = await axios.get(
-            `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/payroll/filter?${query}&${userEmail}`
+          // ✅ sandbox only for kris
+          const userEmail = user?.email?.trim().toLowerCase();
+          if (userEmail === "kris@curki.ai") {
+            requestPayload.env = "sandbox";
+          }
+
+          const apiURL =
+            "https://curki-backend-api-container.yellowflower-c21bea82.australiaeast.azurecontainerapps.io/tlc/payroll/payroll_askai";
+
+          console.log("✅ Final TLC AskAI payload:", requestPayload);
+
+          const response = await axios.post(apiURL, requestPayload);
+
+          const botReply = response.data?.answer || "No response";
+
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.temp ? { sender: "bot", text: botReply } : msg
+            )
           );
 
-          // console.log("filter api response in ask ai", filterApiResponse);
-
-          const filteredPayload = filterApiResponse.data?.payload || [];
-
-          payload = {
-            objects: filteredPayload,
-            query: finalQuery,
-          };
-        }
-
-        // console.log("🟡 TLC Payroll Payload:", payload);
-
-        const baseURL = "https://curki-backend-api-container.yellowflower-c21bea82.australiaeast.azurecontainerapps.io";
-        const apiURL = `${baseURL}/tlc/payroll/payroll_askai`;
-
-        console.log("Payload sending to TLC Payroll API:", apiURL, payload);
-        const userEmail = user?.email
-        // const userEmail = "kris@curki.ai" 
-        if (userEmail === "kris@curki.ai") {
-          payload.env = "sandbox";
-        }
-        const response = await axios.post(apiURL, payload);
-
-        console.log("response from TLC Payroll ask ai", response);
-
-        const botReply = response.data?.answer || "No response";
-
-        setMessages((prev) =>
-          prev.map((msg) => (msg.temp ? { sender: "bot", text: botReply } : msg))
-        );
-
-        // count usage for TLC Payroll
-        if (user?.email) {
-          try {
-            const email = user.email.trim().toLowerCase();
-            await incrementAnalysisCount(email, "tlc-askai", response?.data?.ai_analysis_cost);
-          } catch (err) {
-            console.error("❌ Failed to increment TLC AskAI count:", err.message);
+          // ✅ Usage count
+          if (userEmail) {
+            try {
+              await incrementAnalysisCount(
+                userEmail,
+                "tlc-askai",
+                response?.data?.ai_analysis_cost
+              );
+            } catch (err) {
+              console.error("❌ Failed to increment TLC AskAI count:", err.message);
+            }
           }
+        } catch (err) {
+          console.error("❌ TLC AskAI Error:", err);
         }
+
         return;
       }
+
 
       // 🟢 DEFAULT ASK AI MODE (for all other modules)
       let payload = { query: finalQuery };
@@ -641,6 +660,26 @@ const HomePage = () => {
                           <IoMdInformationCircleOutline size={20} color="#5B36E1" />
                           Our AI will instantly give.....
                         </div>
+                        {
+                          !isMobileOrTablet && (
+                            <>
+                              {userEmail === "kris@curki.ai" && (
+                                <p
+                                  style={{
+                                    fontSize: "16px",
+                                    color: "red",
+                                    marginTop: "4px",
+                                    fontWeight: 700,
+                                    letterSpacing: "0.2px",
+                                    textTransform: "uppercase"
+                                  }}
+                                >
+                                  Product Demo with Dummy Data
+                                </p>
+                              )}
+                            </>
+                          )
+                        }
                       </div>
                       <div
                         style={{
@@ -696,80 +735,67 @@ const HomePage = () => {
                 </div>
                 {isMobileOrTablet && showMobileMenu && (
                   <>
-                    {userEmail === "kris@curki.ai" && (
-                      <p
-                        style={{
-                          fontSize: "16px",
-                          color: "#374151", // darker gray for better visibility
-                          marginTop: "4px",
-                          fontWeight: 700, // bold
-                          letterSpacing: "0.2px",
-                        }}
-                      >
-                        Product Demo with Dummy Data
-                      </p>
-                    )}
-                  {/* RIGHT */}
-                  <div
-                    onClick={() => setShowMobileMenu(false)}
-                    style={{
-                      position: "fixed",
-                      inset: 0,
-                      backgroundColor: "rgba(0,0,0,0.3)",
-                      zIndex: 1000,
-                    }}
-                  >
+                    {/* RIGHT */}
                     <div
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={() => setShowMobileMenu(false)}
                       style={{
-                        position: "absolute",
-                        top: 0,
-                        right: 0,
-                        width: "260px",
-                        height: "100%",
-                        backgroundColor: "#fff",
-                        padding: "20px",
-                        boxShadow: "-4px 0 12px rgba(0,0,0,0.15)",
+                        position: "fixed",
+                        inset: 0,
+                        backgroundColor: "rgba(0,0,0,0.3)",
+                        zIndex: 1000,
                       }}
                     >
                       <div
+                        onClick={(e) => e.stopPropagation()}
                         style={{
-                          fontWeight: 600,
-                          marginBottom: "10px",
-                          fontSize: "14px",
+                          position: "absolute",
+                          top: 0,
+                          right: 0,
+                          width: "260px",
+                          height: "100%",
+                          backgroundColor: "#fff",
+                          padding: "20px",
+                          boxShadow: "-4px 0 12px rgba(0,0,0,0.15)",
                         }}
                       >
-                        Account
+                        <div
+                          style={{
+                            fontWeight: 600,
+                            marginBottom: "10px",
+                            fontSize: "14px",
+                          }}
+                        >
+                          Account
+                        </div>
+
+                        <div
+                          style={{
+                            fontSize: "13px",
+                            color: "#555",
+                            wordBreak: "break-all",
+                          }}
+                        >
+                          {user?.email}
+                        </div>
+
+                        <hr style={{ margin: "16px 0" }} />
+
+                        <button
+                          onClick={handleLogout}
+                          style={{
+                            background: "#6C4CDC",
+                            color: "#fff",
+                            border: "none",
+                            padding: "10px 14px",
+                            borderRadius: "8px",
+                            cursor: "pointer",
+                            width: "100%",
+                          }}
+                        >
+                          Logout
+                        </button>
                       </div>
-
-                      <div
-                        style={{
-                          fontSize: "13px",
-                          color: "#555",
-                          wordBreak: "break-all",
-                        }}
-                      >
-                        {user?.email}
-                      </div>
-
-                      <hr style={{ margin: "16px 0" }} />
-
-                      <button
-                        onClick={handleLogout}
-                        style={{
-                          background: "#6C4CDC",
-                          color: "#fff",
-                          border: "none",
-                          padding: "10px 14px",
-                          borderRadius: "8px",
-                          cursor: "pointer",
-                          width: "100%",
-                        }}
-                      >
-                        Logout
-                      </button>
                     </div>
-                  </div>
                   </>
                 )}
 
@@ -833,7 +859,7 @@ const HomePage = () => {
                     <HRAnalysis handleClick={handleClick} selectedRole="Smart Onboarding (Staff)" setShowFeedbackPopup={setShowFeedbackPopup} user={user} setManualResumeZip={setManualResumeZip} />
                   </div>
                   <div style={{ display: selectedRole === "Care Voice" ? "block" : "none" }}>
-                    <VoiceModule user={user} isMobileOrTablet={isMobileOrTablet}/>
+                    <VoiceModule user={user} isMobileOrTablet={isMobileOrTablet} />
                   </div>
                   <div style={{ display: selectedRole === "Client Profitability & Service" ? "block" : "none" }}>
                     <CareServicesEligibility selectedRole="Client Profitability & Service" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} />
