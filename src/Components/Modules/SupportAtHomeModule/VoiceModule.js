@@ -43,6 +43,7 @@ import MultiSelectCustom from "../FinancialModule/MultiSelectCustom"
 import PromptBlockEditor from "./PromptBlockEditor";
 import incrementAnalysisCount from "../FinancialModule/TLcAnalysisCount";
 import { FiMic } from "react-icons/fi";
+import { extractAudioFromVideo, getTranscriptTextFromAudioBlob } from "./CareVoiceAudioVideoExtract";
 const VoiceModule = (props) => {
     const userEmail = props?.user?.email;
     const domain = userEmail?.split("@")[1] || "";
@@ -131,6 +132,12 @@ const VoiceModule = (props) => {
 
     const [staffName, setStaffName] = useState("");
     const [staffEmail, setStaffEmail] = useState("");
+    const isVideoFile = (file) =>
+        file.type.startsWith("video/");
+
+    const isAudioFile = (file) =>
+        file.type.startsWith("audio/");
+
     const openDropdown = (e, tplId) => {
         e.stopPropagation();
 
@@ -1225,7 +1232,7 @@ const VoiceModule = (props) => {
             const parsedJson = JSON.parse(selectedTemplate.mappings);
             // console.log("parsedJson (raw)", parsedJson);
 
-            // 🔥 normalize mapper here
+            // normalize mapper here
             const normalizedMapper = {
                 ...parsedJson,
                 mapper: parsedJson?.mapper?.mapper ?? parsedJson?.mapper
@@ -1281,7 +1288,7 @@ const VoiceModule = (props) => {
             console.error("Document generation failed", err);
             alert("Failed to generate document");
         } finally {
-            setIsGenerating(false); // 🔥 STOP LOADING
+            setIsGenerating(false);
             setTranscribing(false);
         }
     };
@@ -1312,12 +1319,12 @@ const VoiceModule = (props) => {
             });
 
             const data = await res.json();
-            console.log("data", data)
+            // console.log("data", data)
             if (!res.ok) {
                 throw new Error(data.error || "Email API failed");
             }
 
-            console.log("📧 Email sent:", docs.length);
+            // console.log("📧 Email sent:", docs.length);
         } catch (err) {
             console.error("❌ Email send failed", err.message);
         }
@@ -1436,8 +1443,27 @@ const VoiceModule = (props) => {
             for (const file of uploadedTranscriptFiles) {
                 tasks.push(
                     (async () => {
-                        const doc = await processSingleTranscriptWithTemplate(tpl, file);
-                        if (doc) docsToSend.push(doc);
+                        let transcriptText = null;
+
+                        if (isVideoFile(file)) {
+                            const audioBlob = await extractAudioFromVideo(file);
+                            transcriptText = await getTranscriptTextFromAudioBlob(audioBlob);
+                        }
+                        else if (isAudioFile(file)) {
+                            transcriptText = await getTranscriptTextFromAudioBlob(file);
+                        }
+
+                        if (transcriptText) {
+                            const doc = await processSingleTranscriptWithTemplateText(
+                                tpl,
+                                transcriptText
+                            );
+                            if (doc) docsToSend.push(doc);
+                        } else {
+                            // fallback: existing doc/pdf/txt flow
+                            const doc = await processSingleTranscriptWithTemplate(tpl, file);
+                            if (doc) docsToSend.push(doc);
+                        }
                     })()
                 );
             }
@@ -2440,8 +2466,8 @@ const VoiceModule = (props) => {
                         <TlcUploadBox
                             id="staff-transcript-upload"
                             title="Upload Transcript"
-                            subtitle=".DOC, .PDF, .TXT"
-                            accept=".doc,.docx,.pdf,.txt"
+                            subtitle=".DOC, .PDF, .TXT, .MP3, .WAV, .WEBM ,.MP4, .MOV"
+                            accept=".doc,.docx,.pdf,.txt,.mp3,.wav,.webm,.mp4,.mov"
                             files={uploadedTranscriptFiles}
                             multiple
                             setFiles={(files) => {
