@@ -496,7 +496,7 @@ const Client_Event_Reporting = (props) => {
       <div className="financial-header">
 
         {!stage3Data && <h1 className="titless">PARTICIPANT EVENTS & INCIDENT MANAGEMENT</h1>}
-        <div className="sync-toggle">
+        <div className="sync-toggle" style={{ marginLeft: stage3Data ? "auto" : "0px"}}>
           <div
             style={{
               fontSize: "14px",
