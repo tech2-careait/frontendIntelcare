@@ -335,7 +335,7 @@ const SignIn = ({ show, onClose }) => {
             templateParams,
             "hp6wyNEGYtFRXcOSs"
           );
-          console.log("Email sent successfully");
+          console.log("Email sent successfully.");
         } catch (emailError) {
           console.error("Failed to send email:", emailError);
         }
