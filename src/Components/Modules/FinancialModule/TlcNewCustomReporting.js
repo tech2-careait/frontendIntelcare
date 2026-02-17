@@ -95,13 +95,12 @@ export default function TlcNewCustomerReporting(props) {
         }
     }, [activeTab, tabs]);
     const EMAIL_STATE_MAP = {
-        "molley@tenderlovingcaredisability.com.au": "Queensland",
+        "molley@tenderlovingcaredisability.com.au": "South Australia",
         "laurente@tenderlovingcaredisability.com.au": "Victoria",
         "kbrennen@tenderlovingcaredisability.com.au": "New South Wales",
     };
     const userEmail = props?.user?.email?.trim()?.toLowerCase();
-    // const userEmail = "bastruc@tenderlovingcaredisability.com.au"
-    // const userEmail = "kris@curki.ai";
+
     const userState = EMAIL_STATE_MAP[userEmail];
     const handleNewTab = () => {
         const newId = tabs.length ? Math.max(...tabs.map((t) => t.id)) + 1 : 1;
@@ -166,8 +165,11 @@ export default function TlcNewCustomerReporting(props) {
 
     const optionsState = [
         { label: "New South Wales", value: "New South Wales" },
-        { label: "Queensland", value: "Queensland" },
         { label: "Victoria", value: "Victoria" },
+        { label: "Queensland", value: "Queensland" },
+        { label: "Western Australia", value: "Western Australia" },
+        { label: "South Australia", value: "South Australia" },
+        { label: "Tasmania", value: "Tasmania" },
     ];
 
     const optionsDepartment = [
