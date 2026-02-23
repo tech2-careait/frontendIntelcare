@@ -1,0 +1,103 @@
+.trial-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.trial-popup {
+  width: 700px;
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 50px 40px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  animation: trialFadeIn 0.3s ease-out;
+}
+
+.trial-icon-wrapper {
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 25px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trial-gif {
+  width: 108px;
+  height: 108px;
+}
+
+.trial-title {
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: #1e1e2f;
+}
+
+.trial-description {
+  font-size: 14px;
+  color: #707493;
+  line-height: 22px;
+  margin-bottom: 16px;
+}
+
+.trial-points {
+  display: flex;
+  justify-content: center;
+  gap: 25px;
+  font-size: 14px;
+  color: #2eb67d;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.trial-divider {
+  border: none;
+  border-top: 1px solid #eeeeee;
+  margin-top: 32px;
+  margin-bottom: 32px;
+}
+
+.trial-end {
+  font-size: 14px;
+  color: #3c3b42;
+}
+
+.trial-button {
+  margin-top: 30px;
+  height: 52px;
+  width: 390px;
+  padding: 14px;
+  border-radius: 50px;
+  border: none;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  color: #ffffff;
+  background: linear-gradient(90deg, #6c4cdc 0%, #7c5dfa 100%);
+  transition: all 0.2s ease;
+}
+
+.trial-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(108, 76, 220, 0.3);
+}
+
+/* Smooth entry animation */
+@keyframes trialFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

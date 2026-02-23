@@ -3,7 +3,8 @@ import "../Styles/Settings.css";
 import { IoArrowBackOutline } from "react-icons/io5";
 import { FiEdit2 } from "react-icons/fi";
 import axios from "axios";
-
+import { auth } from "../firebase";
+import { sendPasswordResetEmail, deleteUser } from "firebase/auth";
 const SettingsPage = ({ user, onBack }) => {
     const [firstName, setFirstName] = useState(user?.displayName || "Deepak");
     const [lastName, setLastName] = useState(user?.displayName || "uday");
@@ -11,7 +12,47 @@ const SettingsPage = ({ user, onBack }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [isEditingHeaderName, setIsEditingHeaderName] = useState(false);
     const [isEditingInputName, setIsEditingInputName] = useState(false);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [confirmType, setConfirmType] = useState("");
+    const handleResetPassword = async () => {
+        try {
+            await sendPasswordResetEmail(auth, user?.email);
+            alert("Password reset email sent!");
+        } catch (error) {
+            console.error(error);
+            alert("Failed to send reset email.");
+        }
+    };
 
+    const handleDeleteAccount = async () => {
+        try {
+            const currentUser = auth.currentUser;
+
+            if (!currentUser) {
+                alert("No user found.");
+                return;
+            }
+
+            await axios.delete(
+                `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/user/delete?id=${currentUser.uid}`
+            );
+
+            await deleteUser(currentUser);
+
+            alert("Account deleted successfully.");
+
+            // window.location.reload();
+
+        } catch (error) {
+            console.error(error);
+
+            if (error.code === "auth/requires-recent-login") {
+                alert("Please log in again before deleting your account.");
+            } else {
+                alert("Failed to delete account.");
+            }
+        }
+    };
 
     const handleSave = async () => {
         try {
@@ -174,17 +215,77 @@ const SettingsPage = ({ user, onBack }) => {
             </div>
 
             {/* ACTION BUTTONS */}
+            {/* ACTION BUTTONS */}
             <div className="settings-actions">
 
-                <button className="delete-account-btn">
+                <button
+                    className="delete-account-btn"
+                    onClick={() => {
+                        setConfirmType("delete");
+                        setShowConfirmModal(true);
+                    }}
+                >
                     Delete Account
                 </button>
 
-                <button className="reset-password-btn">
+                <button
+                    className="reset-password-btn"
+                    onClick={() => {
+                        setConfirmType("reset");
+                        setShowConfirmModal(true);
+                    }}
+                >
                     Reset Password
                 </button>
 
             </div>
+
+
+            {/* CONFIRM MODAL */}
+            {showConfirmModal && (
+                <div className="confirm-overlay">
+                    <div className="confirm-modal">
+
+                        <div className="confirm-title">
+                            {confirmType === "delete"
+                                ? "Delete Account?"
+                                : "Reset Password?"}
+                        </div>
+
+                        <div className="confirm-message">
+                            {confirmType === "delete"
+                                ? "This action is permanent and cannot be undone."
+                                : "We will send a password reset link to your email."}
+                        </div>
+
+                        <div className="confirm-buttons">
+
+                            <button
+                                className="confirm-cancel"
+                                onClick={() => setShowConfirmModal(false)}
+                            >
+                                No
+                            </button>
+
+                            <button
+                                className="confirm-confirm"
+                                onClick={async () => {
+                                    if (confirmType === "delete") {
+                                        await handleDeleteAccount();
+                                    } else {
+                                        await handleResetPassword();
+                                    }
+                                    setShowConfirmModal(false);
+                                }}
+                            >
+                                Yes
+                            </button>
+
+                        </div>
+                    </div>
+                </div>
+            )}
+
 
         </div>
     );

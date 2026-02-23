@@ -58,6 +58,9 @@ import NewSubscriptionStatus from "./NewSubscriptionStatus";
 import VoiceModule from "./Modules/SupportAtHomeModule/VoiceModule";
 import dummyLogo from "../Images/tlcDummyLogo.svg";
 import SettingsPage from "./Settings";
+import TeamMembers from "./TeamMembers";
+import TrialStartedPopup from "./TrialPopup";
+import useSubscriptionStatus from "./NewSubscriptionStatus";
 const HomePage = () => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [documentString, setDocumentString] = useState("");
@@ -96,6 +99,10 @@ const HomePage = () => {
   const [isMobileOrTablet, setIsMobileOrTablet] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showTeamMembers, setShowTeamMembers] = useState(false);
+  const [showTrialPopup, setShowTrialPopup] = useState(false);
+  const [formattedTrialEnd, setFormattedTrialEnd] = useState("");
+  const [isTrialInitializing, setIsTrialInitializing] = useState(false);
   const handleModalOpen = () => setModalVisible(true);
   const handleModalClose = () => setModalVisible(false);
   const handleLeftModalOpen = () => setLeftModalVisible(true);
@@ -123,7 +130,17 @@ const HomePage = () => {
 
     default: []
   };
+  useEffect(() => {
+    const handleTrialInit = (event) => {
+      setIsTrialInitializing(event.detail);
+    };
 
+    window.addEventListener("trial-initializing", handleTrialInit);
+
+    return () => {
+      window.removeEventListener("trial-initializing", handleTrialInit);
+    };
+  }, []);
   useEffect(() => {
     if (
       !subscriptionInfo ||
@@ -168,7 +185,29 @@ const HomePage = () => {
 
     return () => clearInterval(interval);
   }, [subscriptionInfo]);
+  useEffect(() => {
+    if (!subscriptionInfo || !user) return;
 
+    if (
+      subscriptionInfo.subscription_type === "trial" &&
+      subscriptionInfo.trial_end &&
+      user.emailVerified &&
+      !localStorage.getItem("curki_trial_popup_seen")
+    ) {
+      const formatted = new Date(subscriptionInfo.trial_end).toLocaleDateString(
+        "en-AU",
+        {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        }
+      );
+
+      setFormattedTrialEnd(formatted);
+      setShowTrialPopup(true);
+      localStorage.setItem("curki_trial_popup_seen", "true");
+    }
+  }, [subscriptionInfo, user]);
 
   useEffect(() => {
     const checkScreen = () => {
@@ -515,9 +554,22 @@ const HomePage = () => {
     }
   }, [isMobileOrTablet]);
 
+  useEffect(() => {
+    const handleSubscriptionUpdate = (event) => {
+      if (event.detail) {
+        setSubscriptionInfo(event.detail);
+      }
+    };
 
+    window.addEventListener("subscription-updated", handleSubscriptionUpdate);
+
+    return () => {
+      window.removeEventListener("subscription-updated", handleSubscriptionUpdate);
+    };
+  }, []);
   // SubscriptionStatus(user, setShowPricingModal);
-  NewSubscriptionStatus(user, setShowPricingModal, setSubscriptionInfo);
+  useSubscriptionStatus(user, setShowPricingModal, setSubscriptionInfo);
+
 
   return (
     <>
@@ -552,6 +604,10 @@ const HomePage = () => {
                   showUploadedReport={showUploadedReport}
                   setShowUploadReport={setShowUploadReport}
                   openSettings={() => setShowSettings(true)}
+                  openTeamMembers={() => {
+                    setShowTeamMembers(true);
+                    setShowSettings(false);
+                  }}
                 />
               )}
 
@@ -747,6 +803,11 @@ const HomePage = () => {
                   <SettingsPage
                     user={user}
                     onBack={() => setShowSettings(false)}
+                  />
+                ) : showTeamMembers ? (
+                  <TeamMembers
+                    onBack={() => setShowTeamMembers(false)}
+                    loggedInUserEmail={user?.email}
                   />
                 ) :
                   (
@@ -1127,6 +1188,15 @@ const HomePage = () => {
           )}
         </>
       }
+
+      {showTrialPopup && (
+        <TrialStartedPopup
+          trialEnd={formattedTrialEnd}
+          onClose={() => {
+            setShowTrialPopup(false);
+          }}
+        />
+      )}
     </>
   );
 };

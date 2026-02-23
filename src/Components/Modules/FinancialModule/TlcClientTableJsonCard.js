@@ -155,7 +155,7 @@ const JsonTableCard = ({ title, data }) => {
 
   const [selectedRegion, setSelectedRegion] = useState("ALL");
   const [selectedDepartment, setSelectedDepartment] = useState("ALL");
-
+  const [searchTerm, setSearchTerm] = useState("");
   // ✅ SAFE DEFAULTS (important)
   const columns = data?.columns || [];
   const rows = data?.rows || [];
@@ -179,9 +179,22 @@ const JsonTableCard = ({ title, data }) => {
       const departmentMatch =
         selectedDepartment === "ALL" || row.Department === selectedDepartment;
 
-      return regionMatch && departmentMatch;
+      const searchMatch =
+        searchTerm.trim() === "" ||
+        columns.some(col => {
+          const value = row[col];
+
+          if (value === null || value === undefined) return false;
+
+          return value
+            .toString()
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase());
+        });
+
+      return regionMatch && departmentMatch && searchMatch;
     });
-  }, [rows, selectedRegion, selectedDepartment]);
+  }, [rows, selectedRegion, selectedDepartment, searchTerm, columns]);
 
   /**
    * ✅ EARLY RETURN AFTER HOOKS
@@ -204,7 +217,7 @@ const JsonTableCard = ({ title, data }) => {
           gap: 12,
           marginBottom: "12px",
           alignItems: "center",
-          marginLeft:"10px"
+          marginLeft: "10px"
         }}
       >
         <span style={{ fontSize: 12, fontWeight: 500, color: "#374151" }}>
@@ -241,6 +254,19 @@ const JsonTableCard = ({ title, data }) => {
         <span style={{ fontSize: 12, color: "#6b7280" }}>
           Showing {filteredRows.length} of {rows.length} rows
         </span>
+         <input
+          type="text"
+          placeholder="Search across all fields..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          style={{
+            padding: "8px 12px",
+            borderRadius: 6,
+            border: "1px solid #d1d5db",
+            minWidth: "220px",
+            marginLeft:"auto"
+          }}
+        />
       </div>
 
       {/* TABLE */}
@@ -253,6 +279,7 @@ const JsonTableCard = ({ title, data }) => {
           width: "100%",
         }}
       >
+       
         <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
           <thead
             style={{

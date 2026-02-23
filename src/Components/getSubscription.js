@@ -34,10 +34,8 @@ const isBillingPeriodOver = (subscription) => {
     return true;
 };
 
-
-
 export const checkSubscriptionStatus = async (email) => {
-    if (!email) return { shouldShowPricing: true };
+    if (!email) return { shouldShowPricing: false };
 
     try {
         const res = await fetch(
@@ -47,8 +45,12 @@ export const checkSubscriptionStatus = async (email) => {
         const data = await res.json();
         console.log("Subscription data:", data);
 
+        // 🟢 If subscription not found → DO NOT show pricing
         if (!data.ok || !data.subscription) {
-            return { shouldShowPricing: true };
+            return { 
+                shouldShowPricing: false,
+                subscription: null
+            };
         }
 
         const sub = data.subscription;
@@ -62,24 +64,26 @@ export const checkSubscriptionStatus = async (email) => {
             };
         }
 
-        // 🔴 NOT PAID OR INACTIVE
-        if (sub.subscription_type !== "paid" || sub.status !== "active") {
-            return { shouldShowPricing: true };
+        // 🟢 PAID USER
+        if (sub.subscription_type === "paid" && sub.status === "active") {
+            const billingExpired = isBillingPeriodOver(sub);
+
+            return {
+                shouldShowPricing: billingExpired,
+                subscription: sub
+            };
         }
 
-        // 🟢 PAID BUT BILLING EXPIRED
-        const billingOver = isBillingPeriodOver(sub);
-        if (billingOver) {
-            return { shouldShowPricing: true };
-        }
-
-        // ✅ PAID & VALID
+        // 🔴 Everything else → show pricing
         return {
-            shouldShowPricing: false,
-            subscription: sub,
+            shouldShowPricing: true,
+            subscription: sub
         };
+
     } catch (err) {
         console.error("Subscription check failed:", err);
-        return { shouldShowPricing: true };
+
+        // network error → don't block user
+        return { shouldShowPricing: false };
     }
 };

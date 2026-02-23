@@ -5,6 +5,8 @@ import pricingTick from "../Images/pricingmodaltick.png"
 import ComparePlans from "./ComparePlans";
 import pricingExampleIcon from "../Images/PricingExampleIcon.svg"
 import pricingTooltip from "../Images/pricingTooltipIcon.svg"
+import pricingExample from "../Images/newPricingExample.svg"
+import ausDollar from "../Images/AusDollar.svg"
 const PricingPlansModal = ({ onClose, email: userEmail, firstName: firstName, setSubscriptionInfo }) => {
     console.log("User Email:", userEmail); // For debugging
     const [billing, setBilling] = useState("monthly");
@@ -46,7 +48,48 @@ const PricingPlansModal = ({ onClose, email: userEmail, firstName: firstName, se
         }
     };
 
+    const CommandPlan = () => {
+        return (
+            <div className="command-card">
 
+                <div className="command-left">
+                    <div className="command-title">
+                        <h4>Command</h4>
+                        <p>For teams with 200+ staff</p>
+                    </div>
+
+                    <div className="command-price">
+                        <span className="price-amount">PAYG</span>
+                        <span className="price-duration">(Pay As You Go)</span>
+                    </div>
+                </div>
+
+                <div className="command-middle">
+                    <div className="command-features">
+                        <span><img src={pricingTick} /> Unlimited tokens</span>
+                        <span><img src={pricingTick} /> Unlimited SMS</span>
+                        <span><img src={pricingTick} /> Unlimited actions</span>
+                    </div>
+
+                    <div className="saving-badge">
+                        Indicative provider saving $1.2M+/Year
+                    </div>
+
+                  
+                </div>
+
+                <div className="command-right">
+                    <button
+                        className="contact-sales-btn"
+                        onClick={() => window.location.href = "mailto:sarah@curki.ai"}
+                    >
+                        Contact Sales
+                    </button>
+                </div>
+
+            </div>
+        );
+    };
     return (
         <div className="pricing-overlay">
             <div className="pricing-container">
@@ -80,98 +123,6 @@ const PricingPlansModal = ({ onClose, email: userEmail, firstName: firstName, se
                             Yearly <span style={{ color: "#39BA57", fontStyle: "italic" }}>20% off</span>
                         </button>
                     </div>
-                </div>
-
-                {/* Plans */}
-                <div className="plans-wrapper">
-                    <Plan
-                        title="Start"
-                        subtitle="For teams up to 50 staff"
-                        planKey="start"
-                        monthly={99}
-                        yearly={950}
-                        yearlyMonthly={89}
-                        billing={billing}
-                        features={[
-                            "4M AI tokens",
-                            "100 SMS",
-                            "~25 clicks",
-                            "$50 auto top-up when tokens or SMS run out",
-                        ]}
-                        saving="$100K+ / year"
-                        onCompare={() => setShowCompare(true)}
-                        onCheckout={handleCheckout}
-                        userEmail={userEmail}
-                        onClose={onClose}
-                        firstName={firstName}
-                        setSubscriptionInfo={setSubscriptionInfo}
-                    />
-
-                    <Plan
-                        title="Grow"
-                        badge="Popular"
-                        subtitle="For teams with 50–100 staff"
-                        planKey="grow"
-                        monthly={399}
-                        yearly={3830}
-                        yearlyMonthly={299}
-                        billing={billing}
-                        features={[
-                            "15M AI tokens",
-                            "1,000 SMS",
-                            "~100 clicks",
-                            "$50 auto top-up when tokens or SMS run out",
-                        ]}
-                        saving="$100,000+ / year"
-                        onCompare={() => setShowCompare(true)}
-                        onCheckout={handleCheckout}
-                        userEmail={userEmail}
-                        onClose={onClose}
-                        firstName={firstName}
-                        setSubscriptionInfo={setSubscriptionInfo}
-                    />
-
-                    <Plan
-                        title="Thrive"
-                        badge="Value"
-                        highlighted
-                        subtitle="For teams with 100+ staff"
-                        planKey="growth"
-                        monthly={999}
-                        yearly={9590}
-                        yearlyMonthly={799}
-                        billing={billing}
-                        popular
-                        features={[
-                            "50M AI tokens",
-                            "3,000 SMS",
-                            "~300 clicks",
-                            "$50 auto top-up when tokens or SMS run out",
-                        ]}
-                        saving="$200,000+ / year"
-                        onCompare={() => setShowCompare(true)}
-                        onCheckout={handleCheckout}
-                        userEmail={userEmail}
-                        onClose={onClose}
-                        firstName={firstName}
-                        setSubscriptionInfo={setSubscriptionInfo}
-                    />
-
-                    <Plan
-                        title="Command"
-                        subtitle="For teams with 200+ staff"
-                        planKey="command"
-                        payg
-                        features={[
-                            "Unlimited tokens",
-                            "Unlimited SMS",
-                            "Unlimited actions",
-                            "NA",
-                        ]}
-                        saving="$1.2M+ / year"
-                        onCompare={() => setShowCompare(true)}
-                    />
-
                 </div>
                 {/* Standard Features */}
                 <div className="standard-features">
@@ -210,13 +161,116 @@ const PricingPlansModal = ({ onClose, email: userEmail, firstName: firstName, se
                         </div>
                     </div>
                 </div>
+                {/* Plans */}
+                <div className="plans-wrapper">
+                    <Plan
+                        title="Start"
+                        subtitle="For teams up to 50 staff"
+                        planKey="start"
+                        monthly={99}
+                        yearly={950}
+                        yearlyMonthly={89}
+                        billing={billing}
+                        features={[
+                            "4M AI credits",
+                            "100 SMS",
+                            "~25 analysis",
+                            "$50 auto top-up when credits or SMS run out",
+                        ]}
+                        saving="$100K+ / year"
+                        onCompare={() => setShowCompare(true)}
+                        onCheckout={handleCheckout}
+                        userEmail={userEmail}
+                        onClose={onClose}
+                        firstName={firstName}
+                        setSubscriptionInfo={setSubscriptionInfo}
+                    />
+
+                    <Plan
+                        title="Grow"
+                        badge="Popular"
+                        subtitle="For teams with 50–100 staff"
+                        planKey="grow"
+                        monthly={399}
+                        yearly={3830}
+                        yearlyMonthly={299}
+                        billing={billing}
+                        features={[
+                            "15M AI credits",
+                            "1,000 SMS",
+                            "~100 analysis",
+                            "$50 auto top-up when credits or SMS run out",
+                        ]}
+                        saving="$100,000+ / year"
+                        onCompare={() => setShowCompare(true)}
+                        onCheckout={handleCheckout}
+                        userEmail={userEmail}
+                        onClose={onClose}
+                        firstName={firstName}
+                        setSubscriptionInfo={setSubscriptionInfo}
+                    />
+
+                    <Plan
+                        title="Thrive"
+                        badge="Value"
+                        highlighted
+                        subtitle="For teams with 100+ staff"
+                        planKey="thrive"
+                        monthly={999}
+                        yearly={9590}
+                        yearlyMonthly={799}
+                        billing={billing}
+                        popular
+                        features={[
+                            "50M AI credits",
+                            "3,000 SMS",
+                            "~300 analysis",
+                            "$50 auto top-up when credits or SMS run out",
+                        ]}
+                        saving="$200,000+ / year"
+                        onCompare={() => setShowCompare(true)}
+                        onCheckout={handleCheckout}
+                        userEmail={userEmail}
+                        onClose={onClose}
+                        firstName={firstName}
+                        setSubscriptionInfo={setSubscriptionInfo}
+                    />
+
+                </div>
+                <div className="command-wrapper">
+                    <CommandPlan />
+                </div>
                 {/* Example usage */}
-                <div className="pricing-example">
-                    <img src={pricingExampleIcon} alt="example" />
-                    <span>
-                        <strong>Example:</strong> One Rostering / Voice To Document / Onboarding Click ≈
-                        150k tokens
-                    </span>
+                <div className="bottom-info-strip">
+
+                    <div className="info-item">
+                        <div className="info-item-icon green">
+                            <img src={ausDollar} alt="Auto Topup" />
+                        </div>
+
+                        <div className="info-text">
+                            <h4>Auto Topup</h4>
+                            <p>
+                                $50 Auto Top-Up When credits Or SMS Run Out.
+                                <br />
+                                <span>(2M Token + 100 SMS)</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="info-item">
+                        <div className="info-item-icon teal">
+                            <img src={pricingExample} alt="Example" />
+                        </div>
+
+                        <div className="info-text">
+                            <h4>Example:</h4>
+                            <p>
+                                One Rostering/Voice To Document/Onboarding Analysis ≈ 150k Of credits
+                            </p>
+                        </div>
+                    </div>
+
                 </div>
 
                 {/* Enterprise */}
@@ -291,6 +345,15 @@ const Plan = ({ title,
         if (!value) return value;
         return value.toLocaleString("en-US");
     };
+    const tooltipContentMap = {
+        start: "Covers 5 Report + 10 Rostering / Voice To Text Documents / Onboarding",
+        grow: "Covers 10 Report + 100 Rostering / Voice To Text Documents / Onboarding",
+        thrive: "Covers 20 Report + 300 Rostering / Voice To Text Documents / Onboarding",
+        command: "Unlimited"
+    };
+
+    const tooltipContent = tooltipContentMap[planKey] || "";
+     
     const startTrial = async () => {
         try {
             // 1️⃣ Start trial in your system
@@ -402,7 +465,8 @@ const Plan = ({ title,
                         </li>
                     );
                 })}
-                {saving && (
+                
+                {saving  && (
                     <div className="saving-badge-container" >
                         <div className="saving-badge">
                             Indicative provider saving {saving}
@@ -414,7 +478,7 @@ const Plan = ({ title,
                                 <img src={pricingTooltip}></img>
                             </div>
                             <div className="tooltip">
-                                Covers 5 Report + 10 Rostering / Voice To Text Documents / Onboarding
+                                {tooltipContent}
                             </div>
                         </div>
                     </div>
@@ -450,11 +514,11 @@ const Plan = ({ title,
                                 onCheckout({ planKey });
                             }}
                         >
-                            Buy Now
+                            Choose Plan
                         </button>
 
                         {/* Trial */}
-                        <button
+                        {/* <button
                             className="trial-btn"
                             onClick={(e) => {
                                 e.stopPropagation();
@@ -462,7 +526,7 @@ const Plan = ({ title,
                             }}
                         >
                             Start 15-day free trial
-                        </button>
+                        </button> */}
                     </>
                 )}
 
