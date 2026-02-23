@@ -21,6 +21,7 @@ import { PiEyeLight, PiEyeSlash } from "react-icons/pi";
 import { CiWarning } from "react-icons/ci";
 import { IoPersonOutline } from "react-icons/io5";
 import { BsBuildings } from "react-icons/bs";
+import { checkSubscriptionStatus } from "./getSubscription";
 
 const SignIn = ({ show, onClose }) => {
   const [name, setName] = useState("");
@@ -55,27 +56,26 @@ const SignIn = ({ show, onClose }) => {
       setStep("verify-email");
     }
   }, []);
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) return;
+  // useEffect(() => {
+  //   const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+  //     if (!firebaseUser) return;
 
-      await firebaseUser.reload();
-      const freshUser = auth.currentUser;
+  //     await firebaseUser.reload();
+  //     const freshUser = auth.currentUser;
 
-      if (!freshUser?.emailVerified) return;
+  //     if (!freshUser?.emailVerified) return;
 
-      const emailForVerification = localStorage.getItem("emailForVerification");
-      if (!emailForVerification) return; // 🚫 Not coming from verify flow
+  //     const emailForVerification = localStorage.getItem("emailForVerification");
+  //     if (!emailForVerification) return; // 🚫 Not coming from verify flow
 
-      // ✅ One-time success
-      localStorage.removeItem("emailForVerification");
+  //     // One-time success
+  //     localStorage.removeItem("emailForVerification");
 
-      alert("Email verified! Logged in successfully.");
-      onClose(); // or navigate
-    });
+  //     alert("Email verified! Logged in successfully.");
+  //   });
 
-    return () => unsubscribe();
-  }, []);
+  //   return () => unsubscribe();
+  // }, []);
 
   useEffect(() => {
     if (step !== "verify-email") return;
@@ -87,21 +87,58 @@ const SignIn = ({ show, onClose }) => {
       await user.reload();
 
       if (user.emailVerified) {
-        localStorage.removeItem("emailForVerification");
         clearInterval(interval);
+        localStorage.removeItem("emailForVerification");
 
-        alert("Email verified! Logged in successfully.");
-        onClose(); // or navigate
+        // 🔥 Fetch fresh subscription AFTER verification
+        const subscriptionResult = await checkSubscriptionStatus(user.email);
+
+        if (subscriptionResult?.subscription) {
+          window.dispatchEvent(
+            new CustomEvent("subscription-updated", {
+              detail: subscriptionResult.subscription,
+            })
+          );
+        }
+
+        // Close SignIn modal immediately
+        onClose();
       }
-    }, 3000); // check every 3 seconds
+    }, 1500); // faster detection (1.5 sec instead of 3)
 
     return () => clearInterval(interval);
   }, [step]);
 
-
-
   if (!show) return null;
+  const startTrialForUser = async (userEmail, firstName) => {
+    try {
+      const res = await fetch(
+        "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/subscription/start-trial",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: userEmail,
+            firstName: firstName || "",
+          }),
+        }
+      );
 
+      const data = await res.json();
+
+      if (!res.ok) {
+        console.error("Trial start failed:", data);
+        return null;
+      }
+
+      localStorage.removeItem("curki_trial_popup_seen");
+
+      return data; // return trial info
+    } catch (err) {
+      console.error("Start trial error:", err);
+      return null;
+    }
+  };
   const saveUserToDB = async ({ uid, userEmail, name, organization, provider }) => {
     try {
       const response = await fetch("https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/user/create", {
@@ -206,23 +243,36 @@ const SignIn = ({ show, onClose }) => {
         organization,
         provider: user.providerData[0]?.providerId,
       });
+      const trialData = await startTrialForUser(user.email, name);
+      if (trialData) {
+        // small delay so backend finishes saving trial
+        setTimeout(async () => {
+          const subscriptionResult = await checkSubscriptionStatus(user.email);
+
+          window.dispatchEvent(
+            new CustomEvent("subscription-updated", {
+              detail: subscriptionResult.subscription,
+            })
+          );
+        }, 500);
+      }
       // EmailJS notification
       const templateParams = {
         message: "A new user just signed up!",
         email: email,
       };
 
-      try {
-        await emailjs.send(
-          "service_6otxz7o",
-          "template_fxslvkj",
-          templateParams,
-          "hp6wyNEGYtFRXcOSs"
-        );
-        console.log("Email sent successfully");
-      } catch (emailError) {
-        console.error("Failed to send email:", emailError);
-      }
+      // try {
+      //   await emailjs.send(
+      //     "service_6otxz7o",
+      //     "template_fxslvkj",
+      //     templateParams,
+      //     "hp6wyNEGYtFRXcOSs"
+      //   );
+      //   console.log("Email sent successfully");
+      // } catch (emailError) {
+      //   console.error("Failed to send email:", emailError);
+      // }
 
       // Mailchimp Welcome flow
       try {
@@ -310,7 +360,8 @@ const SignIn = ({ show, onClose }) => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       console.log(result?.user?.email);
-
+      alert("Google Sign-In successful!");
+      onClose();
       if (result._tokenResponse.isNewUser) {
         const newEmail = result?.user?.email;
         const newName = result?.user?.displayName;
@@ -322,23 +373,37 @@ const SignIn = ({ show, onClose }) => {
           organization: "",
           provider: result.user.providerData[0]?.providerId,
         });
+
+        startTrialForUser(newEmail, newName).then(async (trialData) => {
+          if (trialData) {
+            const subscriptionResult = await checkSubscriptionStatus(newEmail);
+
+            if (subscriptionResult?.subscription) {
+              window.dispatchEvent(
+                new CustomEvent("subscription-updated", {
+                  detail: subscriptionResult.subscription,
+                })
+              );
+            }
+          }
+        });
         // EmailJS notification
         const templateParams = {
           message: "A new user just signed up!",
           email: newEmail,
         };
 
-        try {
-          await emailjs.send(
-            "service_6otxz7o",
-            "template_fxslvkj",
-            templateParams,
-            "hp6wyNEGYtFRXcOSs"
-          );
-          console.log("Email sent successfully.");
-        } catch (emailError) {
-          console.error("Failed to send email:", emailError);
-        }
+        // try {
+        //   await emailjs.send(
+        //     "service_6otxz7o",
+        //     "template_fxslvkj",
+        //     templateParams,
+        //     "hp6wyNEGYtFRXcOSs"
+        //   );
+        //   console.log("Email sent successfully.");
+        // } catch (emailError) {
+        //   console.error("Failed to send email:", emailError);
+        // }
 
         // Mailchimp Welcome flow
         try {
@@ -368,8 +433,7 @@ const SignIn = ({ show, onClose }) => {
         }
       }
 
-      alert("Google Sign-In successful!");
-      onClose();
+
     } catch (err) {
       setError(err.message);
     } finally {

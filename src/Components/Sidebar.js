@@ -44,6 +44,7 @@ import { IoIosContact, IoIosLogOut } from "react-icons/io";
 import sideBarLogout from "../Images/sideBarLogout.svg"
 import viewDetailsSideBarRight from "../Images/viewDetailsRightArrow.svg"
 import { FaChevronUp } from "react-icons/fa";
+import PricingPlansModal from "./NewPricingModal";
 
 const Sidebar = ({
   setSelectedRole,
@@ -65,16 +66,18 @@ const Sidebar = ({
   setShowSignIn,
   setShowDropdown,
   showDropdown,
-  openSettings
+  openSettings,
+  openTeamMembers
 }) => {
   // console.log(activeReportType);
   const [showRoles, setShowRoles] = useState(true);
   // const [activeItem, setActiveItem] = useState("Care Services & elgibility Analysis"); careplan
   const [activeItem, setActiveItem] = useState("Financial Health");
   const [showProfilePanel, setShowProfilePanel] = useState(false);
+  const [showPricingModal, setShowPricingModal] = useState(false);
   const [usageOpen, setUsageOpen] = useState(false);
   const [modulesOpen, setModulesOpen] = useState(false);
-  console.log("user",user)
+  console.log("user", user)
   const toggleRoles = () => {
     // setShowRoles(!showRoles);
     setShowUploadReport(false);
@@ -531,19 +534,39 @@ const Sidebar = ({
 
 
 
-                  <ProfileItem
-                    icon={adminProfilePlanAndBill}
-                    text="Plans & Billing"
-                    arrow
-                  />
+                  <div
+                    onClick={() => {
+                      setShowProfilePanel(false);
+                      setShowPricingModal(true);
+                    }}
+                  >
+                    <ProfileItem
+                      icon={adminProfilePlanAndBill}
+                      text="Plans & Billing"
+                      arrow
+                    />
+                  </div>
 
-                  <ProfileItem
-                    icon={adminProfileTeamMembers}
-                    text="Team Members"
-                    arrow
-                  />
+                  <div
+                    onClick={() => {
+                      setShowProfilePanel(false);
+                      openTeamMembers();
+                    }}
+                  >
+                    <ProfileItem
+                      icon={adminProfileTeamMembers}
+                      text="Team Members"
+                      arrow
+                    />
+                  </div>
 
-                  <div onClick={openSettings}>
+
+                  <div
+                    onClick={() => {
+                      setShowProfilePanel(false);
+                      openSettings();
+                    }}
+                  >
                     <ProfileItem
                       icon={adminProfileSettings}
                       text="Settings"
@@ -639,7 +662,16 @@ const Sidebar = ({
           <FaChevronUp color="white" size={16} />
         </div>
       </> */}
+      {/* {showPricingModal && (
+        <PricingPlansModal
+          onClose={() => setShowPricingModal(false)}
+          email={user?.email}
+          firstName={user?.displayName}
+          setSubscriptionInfo={() => { }}
+        />
+      )} */}
     </div>
+
   );
 };
 export default Sidebar;

@@ -101,6 +101,7 @@
     gap: 16px;
     flex-wrap: wrap;
     justify-content: center;
+    width: 1206px;
 }
 
 /* Card */
@@ -109,8 +110,8 @@
     border: 1px solid #e5e7eb;
     border-radius: 16px;
     padding: 32px;
-    width: 289px;
-    height: 544px;
+    width: 391px;
+    height: 469px;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -220,7 +221,7 @@
 
 .trial-btn {
     height: 52px;
-    width: 225px;
+    width: 315px;
     border-radius: 999px;
     font-size: 14px;
     font-weight: 600;
@@ -240,7 +241,7 @@
 
 .contact-sales-btn {
     height: 52px;
-    width: 225px;
+    width: 315px;
     border-radius: 999px;
     font-size: 14px;
     font-weight: 600;
@@ -260,8 +261,9 @@
 
 .popular-btn {
     border: 1px solid #6c4cdc;
-    /* color: #2C73DD; */
     background: transparent;
+    width: 315px;
+    height: 52px;
 }
 
 /* Actions wrapper (button + compare link) */
@@ -270,6 +272,8 @@
     flex-direction: column;
     gap: 4px;
     margin-top: auto;
+    width: 315px;
+    height: 77px;
 }
 
 .compare {
@@ -386,6 +390,8 @@
     background: transparent;
     color: #6c4cdc;
     border: 1.5px solid #6c4cdc;
+    width: 315px;
+    height: 52px;
 }
 
 /* Price wrapper */
@@ -498,6 +504,146 @@
     gap: 10px;
 }
 
+/* Command Full Width Card */
+.command-card {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 28px 40px;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 40px;
+}
+
+/* Left section */
+.command-left {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 220px;
+    margin-bottom: auto;
+}
+
+.command-title h4 {
+    font-size: 22px;
+    font-weight: 600;
+}
+
+.command-title p {
+    font-size: 14px;
+    color: #707493;
+}
+
+.command-price {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+/* Middle section */
+.command-middle {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.command-features {
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.command-features img {
+    width: 24px;
+    height: 24px;
+}
+
+.command-features span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Right section */
+.command-right {
+    display: flex;
+    align-items: center;
+}
+
+/* Bottom Info Strip */
+.bottom-info-strip {
+    width: 100%;
+    max-width: 952px;      /* keeps nice desktop width */
+    margin: 0 auto;
+    border-radius: 20px;
+    padding: 28px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 40px;
+}
+
+/* Each info block */
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    width: 48%;
+}
+
+/* Green background */
+.info-item-icon.green {
+    width: 61px;
+    height: 61px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(21, 200, 168, 0.15);
+}
+
+/* Teal background */
+.info-item-icon.teal {
+    width: 73px;
+    height: 61px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 182, 155, 0.15);
+}
+
+/* SVG size control */
+.info-item-icon img {
+    width: 37px;
+    height: 33px;
+    object-fit: contain;
+}
+
+/* Text section */
+.info-text h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #15C8A8;
+    margin-bottom: 4px;
+}
+
+.info-text p {
+    font-size: 13px;
+    color: #3C3B42;
+    line-height: 18px;
+}
+
+.info-text span {
+    font-size: 12px;
+    color: #707493;
+}
 
 @media (max-width: 1200px) {
     .enterprise-content {
@@ -762,5 +908,112 @@
     .pricing-example img {
         width: 28px;
         height: 28px;
+    }
+}
+/* ========================= */
+/* Command Responsive */
+/* ========================= */
+
+@media (max-width: 1024px) {
+
+    .command-card {
+        padding: 24px;
+        gap: 24px;
+    }
+
+    .command-features {
+        gap: 16px;
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 900px) {
+
+    .command-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 24px;
+    }
+
+    .command-right {
+        width: 100%;
+    }
+
+    .contact-sales-btn {
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+
+    .command-title h4 {
+        font-size: 20px;
+    }
+
+    .price-amount {
+        font-size: 28px;
+    }
+
+    .command-features {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+}
+/* ========================= */
+/* Bottom Strip Responsive */
+/* ========================= */
+
+@media (max-width: 1024px) {
+
+    .bottom-info-strip {
+        padding: 24px;
+        gap: 24px;
+    }
+}
+
+@media (max-width: 900px) {
+
+    .bottom-info-strip {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 28px;
+    }
+
+    .info-item {
+        width: 100%;
+    }
+}
+
+@media (max-width: 600px) {
+
+    .info-item-icon.green,
+    .info-item-icon.teal {
+        width: 52px;
+        height: 52px;
+    }
+
+    .info-item-icon img {
+        width: 26px;
+        height: 26px;
+    }
+
+    .info-text h4 {
+        font-size: 13px;
+    }
+
+    .info-text p {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .bottom-info-strip {
+        padding: 20px;
+    }
+
+    .info-text p {
+        line-height: 16px;
     }
 }

@@ -916,7 +916,7 @@ html,
 .usage-icon-img {
   width: 39px;
   height: 39px;
-  box-shadow: 0px 1px 7px 0px #3E26C080;
+  /* box-shadow: 0px 1px 7px 0px #3E26C080; */
   color: #FFFFFF;
   ;
 }

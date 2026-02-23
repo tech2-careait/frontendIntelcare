@@ -126,8 +126,8 @@ const TlcNewClientProfitability = (props) => {
         );
     };
 
-    // const BASE_URL = "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net";
-    const BASE_URL = "https://curki-backend-api-container.yellowflower-c21bea82.australiaeast.azurecontainerapps.io"
+    const BASE_URL = "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net";
+    // const BASE_URL = "https://curki-backend-api-container.yellowflower-c21bea82.australiaeast.azurecontainerapps.io"
     // 🔹 MOCK FILTER OPTIONS (SHOWCASE ONLY)
     const optionsState = [
         { label: "New South Wales", value: "New South Wales" },
@@ -494,46 +494,37 @@ const TlcNewClientProfitability = (props) => {
     // };
     const handleUpload = async () => {
         try {
+            if (!activeTabData.selectedFiles.length) {
+                alert("Please upload files first");
+                return null;
+            }
+
             const formData = new FormData();
 
-            // ✅ 1. Load department_kb.txt from public/templates
-            const kbResponse = await fetch("/templates/department_kb.txt");
-            const kbText = await kbResponse.text();
-
-            const kbBlob = new Blob([kbText], { type: "text/plain" });
-            const kbFile = new File([kbBlob], "department_kb.txt", {
-                type: "text/plain",
-            });
-
-            // 🔑 SAME KEY backend expects
-            formData.append("kb_file", kbFile);
-
-            // ✅ 2. Append user uploaded Excel / CSV files
-            activeTabData.selectedFiles.forEach((file) => {
+            activeTabData.selectedFiles.forEach(file => {
                 formData.append("files", file);
             });
 
-            // ✅ 3. Append env only for kris sandbox user
-            console.log("userEmail?.trim().toLowerCase()", userEmail?.trim().toLowerCase())
-            if (userEmail?.trim().toLowerCase() === "kris@curki.ai") {
-                formData.append("env", "sandbox");
-            }
-
-            // ✅ 4. Send request
             const res = await fetch(
-                `${BASE_URL}/header_modules/clients_profitability/analyze`,
+                `${BASE_URL}/api/analyzeClientsProfitability/client-profitability/upload`,
                 {
                     method: "POST",
                     body: formData,
                 }
             );
 
-            const finalReponse = await res.json();
-            console.log("final response", finalReponse);
+            const data = await res.json();
 
-            return finalReponse;
+            if (!res.ok) {
+                throw new Error(data.error || "Upload failed");
+            }
+
+            console.log("Upload successful:", data);
+
+            return data;
+
         } catch (err) {
-            console.error("Upload failed:", err);
+            console.error("Upload error:", err);
             return null;
         }
     };
@@ -572,27 +563,59 @@ const TlcNewClientProfitability = (props) => {
 
     const handleAnalyse = async () => {
         try {
+            if (!activeTabData.startDate || !activeTabData.endDate) {
+                alert("Please select date range");
+                return;
+            }
+
             updateTab({ loading: true });
 
-            let uploadData = null;
-
+            // 🔹 Step 1: If files selected → upload first
             if (activeTabData.selectedFiles.length > 0) {
-                uploadData = await handleUpload();
+                const uploadResult = await handleUpload();
 
-                updateTab({
-                    responseData: uploadData,
-                    name:
-                        startDate && endDate
-                            ? `${startDate.getDate()}-${startDate.getMonth() + 1}-${startDate.getFullYear()}
-               - 
-               ${endDate.getDate()}-${endDate.getMonth() + 1}-${endDate.getFullYear()}`
-                            : activeTabData.name,
-                });
-
-                onPrepareAiPayload({
-                    table_data: uploadData?.table,
-                });
+                if (!uploadResult) {
+                    updateTab({ loading: false });
+                    return;
+                }
             }
+
+            // 🔹 Step 2: Now call analyze-by-date
+            const payload = {
+                startDate: activeTabData.startDate.toISOString().split("T")[0],
+                endDate: activeTabData.endDate.toISOString().split("T")[0],
+                email: userEmail,
+            };
+
+            const res = await fetch(
+                `${BASE_URL}/api/analyzeClientsProfitability/client-profitability/analyze-by-date`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload),
+                }
+            );
+
+            const result = await res.json();
+            console.log("result of tlc new profitibility",result)
+            if (!res.ok) {
+                throw new Error(result.error || "Analysis failed");
+            }
+
+            updateTab({
+                responseData: result,
+                name:
+                    activeTabData.startDate && activeTabData.endDate
+                        ? `${activeTabData.startDate.getDate()}-${activeTabData.startDate.getMonth() + 1}-${activeTabData.startDate.getFullYear()}
+                       - 
+                       ${activeTabData.endDate.getDate()}-${activeTabData.endDate.getMonth() + 1}-${activeTabData.endDate.getFullYear()}`
+                        : activeTabData.name,
+            });
+
+            onPrepareAiPayload({
+                table_data: result?.table,
+            });
+
         } catch (err) {
             console.error("Analyse failed:", err);
         } finally {
@@ -626,7 +649,7 @@ const TlcNewClientProfitability = (props) => {
             };
 
             const res = await fetch(
-                `${BASE_URL}/header_modules/clients_profitability/ai_analysis`,
+                `https://curki-backend-api-container.yellowflower-c21bea82.australiaeast.azurecontainerapps.io/header_modules/clients_profitability/ai_analysis`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
