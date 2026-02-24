@@ -135,7 +135,8 @@ const VoiceModule = (props) => {
     const [staffEmail, setStaffEmail] = useState("");
     const [generationStage, setGenerationStage] = useState(null);
     const [fileStage, setFileStage] = useState(null);
-
+    const [audioProgress, setAudioProgress] = useState(0);
+    const [fileProgress, setFileProgress] = useState(0);
     const isVideoFile = (file) =>
         file.type.startsWith("video/");
 
@@ -201,6 +202,28 @@ const VoiceModule = (props) => {
             setSelectedTemplate(null);
         }
     }, [role]);
+    const animateProgress = (currentValue, setter, target, duration = 800) => {
+        let start = currentValue;   // ✅ start from current %
+        const diff = target - start;
+
+        if (diff <= 0) {
+            setter(target);
+            return;
+        }
+
+        const increment = diff / (duration / 16);
+
+        const interval = setInterval(() => {
+            start += increment;
+
+            if (start >= target) {
+                start = target;
+                clearInterval(interval);
+            }
+
+            setter(Math.floor(start));
+        }, 16);
+    };
     const savePromptDirectly = async () => {
         if (!activeTemplate?.id) return;
 
@@ -451,6 +474,7 @@ const VoiceModule = (props) => {
                 setTranscribing(false);
 
                 setGenerationStage("generating");
+                animateProgress(audioProgress, setAudioProgress, 60, 800);
                 await submitMultipleTemplatesWithAudio(data.text);
             }
 
@@ -482,6 +506,7 @@ const VoiceModule = (props) => {
 
         try {
             setGenerationStage("transcribing");
+            animateProgress(audioProgress,setAudioProgress, 20, 600);
             setTranscribing(true);
             setTranscriptSource("audio");
             const uploadUrl = await uploadAudioToAssemblyAI();
@@ -1137,9 +1162,10 @@ const VoiceModule = (props) => {
             if (doc) docsToSend.push(doc);
         });
         await Promise.all(tasks);
+        animateProgress(audioProgress,setAudioProgress, 80, 600);
         setGenerationStage("emailing");
-
         await sendGeneratedDocsEmail(docsToSend);
+        animateProgress(audioProgress,setAudioProgress, 100, 400);
 
         setGeneratedDocs([]);
         emailSentRef.current = false;
@@ -1147,6 +1173,7 @@ const VoiceModule = (props) => {
         setGenerationStage(null);
         resetStaffUI();
         setCurrentTask("");
+        setAudioProgress(0);
     };
 
 
@@ -1227,7 +1254,7 @@ const VoiceModule = (props) => {
         }
 
         try {
-            setIsGeneratingFile(true); // 🔥 START LOADING
+            setIsGeneratingFile(true);
 
             const formData = new FormData();
             // TEMPLATE FROM BLOB METADATA
@@ -1451,6 +1478,7 @@ const VoiceModule = (props) => {
 
         setIsGeneratingFile(true);
         setFileStage("generating");
+        animateProgress(fileProgress, setFileProgress, 40, 700);
         const docsToSend = [];
 
         const tasks = [];
@@ -1486,9 +1514,11 @@ const VoiceModule = (props) => {
         }
 
         await Promise.all(tasks);
+        animateProgress(fileProgress, setFileProgress, 75, 600);
         setFileStage("emailing");
+        animateProgress(fileProgress, setFileProgress, 90, 500);
         await sendGeneratedDocsEmail(docsToSend);
-
+        animateProgress(fileProgress, setFileProgress, 100, 400);
         emailSentRef.current = false;
         setIsGeneratingFile(false);
         setFileStage(null);
@@ -2477,11 +2507,11 @@ const VoiceModule = (props) => {
                                         disabled={generationStage !== null}
                                     >
                                         {generationStage === "transcribing"
-                                            ? "Transcribing..."
+                                            ? `Transcribing... ${audioProgress}%`
                                             : generationStage === "generating"
-                                                ? "Generating Documents..."
+                                                ? `Generating Documents... ${audioProgress}%`
                                                 : generationStage === "emailing"
-                                                    ? "Sending Emails..."
+                                                    ? `Sending Emails... ${audioProgress}%`
                                                     : "✓ Submit"}
                                     </button>
                                 </>
@@ -2532,9 +2562,9 @@ const VoiceModule = (props) => {
                                 }
                             >
                                 {fileStage === "generating"
-                                    ? "Generating Documents..."
+                                    ? `Generating Documents... ${fileProgress}%`
                                     : fileStage === "emailing"
-                                        ? "Sending Emails..."
+                                        ? `Sending Emails... ${fileProgress}%`
                                         : "✓ Generate Document"}
                             </button>
                         </div>
