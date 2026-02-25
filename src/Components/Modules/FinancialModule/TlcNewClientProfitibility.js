@@ -375,7 +375,12 @@ const TlcNewClientProfitability = (props) => {
         // otherwise → range
         return `${format(start)} – ${format(end)}`;
     };
-
+    const formatLocalDate = (date) => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    };
     const setTabFiles = (updater) => {
         setTabs(prevTabs =>
             prevTabs.map(tab => {
@@ -506,6 +511,21 @@ const TlcNewClientProfitability = (props) => {
                 formData.append("files", file);
             });
 
+            if (activeTabData.selectedState.length > 1) {
+                alert("Please select only one state while uploading data.");
+                return null;
+            }
+
+            if (activeTabData.selectedState.length === 1) {
+                formData.append("state", activeTabData.selectedState[0].value);
+            }
+
+
+            if (activeTabData.startDate && activeTabData.endDate) {
+                formData.append("startDate", formatLocalDate(activeTabData.startDate));
+                formData.append("endDate", formatLocalDate(activeTabData.endDate));
+            }
+
             const res = await fetch(
                 `${BASE_URL}/api/analyzeClientsProfitability/client-profitability/upload`,
                 {
@@ -520,12 +540,12 @@ const TlcNewClientProfitability = (props) => {
                 throw new Error(data.error || "Upload failed");
             }
 
-            // console.log("Upload successful:", data);
-
+            console.log("Upload successful:", data);
             return data;
 
         } catch (err) {
             console.error("Upload error:", err);
+            alert(err.message);
             return null;
         }
     };
@@ -583,8 +603,8 @@ const TlcNewClientProfitability = (props) => {
 
             // 🔹 Step 2: Now call analyze-by-date
             const payload = {
-                startDate: activeTabData.startDate.toISOString().split("T")[0],
-                endDate: activeTabData.endDate.toISOString().split("T")[0],
+                startDate: formatLocalDate(activeTabData.startDate),
+                endDate: formatLocalDate(activeTabData.endDate),
                 email: userEmail,
                 state:
                     activeTabData.selectedState.length > 0
