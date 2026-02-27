@@ -202,52 +202,47 @@ const NewFinancialHealth = (props) => {
 
     const rebuildExcelPreviewFromHistory = (excelExports = {}) => {
 
-        const mergedWorkbook = XLSX.utils.book_new();
-        const usedSheetNames = new Set();
-        const titleArray = [];
+        const workbook = XLSX.utils.book_new();
+        const titles = [];
 
-        Object.entries(excelExports).forEach(([provider, files]) => {
-            if (!Array.isArray(files)) return;
+        Object.entries(excelExports).forEach(([sheetName, csvString]) => {
 
-            files.forEach((file) => {
-                if (!file?.data_url) return;
+            if (!csvString || typeof csvString !== "string") return;
 
-                titleArray.push(file.title);
+            try {
+                // 🔹 Convert CSV string → Array of Arrays
+                const rows = csvString
+                    .split("\n")
+                    .filter(row => row.trim() !== "")
+                    .map(row => row.split(","));
 
-                const base64String = file.data_url.includes("base64,")
-                    ? file.data_url.split("base64,")[1]
-                    : file.data_url;
+                if (rows.length === 0) return;
 
-                const binary = atob(base64String);
-                const buffer = new ArrayBuffer(binary.length);
-                const view = new Uint8Array(buffer);
+                // 🔹 Create worksheet safely
+                const worksheet = XLSX.utils.aoa_to_sheet(rows);
 
-                for (let i = 0; i < binary.length; i++) {
-                    view[i] = binary.charCodeAt(i) & 0xff;
-                }
+                XLSX.utils.book_append_sheet(
+                    workbook,
+                    worksheet,
+                    sheetName.slice(0, 31)
+                );
 
-                const workbook = XLSX.read(buffer, { type: "array" });
+                titles.push(sheetName);
 
-                workbook.SheetNames.forEach((sheetName) => {
-                    let finalName = sheetName.slice(0, 31);
-                    let counter = 1;
-
-                    while (usedSheetNames.has(finalName)) {
-                        const suffix = `_${counter++}`;
-                        finalName = sheetName.slice(0, 31 - suffix.length) + suffix;
-                    }
-
-                    usedSheetNames.add(finalName);
-                    XLSX.utils.book_append_sheet(
-                        mergedWorkbook,
-                        workbook.Sheets[sheetName],
-                        finalName
-                    );
-                });
-            });
+            } catch (err) {
+                console.error("Error rebuilding sheet:", sheetName, err);
+            }
         });
 
-        const wbout = XLSX.write(mergedWorkbook, {
+        if (workbook.SheetNames.length === 0) {
+            console.warn("No sheets found in history excelExports");
+            return {
+                apiExcelUrls: [],
+                titleArray: [],
+            };
+        }
+
+        const wbout = XLSX.write(workbook, {
             bookType: "xlsx",
             type: "binary",
         });
@@ -257,11 +252,10 @@ const NewFinancialHealth = (props) => {
         });
 
         return {
-            apiExcelUrls: [URL.createObjectURL(blob)], // ✅ SINGLE FILE
-            titleArray,
+            apiExcelUrls: [URL.createObjectURL(blob)],
+            titleArray: titles,
         };
     };
-
 
 
     const setTabFiles = (updater) => {
@@ -669,7 +663,7 @@ const NewFinancialHealth = (props) => {
                 // ✅ API reports → rebuild excel preview
                 const { apiExcelUrls, titleArray } =
                     rebuildExcelPreviewFromHistory(data.excelExports);
-
+                // console.log("Rebuilt excel preview from history:", { apiExcelUrls, titleArray });
                 updateTab({
                     ...baseTabPayload,
                     apiExcelUrls,
@@ -857,20 +851,51 @@ const NewFinancialHealth = (props) => {
 
             // --- Step 1: Call Analysis API ---
             const reportEndpoint = "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/report-middleware"
+            // --- Step 1: Call Analysis API ---
             let analysisData = null;
 
-            // Normal flow
-            const analysisRes = await axios.post(
-                reportEndpoint,
-                formData,
-                {
-                    headers: { "Content-Type": "multipart/form-data" },
-                    maxContentLength: Infinity,
-                    maxBodyLength: Infinity,
-                }
-            );
-            // console.log("analysisRes", analysisRes);
-            analysisData = analysisRes.data;
+            if (type === "api") {
+
+                const apiPayload = {
+                    type,
+                    userEmail,
+                    provider: selectedActor,
+                    fromDate,
+                    toDate,
+                };
+
+                const analysisRes = await axios.post(
+                    `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/financial-v2`,
+                    apiPayload,
+                    {
+                        headers: { "Content-Type": "application/json" },
+                        timeout: 600000,
+                    }
+                );
+
+                // console.log("Analysis API response:", analysisRes);
+                analysisData = analysisRes.data;
+
+            } else {
+
+                const reportEndpoint =
+                    "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/report-middleware";
+
+                const analysisRes = await axios.post(
+                    reportEndpoint,
+                    formData,
+                    {
+                        headers: { "Content-Type": "multipart/form-data" },
+                        maxContentLength: Infinity,
+                        maxBodyLength: Infinity,
+                    }
+                );
+
+                analysisData = analysisRes.data;
+                // console.log("Analysis API response:", analysisData);
+            }
+
+            if (!analysisData) throw new Error("Empty response from analysis API");
 
             if (!analysisData) throw new Error("Empty response from analysis API");
 
@@ -889,13 +914,15 @@ const NewFinancialHealth = (props) => {
             // --- Step 3: Call Visualization API ---
             let vizData = null;
             // console.log("vizpayload", vizPayload)
-            const vizRes = await axios.post(
-                "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/vizualize-reports",
-                vizPayload,
-                { headers: { "Content-Type": "application/json" } }
-            );
-            // console.log("vizRes", vizRes)
-            vizData = vizRes.data;
+            if (type === "upload") {
+                const vizRes = await axios.post(
+                    "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/vizualize-reports",
+                    vizPayload,
+                    { headers: { "Content-Type": "application/json" } }
+                );
+
+                vizData = vizRes.data;
+            }
 
             // --- Step 4: Normalize Figures ---
             const normalizeFigures = (source) => {
@@ -976,74 +1003,237 @@ const NewFinancialHealth = (props) => {
             };
 
             // console.log("vizPayload?.reportResponse?.excel_exports", vizPayload?.reportResponse?.excel_exports)
-            if (type === "api") {
-                if (vizPayload?.reportResponse?.excel_exports) {
-                    try {
-                        const mergedWorkbook = XLSX.utils.book_new();
-                        const usedSheetNames = new Set();
+            // if (type === "api") {
+            //     if (vizPayload?.reportResponse?.excel_exports) {
+            //         try {
+            //             const mergedWorkbook = XLSX.utils.book_new();
+            //             const usedSheetNames = new Set();
 
-                        const excelFiles = Object.values(vizPayload?.reportResponse?.excel_exports).flat();
-                        const titlesArray = [];
+            //             const excelFiles = Object.values(vizPayload?.reportResponse?.excel_exports).flat();
+            //             const titlesArray = [];
 
-                        for (const fileData of excelFiles) {
-                            let base64 = fileData.data_url;
-                            let fileTitle = fileData.title;
-                            titlesArray.push(fileTitle);
+            //             for (const fileData of excelFiles) {
+            //                 let base64 = fileData.data_url;
+            //                 let fileTitle = fileData.title;
+            //                 titlesArray.push(fileTitle);
 
-                            const base64String = base64.includes("base64,") ? base64.split("base64,")[1] : base64;
-                            const binary = atob(base64String);
-                            const arrayBuffer = new ArrayBuffer(binary.length);
-                            const view = new Uint8Array(arrayBuffer);
-                            for (let i = 0; i < binary.length; i++) view[i] = binary.charCodeAt(i) & 0xff;
+            //                 const base64String = base64.includes("base64,") ? base64.split("base64,")[1] : base64;
+            //                 const binary = atob(base64String);
+            //                 const arrayBuffer = new ArrayBuffer(binary.length);
+            //                 const view = new Uint8Array(arrayBuffer);
+            //                 for (let i = 0; i < binary.length; i++) view[i] = binary.charCodeAt(i) & 0xff;
 
-                            const workbook = XLSX.read(arrayBuffer, { type: "array" });
+            //                 const workbook = XLSX.read(arrayBuffer, { type: "array" });
 
-                            for (const sheetName of workbook.SheetNames) {
-                                let newSheetName = fileTitle.slice(0, 31);
-                                let counter = 1;
-                                while (usedSheetNames.has(newSheetName)) {
-                                    const suffix = `_${counter++}`;
-                                    newSheetName = fileTitle.slice(0, 31 - suffix.length) + suffix;
-                                }
-                                usedSheetNames.add(newSheetName);
-                                XLSX.utils.book_append_sheet(mergedWorkbook, workbook.Sheets[sheetName], newSheetName);
-                            }
-                        }
+            //                 for (const sheetName of workbook.SheetNames) {
+            //                     let newSheetName = fileTitle.slice(0, 31);
+            //                     let counter = 1;
+            //                     while (usedSheetNames.has(newSheetName)) {
+            //                         const suffix = `_${counter++}`;
+            //                         newSheetName = fileTitle.slice(0, 31 - suffix.length) + suffix;
+            //                     }
+            //                     usedSheetNames.add(newSheetName);
+            //                     XLSX.utils.book_append_sheet(mergedWorkbook, workbook.Sheets[sheetName], newSheetName);
+            //                 }
+            //             }
 
-                        updateTab({
-                            titleArray: titlesArray,
-                        });
+            //             updateTab({
+            //                 titleArray: titlesArray,
+            //             });
 
-                        const wbout = XLSX.write(mergedWorkbook, { bookType: "xlsx", type: "binary" });
-                        const blob = new Blob([s2ab(wbout)], {
-                            type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        });
+            //             const wbout = XLSX.write(mergedWorkbook, { bookType: "xlsx", type: "binary" });
+            //             const blob = new Blob([s2ab(wbout)], {
+            //                 type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            //             });
 
-                        const url = URL.createObjectURL(blob);
-                        updateTab({
-                            apiExcelUrls: [url],
-                        });
-                    } catch (err) {
-                        console.error("Error merging API Excel files:", err);
-                    }
-                }
-            } else {
+            //             const url = URL.createObjectURL(blob);
+            //             updateTab({
+            //                 apiExcelUrls: [url],
+            //             });
+            //         } catch (err) {
+            //             console.error("Error merging API Excel files:", err);
+            //         }
+            //     }
+            // } else {
+            //     updateTab({ apiExcelUrls: [] });
+            // }
+            if (type === "upload") {
                 updateTab({ apiExcelUrls: [] });
             }
             // console.log("apiExcelUrls in handle analyse", apiExcelUrls)
-            const figures = normalizeFigures(vizData);
-            // console.log("analysisData", analysisData)
-            // --- Step 5: Save state ---
-            const tabDateName = formatDateRangeForTab(startDate, endDate);
-            updateTab({
-                responseData: analysisData.final,
-                financialVisualizations: figures,
-                excel_exports: analysisData?.excel_exports,
-                loading: false,
-                progress: 100,
-                ...(tabDateName ? { name: tabDateName } : {}),
-            });
+            let responseText = null;
+            let figures = [];
 
+            if (type === "api") {
+                // 🔹 V2 structure - FIXED based on actual response
+                const apiResponseText = analysisData?.report?.review_response ||
+                    analysisData?.review_response ||
+                    "";
+
+                // Handle plots/figures from API response
+                let apiFigures = [];
+                if (analysisData?.plots && Array.isArray(analysisData.plots)) {
+                    apiFigures = analysisData.plots.map((plot, index) => ({
+                        type: "html",
+                        html: plot.html,
+                        metricName: plot.filename || `Plot ${index + 1}`,
+                    }));
+                }
+
+                // Process CSV data for Excel export
+                // Process CSV data for Excel export
+                let builtApiUrls = [];
+                let builtTitles = [];
+
+                const csvData = analysisData?.csv_data;
+                // console.log("CSV data from API response:", csvData);
+                // console.log("type of csvData:", typeof csvData);
+                // console.log("XLSX utils available:", Object.keys(XLSX.utils));
+
+                if (csvData && typeof csvData === "object") {
+                    try {
+                        const workbook = XLSX.utils.book_new();
+                        const titlesArray = [];
+
+                        Object.entries(csvData).forEach(([sheetName, csvString]) => {
+                            if (!csvString) return;
+
+                            // console.log(`Processing ${sheetName}, type:`, typeof csvString);
+
+                            if (typeof csvString === 'string') {
+                                // Clean the CSV string
+                                let cleanCsv = csvString
+                                    .replace(/Show more.*$/gm, '')
+                                    .replace(/^\s*[\d.]+\s*(KB|MB|GB)\s*Copy\s*$/gim, '')
+                                    .replace(/,\s*\.\.\..*$/gm, '')
+                                    .trim();
+
+                                // console.log(`Cleaned ${sheetName} length:`, cleanCsv.length);
+
+                                const lines = cleanCsv.split('\n').filter(line => line.trim() !== '');
+                                // console.log(`${sheetName} has ${lines.length} lines`);
+
+                                if (lines.length > 1) {
+                                    try {
+                                        // Try different methods to parse CSV
+                                        let worksheet;
+
+                                        // Method 1: Try csv_to_sheet
+                                        if (typeof XLSX.utils.csv_to_sheet === 'function') {
+                                            worksheet = XLSX.utils.csv_to_sheet(cleanCsv);
+                                        }
+                                        // Method 2: Try aoo_to_sheet with split
+                                        else if (typeof XLSX.utils.aoa_to_sheet === 'function') {
+                                            const data = lines.map(line => line.split(','));
+                                            worksheet = XLSX.utils.aoa_to_sheet(data);
+                                        }
+                                        // Method 3: Try sheet_add_aoa
+                                        else if (typeof XLSX.utils.sheet_add_aoa === 'function') {
+                                            worksheet = XLSX.utils.aoa_to_sheet([]);
+                                            const data = lines.map(line => line.split(','));
+                                            XLSX.utils.sheet_add_aoa(worksheet, data);
+                                        }
+                                        else {
+                                            console.error("No suitable CSV parsing method found");
+                                            return;
+                                        }
+
+                                        if (worksheet) {
+                                            const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:A1');
+                                            // console.log(`${sheetName} has rows:`, range.e.r + 1);
+
+                                            if (range.e.r > 0) {
+                                                XLSX.utils.book_append_sheet(workbook, worksheet, sheetName.slice(0, 31));
+                                                titlesArray.push(sheetName);
+                                            }
+                                        }
+                                    } catch (sheetErr) {
+                                        console.warn(`Failed to parse sheet ${sheetName}:`, sheetErr);
+                                    }
+                                }
+                            } else {
+                                console.log(`${sheetName} is not a string, it's:`, typeof csvString);
+                            }
+                        });
+
+                        // console.log("Titles array after processing:", titlesArray);
+                        // console.log("Workbook sheet names:", workbook.SheetNames);
+
+                        if (titlesArray.length > 0 && workbook.SheetNames.length > 0) {
+                            const wbout = XLSX.write(workbook, { bookType: "xlsx", type: "binary" });
+                            const blob = new Blob([s2ab(wbout)], {
+                                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                            });
+
+                            const url = URL.createObjectURL(blob);
+                            // console.log("Generated Excel URL:", url);
+                            builtApiUrls = [url];
+                            builtTitles = titlesArray;
+
+                            // console.log("Created Excel with sheets:", titlesArray);
+                        } else {
+                            console.log("No valid CSV data to create Excel");
+                        }
+                    } catch (err) {
+                        console.error("Error building Excel:", err);
+                    }
+                } else {
+                    console.log("No csv_data in response or it's not an object");
+                }
+
+                const tabDateName = formatDateRangeForTab(startDate, endDate);
+
+                // SINGLE updateTab call with ALL data
+                updateTab({
+                    responseData: apiResponseText,
+                    financialVisualizations: apiFigures,
+                    apiExcelUrls: builtApiUrls,
+                    titleArray: builtTitles,
+                    excel_exports: analysisData?.csv_data || {},
+                    reportType: type,
+                    loading: false,
+                    progress: 100,
+                    ...(tabDateName ? { name: tabDateName } : {}),
+                });
+
+            } else {
+                // 🔹 Old upload flow
+                // 🔹 Upload flow (FIXED – parse like API)
+
+                let uploadResponseText = analysisData?.final;
+
+                // Parse if stringified JSON
+                if (typeof uploadResponseText === "string") {
+                    try {
+                        const parsed = JSON.parse(uploadResponseText);
+
+                        uploadResponseText =
+                            parsed?.review_response ||
+                            parsed?.report?.review_response ||
+                            parsed?.final ||
+                            uploadResponseText;
+
+                    } catch (err) {
+                        console.log("Upload response is not JSON, using raw string");
+                    }
+                }
+
+                const uploadFigures = normalizeFigures(vizData);
+
+                const tabDateName = formatDateRangeForTab(startDate, endDate);
+
+                updateTab({
+                    responseData: uploadResponseText,
+                    financialVisualizations: uploadFigures,
+                    apiExcelUrls: [],
+                    titleArray: [],
+                    excel_exports: analysisData?.excel_exports || {},
+                    reportType: type,
+                    loading: false,
+                    progress: 100,
+                    ...(tabDateName ? { name: tabDateName } : {}),
+                });
+            }
 
 
         } catch (err) {
@@ -1959,6 +2149,24 @@ const NewFinancialHealth = (props) => {
                         <div className="graph-gridsss">
                             {activeTabData.financialVisualizations.map((item, index) => (
                                 <div key={index} style={{ marginBottom: "30px" }}>
+
+                                    {/* 🔹 V2 HTML Plot */}
+                                    {item.type === "html" && (
+                                        <div style={{ width: "100%", height: "500px" }}>
+                                            <iframe
+                                                srcDoc={item.html}
+                                                style={{
+                                                    width: "100%",
+                                                    height: "100%",
+                                                    border: "none",
+                                                    borderRadius: "8px",
+                                                }}
+                                                title={item.metricName}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* 🔹 Old JSON Plot */}
                                     {item.figure && (
                                         <Plot
                                             data={item.figure.data}
@@ -1971,6 +2179,8 @@ const NewFinancialHealth = (props) => {
                                             config={{ responsive: true, displayModeBar: false }}
                                         />
                                     )}
+
+                                    {/* 🔹 Image type (existing) */}
                                     {item.type === "image" && item.image && (
                                         <div style={{ textAlign: "center" }}>
                                             <h4 style={{ marginBottom: "8px" }}>{item.metricName}</h4>
@@ -1986,6 +2196,7 @@ const NewFinancialHealth = (props) => {
                                             />
                                         </div>
                                     )}
+
                                 </div>
                             ))}
                         </div>
