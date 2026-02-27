@@ -103,6 +103,8 @@ const HomePage = () => {
   const [showTrialPopup, setShowTrialPopup] = useState(false);
   const [formattedTrialEnd, setFormattedTrialEnd] = useState("");
   const [isTrialInitializing, setIsTrialInitializing] = useState(false);
+  const [payrollAiPayload, setPayrollAiPayload] = useState("");
+  const [payrollAiHistoryPayload, setPayrollAiHistoryPayload] = useState("");
   const handleModalOpen = () => setModalVisible(true);
   const handleModalClose = () => setModalVisible(false);
   const handleLeftModalOpen = () => setLeftModalVisible(true);
@@ -863,7 +865,7 @@ const HomePage = () => {
                           user={user}
                         />
                       </div>
-
+                    
                       <div style={{ display: selectedRole === "Smart Onboarding (Staff)" ? "block" : "none" }}>
                         <HRAnalysis handleClick={handleClick} selectedRole="Smart Onboarding (Staff)" setShowFeedbackPopup={setShowFeedbackPopup} user={user} setManualResumeZip={setManualResumeZip} />
                       </div>
