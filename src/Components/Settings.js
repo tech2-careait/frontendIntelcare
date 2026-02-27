@@ -8,6 +8,8 @@ import { sendPasswordResetEmail, deleteUser } from "firebase/auth";
 import supportSettingsDown from "../Images/supportSettingsDownIcon.svg"
 import supportSettingsRight from "../Images/supportSettingsUpIcon.svg"
 import supportSettingsUploadIcon from "../Images/supportSettingsUpload.svg"
+import TlcUploadBox from "./Modules/FinancialModule/TlcUploadBox";
+import crossIcon from "../Images/ComparePriceCross.png"
 const SettingsPage = ({ user, onBack }) => {
     const [firstName, setFirstName] = useState(user?.displayName || "Deepak");
     const [lastName, setLastName] = useState(user?.displayName || "uday");
@@ -19,6 +21,17 @@ const SettingsPage = ({ user, onBack }) => {
     const [confirmType, setConfirmType] = useState("");
     const [isSupportOpen, setIsSupportOpen] = useState(false);
     const [showSupportModal, setShowSupportModal] = useState(false);
+    const [tickets, setTickets] = useState([]);
+    const [issueType, setIssueType] = useState("Technical issue");
+    const [description, setDescription] = useState("");
+    const [screenshotFile, setScreenshotFile] = useState(null);
+    const [isSubmittingSupport, setIsSubmittingSupport] = useState(false);
+    const [previewUrl, setPreviewUrl] = useState(null);
+    const [fileError, setFileError] = useState("");
+    const [openStatusId, setOpenStatusId] = useState(null);
+    const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+    const [statusModalTicket, setStatusModalTicket] = useState(null);
+    const [selectedStatus, setSelectedStatus] = useState("");
     const handleResetPassword = async () => {
         try {
             await sendPasswordResetEmail(auth, user?.email);
@@ -58,7 +71,34 @@ const SettingsPage = ({ user, onBack }) => {
             }
         }
     };
+    const handleStatusChange = async (ticketId, newStatus) => {
+        try {
+            setIsUpdatingStatus(true);
 
+            // ✅ Normalize status (make first letter capital, rest lowercase)
+            const formattedStatus =
+                newStatus.trim().toLowerCase() === "resolved"
+                    ? "Resolved"
+                    : newStatus.trim().toLowerCase() === "in progress"
+                        ? "In progress"
+                        : newStatus; // fallback (optional)
+
+            await axios.put(
+                `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/need-help/update-status/${ticketId}`,
+                {
+                    status: formattedStatus,
+                    userEmail: user.email
+                }
+            );
+
+            await fetchSupportTickets();
+
+        } catch (error) {
+            console.error("Status update failed:", error.response?.data || error);
+        } finally {
+            setIsUpdatingStatus(false);
+        }
+    };
     const handleSave = async () => {
         try {
             setIsSaving(true);
@@ -100,8 +140,65 @@ const SettingsPage = ({ user, onBack }) => {
             console.error("Failed to fetch user:", error);
         }
     };
+    const handleSubmitSupport = async () => {
+        try {
+            if (!description.trim()) {
+                alert("Please describe your issue.");
+                return;
+            }
+
+            setIsSubmittingSupport(true);
+
+            const formData = new FormData();
+            formData.append("firstName", firstName);
+            formData.append("userEmail", user.email);
+            formData.append("issueType", issueType);
+            formData.append("description", description);
+
+            if (screenshotFile) {
+                formData.append("issue_screenshot", screenshotFile);
+            }
+
+            const res = await axios.post(
+                "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/need-help/create",
+                formData,
+                {
+                    headers: { "Content-Type": "multipart/form-data" },
+                }
+            );
+
+            if (res.data.success) {
+                setShowSupportModal(false);
+                setDescription("");
+                setScreenshotFile(null);
+                fetchSupportTickets();
+            }
+
+        } catch (error) {
+            console.error("Support submission failed:", error);
+            alert("Failed to submit request.");
+        } finally {
+            setIsSubmittingSupport(false);
+        }
+    };
+    const fetchSupportTickets = async () => {
+        try {
+            if (!user?.email) return;
+
+            const res = await axios.get(
+                `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/need-help/list?userEmail=${user.email}`
+            );
+
+            if (res.data.success) {
+                setTickets(res.data.tickets);
+            }
+        } catch (error) {
+            console.error("Failed to fetch support tickets:", error);
+        }
+    };
     useEffect(() => {
         fetchUserData();
+        fetchSupportTickets();
     }, [user?.email]);
 
     return (
@@ -247,7 +344,7 @@ const SettingsPage = ({ user, onBack }) => {
 
             <div className="support-container">
 
-                <div className="support-header" onClick={() => setIsSupportOpen(!isSupportOpen)}>
+                <div className="support-header">
                     <div className="support-header-left">
                         <div className="support-icon">?</div>
                         <div>
@@ -260,23 +357,25 @@ const SettingsPage = ({ user, onBack }) => {
 
                     <div
                         className="support-arrow"
+                        onClick={() => setShowSupportModal(true)}
                     >
                         <img
-                            src={isSupportOpen ? supportSettingsDown : supportSettingsRight}
-                            alt="toggle"
+                            src={supportSettingsRight}
+                            alt="open"
                             className="support-arrow-icon"
                         />
                     </div>
                 </div>
 
-                {isSupportOpen && (
-                    <div className="support-body">
 
-                        <div className="support-list-header">
-                            <span>In progress issues & support list</span>
-                            <div className="support-badge">1</div>
-                        </div>
+                <div className="support-body">
 
+                    <div className="support-list-header">
+                        <span className="support-list-text">In progress issues & support list</span>
+                        <div className="support-badge">{tickets?.filter(t => t.status !== "Resolved").length}</div>
+                    </div>
+
+                    {tickets?.filter(t => t.status !== "Resolved").length > 0 && (
                         <div className="support-table">
                             <div className="support-table-header">
                                 <div>Issue Related to</div>
@@ -284,58 +383,94 @@ const SettingsPage = ({ user, onBack }) => {
                                 <div>Status</div>
                             </div>
 
-                            <div className="support-table-row">
-                                <div>Technical issue</div>
-                                <div>What happened? What were you experiencing's?</div>
-                                <div>
-                                    <span className="status-badge in-progress">
-                                        In progress
-                                    </span>
+                            {tickets.filter(ticket => ticket.status !== "Resolved")?.map((ticket) => (
+                                <div className="support-table-row" key={ticket.id}>
+                                    <div>{ticket.issueType}</div>
+                                    <div>{ticket.description}</div>
+                                    <div>
+                                        <div className="status-cell">
+                                            <div
+                                                className={`status-badge ${ticket.status?.toLowerCase() === "resolved"
+                                                    ? "resolved"
+                                                    : "in-progress"
+                                                    }`}
+                                                onClick={() => {
+                                                    setStatusModalTicket(ticket);
+                                                    setSelectedStatus(ticket.status);
+                                                }}
+                                                style={{ marginRight: "auto" }}
+                                            >
+                                                {ticket.status}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-
-                            <div className="support-table-row">
-                                <div>deepak@curki.ai</div>
-                                <div>Deepak.U</div>
-                                <div>
-                                    <span className="status-badge resolved">
-                                        Resolved
-                                    </span>
-                                </div>
-                            </div>
+                            ))}
 
                         </div>
-
-                        <button
-                            className="raise-support-btn"
-                            onClick={() => setShowSupportModal(true)}
-                        >
-                            Raise Support Request
-                        </button>
-
-                    </div>
-                )}
-
+                    )}
+                </div>
             </div>
+            {statusModalTicket && (
+                <div className="status-modal-overlay">
+                    <div className="status-modal">
+                        <h3>Update Status</h3>
+
+                        <input
+                            type="text"
+                            value={selectedStatus}
+                            onChange={(e) => setSelectedStatus(e.target.value)}
+                            className="status-input"
+                            placeholder="Enter status (In progress / Resolved)"
+                        />
+
+                        <div className="status-modal-buttons">
+                            <button
+                                className="status-cancel"
+                                onClick={() => setStatusModalTicket(null)}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                className="status-save"
+                                onClick={() => {
+                                    handleStatusChange(statusModalTicket.id, selectedStatus);
+                                    setStatusModalTicket(null);
+                                }}
+                                disabled={isUpdatingStatus}
+                            >
+                                {isUpdatingStatus ? "Updating..." : "Update"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {showSupportModal && (
                 <div className="support-modal-overlay">
                     <div className="support-modal">
 
                         <div className="support-modal-header">
                             <h3>Raise a Support Request</h3>
-                            <span
+                            <img
+                                src={crossIcon}
+                                alt="close"
                                 className="support-close"
                                 onClick={() => setShowSupportModal(false)}
-                            >
-                                ×
-                            </span>
+                            />
                         </div>
 
                         <div className="support-form-group">
                             <label>Issue Related To</label>
-                            <select>
-                                <option>Technical issue</option>
-                                <option>Billing</option>
+                            <select
+                                value={issueType}
+                                onChange={(e) => setIssueType(e.target.value)}
+                            >
+                                <option>Technical Issue</option>
+                                <option>Billing Question</option>
+                                <option>Account access</option>
+                                <option>Feature request</option>
+                                <option>Integration support</option>
                                 <option>General Query</option>
                             </select>
                         </div>
@@ -346,31 +481,66 @@ const SettingsPage = ({ user, onBack }) => {
                             </div>
 
                             <textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
                                 placeholder="What happened? What were you experiencing's?"
                                 maxLength="150"
                                 className="support-textarea"
                             />
-
-                            <div className="char-limit">150 characters left</div>
+                            <div className="char-limit">
+                                {150 - description.length} characters left
+                            </div>
                         </div>
 
                         <div className="support-form-group">
-                            <label>Screenshots Related To Issues</label>
 
-                            <div className="upload-box">
-                                <div className="upload-inner">
-                                    <img
-                                        src={supportSettingsUploadIcon}
-                                        alt="upload"
-                                        className="upload-icon"
-                                    />
-                                    <div className="upload-text">Click to upload</div>
-                                    <div className="upload-format">Format: doc only</div>
-                                </div>
-                            </div>
+                            <TlcUploadBox
+                                id="supportScreenshotUpload"
+                                title="Upload Screenshot"
+                                subtitle="JPG, PNG, WEBP • Max 5MB"
+                                accept="image/jpeg,image/png,image/webp"
+                                files={screenshotFile ? [screenshotFile] : []}
+                                multiple={false}
+                                setFiles={(selectedFiles) => {
+                                    if (!selectedFiles || !selectedFiles.length) {
+                                        setScreenshotFile(null);
+                                        return;
+                                    }
+
+                                    const file = selectedFiles[0];
+
+                                    const allowedTypes = [
+                                        "image/jpeg",
+                                        "image/png",
+                                        "image/webp"
+                                    ];
+
+                                    if (!allowedTypes.includes(file.type)) {
+                                        setFileError("Only JPG, PNG, or WEBP images are allowed.");
+                                        setScreenshotFile(null);
+                                        return;
+                                    }
+
+                                    const maxSize = 5 * 1024 * 1024; // 5MB
+                                    if (file.size > maxSize) {
+                                        setFileError("Image size must be less than 5MB.");
+                                        setScreenshotFile(null);
+                                        return;
+                                    }
+
+                                    setFileError("");
+                                    setScreenshotFile(file);
+                                }}
+                            />
+
+                            {fileError && <div className="file-error">{fileError}</div>}
                         </div>
-                        <button className="submit-support-btn">
-                            Submit Request
+                        <button
+                            className="submit-support-btn"
+                            onClick={handleSubmitSupport}
+                            disabled={isSubmittingSupport}
+                        >
+                            {isSubmittingSupport ? "Submitting..." : "Submit Request"}
                         </button>
 
                         <div className="support-response-note">

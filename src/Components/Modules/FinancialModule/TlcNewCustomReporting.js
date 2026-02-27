@@ -495,7 +495,7 @@ export default function TlcNewCustomerReporting(props) {
 
                 const invalidUploads = [];
 
-                // ✅ Validate each file section
+                // Validate each file section
                 // for (const input of inputs) {
                 //     const { type, files } = input;
                 //     if (!files.length) {
@@ -574,7 +574,7 @@ export default function TlcNewCustomerReporting(props) {
             }
 
             // -------------------------------
-            // STEP 2️⃣: RUN ANALYSIS API
+            // STEP 2️: RUN ANALYSIS API
             // -------------------------------
             const formatToDMY = (date) => {
                 const d = String(date.getDate()).padStart(2, "0");
@@ -600,25 +600,64 @@ export default function TlcNewCustomerReporting(props) {
 
             query.append("userEmail", userEmail);
 
-            const url = `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/payroll/filter?${query.toString()}`;
+            const BASE_URL =
+                "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net";
 
-            console.log("userEmail", userEmail)
-            console.log("Analysis API URL:", url);
             let analyzeData;
 
             if (USE_DUMMY_DATA) {
-                console.log("🧪 Using dummy payroll data");
+                console.log("Using dummy payroll data");
                 analyzeData = {
                     payload: dummyPayload,
-                    analysisResult: dummyData.analysisResult
+                    analysisResult: dummyData.analysisResult,
                 };
             } else {
-                const analyzeRes = await fetch(url);
-                analyzeData = await analyzeRes.json();
-                console.log("Analysis API response:", analyzeData);
+                if (isAllowed) {
+                    // 🔵 TLC FLOW (GET + query params)
+                    const url = `${BASE_URL}/payroll/filter?${query.toString()}`;
+                    // console.log("TLC API URL:", url);
+
+                    const analyzeRes = await fetch(url);
+                    analyzeData = await analyzeRes.json();
+
+                } else {
+                    // 🟢 NORMAL PAYROLL FLOW (POST body)
+                    const url = `${BASE_URL}/api/normal-payroll/analyze`;
+                    // console.log("Normal Payroll API URL:", url);
+
+                    const futureEndDate = new Date("2099-12-31T23:59:59Z");
+
+                    const bodyPayload = {
+                        userEmail,
+                        dateRange: {
+                            from: formatToISO(startDate),
+                            to: futureEndDate.toISOString(),
+                        },
+                    };
+
+                    // console.log("Normal Payroll Payload:", bodyPayload);
+
+                    const analyzeRes = await fetch(url, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify(bodyPayload),
+                    });
+
+                    analyzeData = await analyzeRes.json();
+
+                    // ⚠️ Important: Normal API returns { ok, report }
+                    analyzeData = {
+                        payload: null,
+                        analysisResult: analyzeData.report
+                    };
+                }
+
+                // console.log("Analysis API response:", analyzeData);
             }
 
-            console.log("analyzeData.payload", analyzeData.payload)
+            // console.log("analyzeData.payload", analyzeData.payload)
             updateTab({ tlcAskAiPayload: analyzeData.payload });
             if (tabs.find(t => t.id === activeTab)) {
                 props.setTlcAskAiPayload(analyzeData.payload);
@@ -743,7 +782,17 @@ export default function TlcNewCustomerReporting(props) {
 
         setIsAllowed(allowedDomains.includes(userDomain));
     }, [props.user]);
+    const formatToISO = (date, endOfDay = false) => {
+        const d = new Date(date);
 
+        if (endOfDay) {
+            d.setHours(23, 59, 59, 999);
+        } else {
+            d.setHours(0, 0, 0, 0);
+        }
+
+        return d.toISOString();
+    };
     // -------------------- SAVE HANDLER --------------------
     const handleSaveToDatabase = async () => {
         if (!activeTabData) return;
@@ -769,7 +818,7 @@ export default function TlcNewCustomerReporting(props) {
 
         setSaving(true);
         try {
-            // console.log("📤 Saving analysis data to database for tab:", activeTab);
+            // console.log("Saving analysis data to database for tab:", activeTab);
             // console.log("analysisData", analysisData)
             const enrichedAnalysis = {
                 pages: analysisData?.pages,
@@ -808,8 +857,8 @@ export default function TlcNewCustomerReporting(props) {
                 return;
             }
 
-            console.log("Save response:", result);
-            alert("✅ Analysis data saved successfully!");
+            // console.log("Save response:", result);
+            alert("Analysis data saved successfully!");
             // ✅ Optional: Mark as saved to prevent double-save
             updateTab({ isFromHistory: true });
         } catch (err) {
@@ -883,7 +932,7 @@ export default function TlcNewCustomerReporting(props) {
             return;
         }
         if (USE_DUMMY_DATA) {
-            console.log("🧪 Using dummy AI markdown");
+            console.log("Using dummy AI markdown");
 
             updateTab({
                 aiReport: dummyData?.reportMarkdown,
@@ -917,7 +966,7 @@ export default function TlcNewCustomerReporting(props) {
                 if (progress > 70) progress = 70;
                 updateTab({ aiProgress: Math.floor(progress) });
             }, 600);
-            console.log("Sending full payload to AI Analysis API...");
+            // console.log("Sending full payload to AI Analysis API...");
             const requestPayload = {
                 ...(Array.isArray(aiPayload)
                     ? { objects: aiPayload }
@@ -929,7 +978,7 @@ export default function TlcNewCustomerReporting(props) {
                 requestPayload.env = "sandbox";
             }
 
-            console.log("✅ Final AI request payload", requestPayload);
+            // console.log("Final AI request payload", requestPayload);
 
             const res = await fetch(
                 "https://curki-backend-api-container.yellowflower-c21bea82.australiaeast.azurecontainerapps.io/tlc/payroll/ai-analysis-report",
@@ -980,7 +1029,7 @@ export default function TlcNewCustomerReporting(props) {
                 `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/getById/${item.id}`
             );
             const data = await res.json();
-            console.log("data in history click", data)
+            // console.log("data in history click", data)
             updateTab({ tlcAskAiHistoryPayload: data.data.analysisResult });
             if (tabs.find(t => t.id === activeTab)) {
                 props.setTlcAskAiHistoryPayload(data.data.analysisResult);
@@ -989,7 +1038,7 @@ export default function TlcNewCustomerReporting(props) {
 
             if (!res.ok) throw new Error(data.error || "Failed to fetch analysis");
             const { start, end } = data.data.filters || {};
-            console.log("start,end", start, end)
+            // console.log("start,end", start, end)
             updateTab({
                 analysisData: data.data.analysisResult,
                 stage: "overview",
@@ -1276,28 +1325,6 @@ export default function TlcNewCustomerReporting(props) {
 
     if (!activeTabData) return null;
 
-    if (!isAllowed) {
-        return (
-            <div style={{
-                textAlign: "center",
-                padding: "120px 20px",
-                fontFamily: "Inter, sans-serif",
-                color: "#1f2937"
-            }}>
-                <img
-                    src={TLCLogo}
-                    alt="Access Denied"
-                    style={{ width: "80px", opacity: 0.8, marginBottom: "20px" }}
-                />
-                <h2 style={{ fontSize: "24px", marginBottom: "12px", color: "#6C4CDC" }}>
-                    Access Restricted 🚫
-                </h2>
-                <p style={{ fontSize: "16px", color: "#555" }}>
-                    Sorry, your account (<strong>{props?.user?.email}</strong>) is not authorized to view this page.
-                </p>
-            </div>
-        );
-    }
     const AccordionHeader = ({
         title,
         isOpen,
