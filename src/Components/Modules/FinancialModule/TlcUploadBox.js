@@ -16,9 +16,19 @@ const TlcUploadBox = ({
 }) => {
   const getFileIcon = (fileName = "") => {
     const ext = fileName.split(".").pop().toLowerCase();
-
+    console.log("File extension:", ext); // Debug log 
     switch (ext) {
       // ===== DOCUMENTS =====
+      case "jpg":
+      case "jpeg":
+      case "png":
+      case "webp":
+      case "gif":
+      case "svg":
+      case "bmp":
+      case "ico":
+        return "https://cdn-icons-png.flaticon.com/512/3022/3022251.png";
+
       case "pdf":
         return "https://cdn-icons-png.flaticon.com/512/337/337946.png";
 
@@ -44,7 +54,7 @@ const TlcUploadBox = ({
       case "aac":
       case "m4a":
       case "webm":
-        return "https://cdn-icons-png.flaticon.com/512/716/716784.png"; 
+        return "https://cdn-icons-png.flaticon.com/512/716/716784.png";
 
       // ===== VIDEO =====
       case "mp4":
@@ -52,7 +62,7 @@ const TlcUploadBox = ({
       case "avi":
       case "mkv":
       case "webm":
-        return "https://cdn-icons-png.flaticon.com/512/716/716784.png"; 
+        return "https://cdn-icons-png.flaticon.com/512/716/716784.png";
 
       // ===== ARCHIVES =====
       case "zip":
@@ -147,9 +157,14 @@ const TlcUploadBox = ({
                   <RiDeleteBin6Line
                     onClick={(e) => {
                       e.stopPropagation();
-                      setFiles((prev) =>
-                        prev.filter((_, i) => i !== idx)
-                      );
+
+                      if (!multiple) {
+                        setFiles([]);   // for single mode
+                      } else {
+                        setFiles((prev) =>
+                          prev.filter((_, i) => i !== idx)
+                        );
+                      }
                     }}
                   />
                 </div>
