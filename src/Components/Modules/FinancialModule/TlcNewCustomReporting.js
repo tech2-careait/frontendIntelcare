@@ -631,7 +631,7 @@ export default function TlcNewCustomerReporting(props) {
                         userEmail,
                         dateRange: {
                             from: formatToISO(startDate),
-                            to: futureEndDate.toISOString(),
+                            to: formatToISO(endDate, true),
                         },
                     };
 
