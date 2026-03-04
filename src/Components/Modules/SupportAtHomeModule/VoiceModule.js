@@ -431,27 +431,27 @@ const VoiceModule = (props) => {
         return `${h}:${m}:${s}`;
     };
     const startRecording = async () => {
-        // if (testRecord) {
+        if (testRecord) {
 
-        //     try {
+            try {
 
-        //         const res = await fetch("/you-re-cncdjd.webm");
-        //         const blob = await res.blob();
+                const res = await fetch("/you-re-cncdjd.webm");
+                const blob = await res.blob();
 
-        //         console.log("Test audio loaded size:", blob.size);
+                console.log("Test audio loaded size:", blob.size);
 
-        //         setAudioBlob(blob);
-        //         setAudioURL(URL.createObjectURL(blob));
+                setAudioBlob(blob);
+                setAudioURL(URL.createObjectURL(blob));
 
-        //         setRecordMode("preview");
-        //         setRecordTime(7200);
+                setRecordMode("preview");
+                setRecordTime(7200);
 
-        //     } catch (err) {
-        //         console.error("Failed to load test audio", err);
-        //     }
+            } catch (err) {
+                console.error("Failed to load test audio", err);
+            }
 
-        //     return;
-        // }
+            return;
+        }
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
         const mediaRecorder = new MediaRecorder(stream);
@@ -609,7 +609,10 @@ const VoiceModule = (props) => {
 
     const acceptRecording = async () => {
         if (!audioBlob) return;
-
+        if (recordTime < 10) {
+            alert("Audio must be at least 10 seconds long.");
+            return;
+        }
         try {
             if (platformType !== "web") {
 
