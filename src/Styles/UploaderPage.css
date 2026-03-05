@@ -651,7 +651,21 @@ html,
   background: linear-gradient(180deg, #2A1E5C 0%, #1C153F 100%);
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
+.profile-button.active-profile-button {
+  background: #ffffff;
+}
 
+.profile-button.active-profile-button .profile-name {
+  color: #000;
+}
+
+.profile-button.active-profile-button .profile-email {
+  color: #4b5563;
+}
+
+.profile-button.active-profile-button svg {
+  color: #000;
+}
 .profile-button-left {
   display: flex;
   align-items: center;

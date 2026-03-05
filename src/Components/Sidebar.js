@@ -456,15 +456,22 @@ const Sidebar = ({
 
         {/* USER BUTTON */}
         <div
-          className="profile-button"
+          className={`profile-button ${showProfilePanel ? "active-profile-button" : ""}`}
           onClick={() => {
-            if (!user) setShowSignIn(true);
-            else setShowProfilePanel(prev => !prev);
+            if (!user) {
+              setShowSignIn(true);
+              return;
+            }
+
+            setShowProfilePanel(prev => !prev);
           }}
         >
           <div className="profile-button-left">
 
-            <IoIosContact color="white" size={36} />
+            <IoIosContact
+              color={showProfilePanel ? "#000000" : "#FFFFFF"}
+              size={36}
+            />
 
             <div>
               <div className="profile-name">{user?.displayName}</div>

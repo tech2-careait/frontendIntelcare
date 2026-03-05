@@ -62,6 +62,7 @@ import TeamMembers from "./TeamMembers";
 import TrialStartedPopup from "./TrialPopup";
 import useSubscriptionStatus from "./NewSubscriptionStatus";
 import DetailedUsage from "./DetailedUsage";
+import AutoPaymentPopup from "./Modules/AutoPaymentPopup";
 const HomePage = () => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [documentString, setDocumentString] = useState("");
@@ -107,6 +108,7 @@ const HomePage = () => {
   const [payrollAiPayload, setPayrollAiPayload] = useState("");
   const [payrollAiHistoryPayload, setPayrollAiHistoryPayload] = useState("");
   const [showUsageDetails, setShowUsageDetails] = useState(false);
+  const [showAutoPaymentPopup, setShowAutoPaymentPopup] = useState(false);
   const handleModalOpen = () => setModalVisible(true);
   const handleModalClose = () => setModalVisible(false);
   const handleLeftModalOpen = () => setLeftModalVisible(true);
@@ -114,6 +116,19 @@ const HomePage = () => {
   // console.log("user?.email",user?.email)
   const userEmail = user?.email;
   // const userEmail = "kris@curki.ai";
+  useEffect(() => {
+
+    const handleAutoTopupPopup = () => {
+      setShowAutoPaymentPopup(true);
+    };
+
+    window.addEventListener("AUTO_TOPUP_TRIGGER", handleAutoTopupPopup);
+
+    return () => {
+      window.removeEventListener("AUTO_TOPUP_TRIGGER", handleAutoTopupPopup);
+    };
+
+  }, []);
   const moduleSuggestions = {
     tlc: [
       "Which 10 employees in NDIS Department have the highest overtime hours and overtime $ ?",
@@ -1210,6 +1225,12 @@ const HomePage = () => {
           onClose={() => {
             setShowTrialPopup(false);
           }}
+        />
+      )}
+      {showAutoPaymentPopup && (
+        <AutoPaymentPopup
+          userEmail={user?.email}
+          onClose={() => setShowAutoPaymentPopup(false)}
         />
       )}
     </>

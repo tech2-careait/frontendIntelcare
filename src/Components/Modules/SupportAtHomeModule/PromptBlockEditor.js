@@ -9,6 +9,7 @@ const isTitleCaseHeading = (t) =>
 
 const isPipeFieldHeading = (t) =>
     /^[A-Z0-9_]+\s*\|\s*(text|date|phone|email|boolean|number)\s*\|\s*(required|optional)/i.test(t);
+
 const shouldHideBlock = (block = "") => {
     const t = block.toLowerCase();
 
@@ -38,7 +39,7 @@ const splitPromptIntoBlocks = (text) => {
     const isCapsHeading = (t) =>
         /^[A-Z][A-Z0-9\s\-–_()]{2,}$/.test(t) &&
         t.length <= 60 &&
-        !t.includes(":"); // avoid lines like "Validation: ..."
+        !t.includes(":");
 
     const isTitleLine = (t) =>
         t.length <= 90 &&
@@ -55,7 +56,6 @@ const splitPromptIntoBlocks = (text) => {
 
         if (isListItem(t)) return false;
 
-        // 1st line could be title
         if (index === 0 && isTitleLine(t)) return true;
 
         if (isMarkdownHeading(t)) return true;
@@ -84,7 +84,6 @@ const splitPromptIntoBlocks = (text) => {
 
     pushBuf();
 
-    // fallback: if still one huge block, split by double new line
     if (blocks.length <= 1) {
         return (text || "")
             .split(/\n{2,}/)
@@ -92,7 +91,6 @@ const splitPromptIntoBlocks = (text) => {
             .filter(Boolean);
     }
 
-    // remove ultra-small blocks (merge them with previous)
     const merged = [];
     for (const b of blocks) {
         if (b.length < 25 && merged.length > 0) {
@@ -121,8 +119,13 @@ const Block = ({ block, onSave }) => {
     }, [isEditing]);
 
     const handleSave = () => {
-        const next = buffer?.trimEnd?.() ?? buffer;
-        if (next !== block) onSave(next);
+        const next = buffer.trim();
+        const original = block.trim();
+
+        if (next !== original) {
+            onSave(next);
+        }
+
         setIsEditing(false);
     };
 
@@ -172,10 +175,7 @@ const Block = ({ block, onSave }) => {
                     remarkPlugins={[remarkGfm]}
                     components={{
                         code({ inline, className, children, ...props }) {
-                            // ✅ hide full code blocks (```json ... ```)
                             if (!inline) return null;
-
-                            // ✅ keep inline code like `text`
                             return (
                                 <code className={className} {...props}>
                                     {children}
@@ -183,14 +183,12 @@ const Block = ({ block, onSave }) => {
                             );
                         },
                         pre() {
-                            // ✅ hide <pre> wrapper too
                             return null;
                         },
                     }}
                 >
                     {block}
                 </ReactMarkdown>
-
             </div>
 
             <div className="pbe-hover">
@@ -214,12 +212,21 @@ export default function PromptBlockEditor({
     const handleSaveBlock = (index, newVal) => {
         if (disabled) return;
 
+        const scrollY = window.scrollY; // prevent scroll jump
+
         const nextBlocks = [...blocks];
         nextBlocks[index] = newVal;
 
-        // Keep spacing clean between sections
-        const nextPrompt = nextBlocks.join("\n\n");
+        const nextPrompt = nextBlocks
+            .map((b) => b.trim())
+            .filter(Boolean)
+            .join("\n\n");
+
         onChange(nextPrompt);
+
+        requestAnimationFrame(() => {
+            window.scrollTo(0, scrollY);
+        });
 
         if (onCommit) onCommit(nextPrompt);
     };
@@ -228,7 +235,7 @@ export default function PromptBlockEditor({
 
     return (
         <div className="pbe-root">
-            {/* TOP BAR */}
+
             <div className="pbe-topbar">
                 <div className="pbe-tabs">
                     <button
@@ -251,23 +258,21 @@ export default function PromptBlockEditor({
                 <div className="pbe-right">{rightSlot}</div>
             </div>
 
-            {/* VISUAL TAB */}
             {tab === "visual" && (
                 <div className="pbe-visual">
                     {blocks
-                        .filter((b) => !shouldHideBlock(b))
-                        .map((b, idx) => (
+                        .map((b, originalIndex) => ({ block: b, originalIndex }))
+                        .filter((item) => !shouldHideBlock(item.block))
+                        .map(({ block, originalIndex }) => (
                             <Block
-                                key={idx}
-                                block={b}
-                                onSave={(val) => handleSaveBlock(idx, val)}
+                                key={block.slice(0, 40) + originalIndex}
+                                block={block}
+                                onSave={(val) => handleSaveBlock(originalIndex, val)}
                             />
                         ))}
-
                 </div>
             )}
 
-            {/* SOURCE TAB */}
             {tab === "source" && (
                 <div className="pbe-source">
                     <textarea
