@@ -1,6 +1,7 @@
 import React from "react";
 import "../Styles/TrialPopup.css";
 import trialStartGif from "../Images/TrialGif.gif"
+import autoPaymentGif from "../Images/autopaymentPopup.gif"
 const TrialStartedPopup = ({ trialEnd, onClose }) => {
   return (
     <div className="trial-overlay">
