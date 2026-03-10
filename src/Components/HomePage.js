@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "../Styles/UploaderPage.css";
 import BlackExpandIcon from "../../src/Images/BlackExpandIcon.png";
 import axios from "axios";
@@ -72,7 +72,9 @@ const HomePage = () => {
   const [tlcAskAiPayload, setTlcAskAiPayload] = useState("");
   const [tlcAskAiHistoryPayload, setTlcAskAiHistoryPayload] = useState("");
   const [showAIChat, setShowAIChat] = useState(false);
-  const [input, setInput] = useState("");
+  // const [input, setInput] = useState("");
+  const inputRef = useRef("");
+  const textareaRef = useRef(null);
   const [messages, setMessages] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isModalLeftVisible, setLeftModalVisible] = useState(false);
@@ -307,9 +309,7 @@ const HomePage = () => {
     const rawQuery =
       typeof customText === "string"
         ? customText
-        : typeof input === "string"
-          ? input
-          : "";
+        : inputRef.current || "";
 
     const finalQuery = rawQuery.trim();
     if (!finalQuery && !eventName) return;
@@ -322,7 +322,10 @@ const HomePage = () => {
     setMessages((prev) => [...prev, tempBotMessage]);
 
     // clear input only when the user typed (not when suggestion clicked)
-    if (!customText) setInput("");
+    if (!customText && textareaRef.current) {
+      textareaRef.current.value = "";
+      inputRef.current = "";
+    }
 
     try {
       //SMART ROSTERING MODE
@@ -632,9 +635,14 @@ const HomePage = () => {
   }, [selectedRole]);
 
   useEffect(() => {
-    // Reset chat when module changes
     setMessages([]);
-    setInput("");
+
+    // clear textarea safely
+    if (textareaRef.current) {
+      textareaRef.current.value = "";
+    }
+
+    inputRef.current = "";
   }, [selectedRole]);
 
   const handleLogout = async () => {
@@ -1326,12 +1334,10 @@ const HomePage = () => {
                         <textarea
                           rows={1}
                           placeholder="Ask me anything..."
-                          value={input}
+                          ref={textareaRef}
+                          defaultValue=""
                           onChange={(e) => {
-                            setInput(e.target.value);
-                            // const el = e.target;
-                            // el.style.height = "56px";              // base height
-                            // el.style.height = el.scrollHeight + "px";
+                            inputRef.current = e.target.value;
                           }}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
@@ -1360,7 +1366,15 @@ const HomePage = () => {
                         />
                         {/* <FaCircleArrowRight onClick={handleSend} size={22} style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#6C4CDC" }} /> */}
                         <div
-                          onClick={handleSend}
+                          onClick={() => {
+                            handleSend();
+
+                            if (textareaRef.current) {
+                              textareaRef.current.value = "";
+                            }
+
+                            inputRef.current = "";
+                          }}
                           style={{
                             position: "absolute",
                             right: "32px",

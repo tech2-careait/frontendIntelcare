@@ -618,11 +618,11 @@ const Plan = ({ title,
                                 loading
                                     ? "Processing..."
                                     : isCurrentPlan
-                                        ? "Current Plan"
+                                        ? "Your Active Plan"
                                         : isUpgrade
-                                            ? "Upgrade"
+                                            ? `Upgrade to ${title}`
                                             : isDowngrade
-                                                ? "Downgrade"
+                                                ? "Downgrade Plan"
                                                 : "Choose Plan"
                             }
                         </button>
