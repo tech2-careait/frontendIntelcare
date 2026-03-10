@@ -541,8 +541,10 @@ const NewFinancialHealth = (props) => {
             try {
                 setLoadingHistory(true);
 
+                const email = props.user?.email;
+
                 const res = await fetch(
-                    "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/financial-module"
+                    `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/financial-module?email=${email}`
                 );
 
                 if (!res.ok) {
@@ -550,8 +552,8 @@ const NewFinancialHealth = (props) => {
                 }
 
                 const json = await res.json();
-                // console.log("json", json)
                 setHistoryList(json.data || []);
+
             } catch (err) {
                 console.error("Failed to load history", err);
             } finally {
@@ -559,8 +561,11 @@ const NewFinancialHealth = (props) => {
             }
         };
 
-        fetchFinancialHistory()
-    }, [props.user])
+        if (props.user?.email) {
+            fetchFinancialHistory();
+        }
+
+    }, [props.user]);
 
     const handleSaveFinancialHistory = async () => {
         // guard: already saving OR no analysis
