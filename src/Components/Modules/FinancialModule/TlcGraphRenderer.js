@@ -2,7 +2,7 @@ import React from "react";
 import ChartVisualiser from "./NewCharts";
 
 const TlcGraphRenderer = ({ plots }) => {
-  console.log("Rendering TlcGraphRenderer with plots:", plots);
+  // console.log("Rendering TlcGraphRenderer with plots:", plots);
 
   if (!plots) return null;
 
@@ -15,6 +15,11 @@ const TlcGraphRenderer = ({ plots }) => {
         const plotData = plotObject?.plot_data;
 
         if (!plotData) return null;
+
+        // ❌ skip html based plots
+        if (plotData.type === "heatmap" || plotData.type === "table") {
+          return null;
+        }
 
         return (
           <div key={index} className="chart-visualizer-card">

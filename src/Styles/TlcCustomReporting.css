@@ -377,7 +377,7 @@ body {
 
 .charts-grid {
   display: grid;
-  gap: 24px;
+  /* gap: 24px; */
   margin-top: 28px;
   align-items: stretch;
 }

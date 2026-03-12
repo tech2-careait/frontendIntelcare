@@ -214,3 +214,9 @@
 .tlc-profitibility-history-back-btn:hover {
   color: #4b2cc0;
 }
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr;   /* one chart per row */
+  /* gap: 28px; */
+  width: 100%;
+}

@@ -38,6 +38,7 @@ import { useRef } from "react";
 import { GoArrowLeft } from "react-icons/go";
 import FinancialAnalysisReportViewer from "./FinancialAnalysisReportViewer.js"
 import TlcPayrollSyncTickIcon from "../../../Images/TlcPayrollSyncTick.png";
+import TlcGraphRenderer from "./TlcGraphRenderer.js";
 
 const NewFinancialHealth = (props) => {
 
@@ -636,6 +637,7 @@ const NewFinancialHealth = (props) => {
                     selectedType: activeTabData.selectedType,
                     selectedRole: activeTabData.selectedRole,
                 },
+                apiPlots: activeTabData.apiPlots || [],
             };
 
             // console.log("payload before saving history", payload)
@@ -704,6 +706,7 @@ const NewFinancialHealth = (props) => {
                 isFromHistory: true,
                 loading: false,
                 progress: 100,
+                apiPlots: data.apiPlots || [],
             };
 
             // ---- TYPE-SPECIFIC HANDLING ----
@@ -923,7 +926,7 @@ const NewFinancialHealth = (props) => {
 
                 // console.log("Analysis API response:", analysisRes);
                 analysisData = analysisRes.data;
-                // console.log("Analysis API response data of type api:", analysisData);
+                console.log("Analysis API response data of type api:", analysisData);
                 const askAiFrames = analysisData?.csv_data
                 updateTab({
                     askAiDataframes: askAiFrames
@@ -947,7 +950,7 @@ const NewFinancialHealth = (props) => {
                 );
 
                 analysisData = analysisRes.data;
-                // console.log("Analysis API response of type upload:", analysisData);
+                console.log("Analysis API response of type upload:", analysisData);
                 const dataframes = tablesToAskAiDataframes(analysisData?.normalized_files?.tables);
                 updateTab({
                     askAiDataframes: dataframes
@@ -1141,7 +1144,7 @@ const NewFinancialHealth = (props) => {
                         metricName: plot.filename || `Plot ${index + 1}`,
                     }));
                 }
-
+                const apiPlots = analysisData?.plots || [];
                 // Process CSV data for Excel export
                 // Process CSV data for Excel export
                 let builtApiUrls = [];
@@ -1249,6 +1252,7 @@ const NewFinancialHealth = (props) => {
                 updateTab({
                     responseData: apiResponseText,
                     financialVisualizations: apiFigures,
+                    apiPlots: apiPlots,
                     apiExcelUrls: builtApiUrls,
                     titleArray: builtTitles,
                     excel_exports: analysisData?.csv_data || {},
@@ -2208,60 +2212,70 @@ const NewFinancialHealth = (props) => {
                     />
 
                     {activeTabData.accordions.charts && (
-                        <div className="graph-gridsss">
-                            {activeTabData.financialVisualizations.map((item, index) => (
-                                <div key={index} style={{ marginBottom: "30px" }}>
+                        activeTabData.reportType === "api" ? (
 
-                                    {/* 🔹 V2 HTML Plot */}
-                                    {item.type === "html" && (
-                                        <div style={{ width: "100%", height: "500px" }}>
-                                            <iframe
-                                                srcDoc={item.html}
-                                                style={{
-                                                    width: "100%",
-                                                    height: "100%",
-                                                    border: "none",
-                                                    borderRadius: "8px",
+                            <div className="charts-grid">
+                                <TlcGraphRenderer plots={activeTabData.apiPlots} />
+                            </div>
+
+                        ) : (
+
+                            <div className="graph-gridsss">
+                                {activeTabData.financialVisualizations.map((item, index) => (
+                                    <div key={index} style={{ marginBottom: "30px" }}>
+
+                                        {/* HTML iframe */}
+                                        {item.type === "html" && (
+                                            <div style={{ width: "100%", height: "500px" }}>
+                                                <iframe
+                                                    srcDoc={item.html}
+                                                    style={{
+                                                        width: "100%",
+                                                        height: "100%",
+                                                        border: "none",
+                                                        borderRadius: "8px",
+                                                    }}
+                                                    title={item.metricName}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Plotly JSON */}
+                                        {item.figure && (
+                                            <Plot
+                                                data={item.figure.data}
+                                                layout={{
+                                                    ...item.figure.layout,
+                                                    autosize: true,
+                                                    margin: { t: 120, l: 40, r: 40, b: 40 },
                                                 }}
-                                                title={item.metricName}
+                                                style={{ width: "100%", height: "400px" }}
+                                                config={{ responsive: true, displayModeBar: false }}
                                             />
-                                        </div>
-                                    )}
+                                        )}
 
-                                    {/* 🔹 Old JSON Plot */}
-                                    {item.figure && (
-                                        <Plot
-                                            data={item.figure.data}
-                                            layout={{
-                                                ...item.figure.layout,
-                                                autosize: true,
-                                                margin: { t: 120, l: 40, r: 40, b: 40 },
-                                            }}
-                                            style={{ width: "100%", height: "400px" }}
-                                            config={{ responsive: true, displayModeBar: false }}
-                                        />
-                                    )}
+                                        {/* Image */}
+                                        {item.type === "image" && item.image && (
+                                            <div style={{ textAlign: "center" }}>
+                                                <h4 style={{ marginBottom: "8px" }}>{item.metricName}</h4>
+                                                <img
+                                                    src={item.image}
+                                                    alt={item.metricName}
+                                                    style={{
+                                                        maxWidth: "100%",
+                                                        height: "auto",
+                                                        borderRadius: "8px",
+                                                        boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
 
-                                    {/* 🔹 Image type (existing) */}
-                                    {item.type === "image" && item.image && (
-                                        <div style={{ textAlign: "center" }}>
-                                            <h4 style={{ marginBottom: "8px" }}>{item.metricName}</h4>
-                                            <img
-                                                src={item.image}
-                                                alt={item.metricName}
-                                                style={{
-                                                    maxWidth: "100%",
-                                                    height: "auto",
-                                                    borderRadius: "8px",
-                                                    boxShadow: "0 4px 10px rgba(0,0,0,0.1)"
-                                                }}
-                                            />
-                                        </div>
-                                    )}
+                                    </div>
+                                ))}
+                            </div>
 
-                                </div>
-                            ))}
-                        </div>
+                        )
                     )}
 
                     {/* ================= RAW DATA / EXPORT ================= */}

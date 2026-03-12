@@ -58,7 +58,15 @@ const STACKED_DATA = {
         Deployment: [20, 15, 10, 25]
     }
 };
-
+const formatYAxis = (value) => {
+    if (value >= 1000000) {
+        return (value / 1000000).toFixed(1) + "M";
+    }
+    if (value >= 1000) {
+        return (value / 1000).toFixed(0) + "K";
+    }
+    return value;
+};
 /* ---------------- TOOLTIP ---------------- */
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -79,7 +87,7 @@ const CustomTooltip = ({ active, payload, label }) => {
                         </span>
 
                         <span className="chart-visualizer-tooltip-value">
-                            {p.value}
+                            {formatYAxis(p.value)}
                         </span>
 
                     </div>
@@ -125,7 +133,7 @@ const Legend = ({ names, visible, toggle }) => {
 
 /* ---------------- BAR CHART ---------------- */
 
-const BarChartWrapper = ({ data }) => {
+const BarChartWrapper = ({ data, meta }) => {
 
     const names = Object.keys(data.series);
     const [visible, setVisible] = useState(names);
@@ -156,13 +164,29 @@ const BarChartWrapper = ({ data }) => {
 
             <ResponsiveContainer width="100%" height={350}>
 
-                <BarChart data={chartData}>
+                <BarChart
+                    data={chartData}
+                    margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
+                >
 
-                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis
+                        dataKey="name"
+                        label={{
+                            value: meta?.x_label,
+                            position: "insideBottom",
+                            offset: -10
+                        }}
+                    />
 
-                    <XAxis dataKey="name" />
-
-                    <YAxis />
+                    <YAxis
+                        tickFormatter={formatYAxis}
+                        label={{
+                            value: meta?.y_label,
+                            angle: -90,
+                            position: "insideLeft",
+                            style: { textAnchor: "middle" }
+                        }}
+                    />
 
                     <Tooltip content={<CustomTooltip />} />
 
@@ -187,7 +211,7 @@ const BarChartWrapper = ({ data }) => {
 
 /* ---------------- LINE CHART ---------------- */
 
-const LineChartWrapper = ({ data }) => {
+const LineChartWrapper = ({ data, meta }) => {
 
     const names = Object.keys(data.series);
     const [visible, setVisible] = useState(names);
@@ -218,13 +242,28 @@ const LineChartWrapper = ({ data }) => {
 
             <ResponsiveContainer width="100%" height={350}>
 
-                <AreaChart data={chartData}>
+                <AreaChart
+                    data={chartData}
+                    margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
+                >
+                    <XAxis
+                        dataKey="name"
+                        label={{
+                            value: meta?.x_label,
+                            position: "insideBottom",
+                            offset: -10
+                        }}
+                    />
 
-                    <CartesianGrid strokeDasharray="3 3" />
-
-                    <XAxis dataKey="name" />
-
-                    <YAxis />
+                    <YAxis
+                        tickFormatter={formatYAxis}
+                        label={{
+                            value: meta?.y_label,
+                            angle: -90,
+                            position: "insideLeft",
+                            style: { textAnchor: "middle" }
+                        }}
+                    />
 
                     <Tooltip content={<CustomTooltip />} />
 
@@ -237,6 +276,8 @@ const LineChartWrapper = ({ data }) => {
                             fillOpacity={0.2}
                             hide={!visible.includes(n)}
                             strokeWidth={3}
+                            dot={{ r: 4 }}          // shows dot on each point
+                            activeDot={{ r: 6 }}    // bigger dot on hover
                         />
                     ))}
 
@@ -252,8 +293,7 @@ const LineChartWrapper = ({ data }) => {
 
 const PieChartWrapper = ({ data }) => {
 
-    const names = data?.labels || [];
-
+    const names = data.labels;
     const [visible, setVisible] = useState(names);
 
     const toggle = name => {
@@ -264,13 +304,15 @@ const PieChartWrapper = ({ data }) => {
         );
     };
 
-const chartData = data.labels.map((l, i) => ({
-    name: l,
-    value: data.series?.values?.[i] || 0
-}));
+    const chartData = data.labels.map((l, i) => ({
+        name: l,
+        value: visible.includes(l)
+            ? (data.values?.[i] ?? data.series?.values?.[i] ?? 0)
+            : 0, // hide by setting value 0
+        color: COLORS[i]
+    }));
 
     return (
-
         <div>
 
             <Legend names={names} visible={visible} toggle={toggle} />
@@ -280,15 +322,19 @@ const chartData = data.labels.map((l, i) => ({
                 <PieChart>
 
                     <Pie
-                        data={chartData.filter(d => visible.includes(d.name))}
+                        data={chartData}
                         dataKey="value"
-                        outerRadius={130}
+                        innerRadius={100}     // donut hole
+                        outerRadius={140}
+                        paddingAngle={6}      // space between slices
+                        cornerRadius={0}      // rounded slice edges
                     >
-
-                        {chartData.map((entry, i) => (
-                            <Cell key={i} fill={COLORS[i]} />
+                        {chartData.map((entry) => (
+                            <Cell
+                                key={entry.name}
+                                fill={entry.color}
+                            />
                         ))}
-
                     </Pie>
 
                     <Tooltip content={<CustomTooltip />} />
@@ -303,7 +349,7 @@ const chartData = data.labels.map((l, i) => ({
 
 /* ---------------- STACKED BAR ---------------- */
 
-const StackedBarChartWrapper = ({ data }) => {
+const StackedBarChartWrapper = ({ data, meta }) => {
 
     const names = Object.keys(data.series);
     const [visible, setVisible] = useState(names);
@@ -334,13 +380,28 @@ const StackedBarChartWrapper = ({ data }) => {
 
             <ResponsiveContainer width="100%" height={350}>
 
-                <BarChart data={chartData}>
+                <BarChart
+                    data={chartData}
+                    margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
+                >
+                    <XAxis
+                        dataKey="name"
+                        label={{
+                            value: meta?.x_label,
+                            position: "insideBottom",
+                            offset: -10
+                        }}
+                    />
 
-                    <CartesianGrid strokeDasharray="3 3" />
-
-                    <XAxis dataKey="name" />
-
-                    <YAxis />
+                    <YAxis
+                        tickFormatter={formatYAxis}
+                        label={{
+                            value: meta?.y_label,
+                            angle: -90,
+                            position: "insideLeft",
+                            style: { textAnchor: "middle" }
+                        }}
+                    />
 
                     <Tooltip content={<CustomTooltip />} />
 
@@ -372,40 +433,99 @@ const StackedBarChartWrapper = ({ data }) => {
 
 /* ---------------- MAIN COMPONENT ---------------- */
 
-export default function ChartVisualiser({ plotData }) {
+export default function ChartVisualiser({ plotData, plotName }) {
     if (!plotData) return null;
 
     const chartType = plotData.type;
+    const meta = plotData.meta || {};
     return (
         <div className="chart-visualizer-app">
 
             {chartType === "bar" && (
                 <div className="chart-visualizer-card">
-                    <BarChartWrapper data={plotData} />
+                    <div className="chart-header">
+
+                        <div className="chart-title">
+                            {meta?.title || plotName}
+                        </div>
+
+                        {meta?.y_label && (
+                            <div className="chart-subtitle">
+                                {meta.y_label.toUpperCase()}
+                            </div>
+                        )}
+
+                    </div>
+
+                    <BarChartWrapper data={plotData} meta={meta} />
                 </div>
             )}
 
             {chartType === "line" && (
                 <div className="chart-visualizer-card">
-                    <LineChartWrapper data={plotData} />
+                    <div className="chart-header">
+                        <div className="chart-title">
+                            {meta?.title || plotName}
+                        </div>
+
+                        {meta?.y_label && (
+                            <div className="chart-subtitle">
+                                {meta.y_label.toUpperCase()}
+                            </div>
+                        )}
+                    </div>
+                    <LineChartWrapper data={plotData} meta={meta} />
                 </div>
             )}
 
             {chartType === "area" && (
                 <div className="chart-visualizer-card">
-                    <LineChartWrapper data={plotData} />
+                    <div className="chart-header">
+                        <div className="chart-title">
+                            {meta?.title || plotName}
+                        </div>
+
+                        {meta?.y_label && (
+                            <div className="chart-subtitle">
+                                {meta.y_label.toUpperCase()}
+                            </div>
+                        )}
+                    </div>
+                    <LineChartWrapper data={plotData} meta={meta} />
                 </div>
             )}
 
             {chartType === "pie" && (
                 <div className="chart-visualizer-card">
-                    <PieChartWrapper data={plotData} />
+                    <div className="chart-header">
+                        <div className="chart-title">
+                            {meta?.title || plotName}
+                        </div>
+
+                        {meta?.y_label && (
+                            <div className="chart-subtitle">
+                                {meta.y_label.toUpperCase()}
+                            </div>
+                        )}
+                    </div>
+                    <PieChartWrapper data={plotData} meta={meta} />
                 </div>
             )}
 
             {chartType === "stacked_bar" && (
                 <div className="chart-visualizer-card">
-                    <StackedBarChartWrapper data={plotData} />
+                    <div className="chart-header">
+                        <div className="chart-title">
+                            {meta?.title || plotName}
+                        </div>
+
+                        {meta?.y_label && (
+                            <div className="chart-subtitle">
+                                {meta.y_label.toUpperCase()}
+                            </div>
+                        )}
+                    </div>
+                    <StackedBarChartWrapper data={plotData} meta={meta} />
                 </div>
             )}
 

@@ -34,6 +34,7 @@ import { Document, Packer, Paragraph, HeadingLevel, TextRun, ImageRun } from "do
 import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
 import { addSectionWithGraphsToWord, parseMarkdownToDocx } from "./TlcClientProfitibilityExport";
+import TlcGraphRenderer from "./TlcGraphRenderer";
 
 const TlcNewClientProfitability = (props) => {
     const onPrepareAiPayload = props.onPrepareAiPayload;
@@ -1422,7 +1423,7 @@ const TlcNewClientProfitability = (props) => {
     //     );
     // }
 
-
+    // console.log("activeTabData", activeTabData)
 
     return (
         <div className="page-containersss">
@@ -1844,18 +1845,10 @@ const TlcNewClientProfitability = (props) => {
                         <section data-report-section="client-charts">
                             {activeTabData.chartsAccordionOpen && (
                                 <div className="client-profitability-graph">
-                                    {activeTabData?.responseData?.graphs && (
-                                        <>
-                                            <div className="chart-box" style={{ marginBottom: "30px" }}>
-                                                <RenderHtmlFigure
-                                                    htmlString={activeTabData.responseData.graphs.department_revenue_expense}
-                                                />
-                                            </div>
-
-                                            <div className="chart-box" style={{ marginBottom: "30px" }}>
-                                                <RenderHtmlFigure htmlString={activeTabData?.responseData?.graphs.region_revenue_expense} />
-                                            </div>
-                                        </>
+                                    {activeTabData?.responseData?.plots && (
+                                        <div className="charts-grid">
+                                            <TlcGraphRenderer plots={activeTabData.responseData.plots} />
+                                        </div>
                                     )}
                                 </div>
                             )}

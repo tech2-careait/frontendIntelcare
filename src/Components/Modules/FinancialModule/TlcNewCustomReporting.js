@@ -33,6 +33,7 @@ import html2canvas from "html2canvas";
 import { GoArrowLeft } from "react-icons/go";
 import { registerLocale } from "react-datepicker";
 import enGB from "date-fns/locale/en-GB";
+import TlcGraphRenderer from "./TlcGraphRenderer";
 
 registerLocale("en-GB", enGB);
 export default function TlcNewCustomerReporting(props) {
@@ -1499,7 +1500,7 @@ export default function TlcNewCustomerReporting(props) {
         fileName: `AI_Summary_${formatDateRange()?.replace(/\s+/g, "_")}`,
     });
 
-
+    // console.log("Rendering TlcNewCustomReporting with activeTabData:", activeTabData);
     return (
         <div className="page-containersss">
             <div className="headerss">
@@ -2040,13 +2041,21 @@ export default function TlcNewCustomerReporting(props) {
                                         ))}
                                     </div>
 
-                                    <div className="charts-grid">
-                                        {(activeTabData.analysisData.pages?.["page 1"]?.figures || []).map(
+                                    <>
+                                        <div className="charts-grid">
+                                            <TlcGraphRenderer
+                                                plots={activeTabData.analysisData.pages?.["page 1"]?.plots}
+                                            />
+                                        </div>
+
+                                        {/* {(activeTabData.analysisData.pages?.["page 1"]?.figures || []).map(
                                             (html, index) => (
-                                                <div key={index}>{renderHtmlFigure(html)}</div>
+                                                <div key={index} className="table-box">
+                                                    {renderHtmlFigure(html)}
+                                                </div>
                                             )
-                                        )}
-                                    </div>
+                                        )} */}
+                                    </>
 
                                     {activeTabData.analysisData.pages?.["page 1"]?.table && (
                                         <div className="table-box">
@@ -2071,13 +2080,27 @@ export default function TlcNewCustomerReporting(props) {
                             />
 
                             {activeTabData.page2 && (
-                                <div className="charts-grid">
-                                    {(activeTabData.analysisData.pages?.["page 2"]?.figures || []).map(
-                                        (html, index) => (
-                                            <div key={index}>{renderHtmlFigure(html)}</div>
+                                <>
+                                    <div className="charts-grid">
+                                        <TlcGraphRenderer
+                                            plots={activeTabData.analysisData.pages?.["page 2"]?.plots}
+                                        />
+                                    </div>
+
+                                    {
+                                        (activeTabData.analysisData.pages?.["page 2"]?.figures || []).map(
+                                            (html, index) => {
+                                                // console.log("index on page 2", index)
+                                                if (index !== 1 && index !== 3) return null;
+                                                return (
+                                                    <div key={index} className="table-box">
+                                                        {renderHtmlFigure(html)}
+                                                    </div>
+                                                );
+                                            }
                                         )
-                                    )}
-                                </div>
+                                    }
+                                </>
                             )}
                         </section>
                         {/* ================= PAGE 3 ================= */}
@@ -2102,13 +2125,28 @@ export default function TlcNewCustomerReporting(props) {
                                 </>
                             )} */}
                             {activeTabData.page3 && (
-                                <div className="charts-grid">
-                                    {(activeTabData.analysisData.pages?.["page 3"]?.figures || []).map(
-                                        (html, index) => (
-                                            <div key={index}>{renderHtmlFigure(html)}</div>
+                                <>
+                                    <div className="charts-grid">
+                                        <TlcGraphRenderer
+                                            plots={activeTabData.analysisData.pages?.["page 3"]?.plots}
+                                        />
+                                    </div>
+
+                                    {
+                                        (activeTabData.analysisData.pages?.["page 3"]?.figures || []).map(
+                                            (html, index) => {
+                                                // console.log("index on page 3", index)
+                                                if (index !== 2) return null;
+
+                                                return (
+                                                    <div key={index} className="table-box">
+                                                        {renderHtmlFigure(html)}
+                                                    </div>
+                                                );
+                                            }
                                         )
-                                    )}
-                                </div>
+                                    }
+                                </>
                             )}
                         </section>
                         {/* ================= PAGE 4 ================= */}
@@ -2125,14 +2163,26 @@ export default function TlcNewCustomerReporting(props) {
 
                             {activeTabData.page4 && (
                                 <>
-                                    <div className="charts-grid">
-                                        {(activeTabData.analysisData.pages?.["page 4"]?.figures || []).map(
-                                            (html, index) => (
-                                                <div key={index}>{renderHtmlFigure(html)}</div>
-                                            )
-                                        )}
-                                    </div>
+                                    <>
+                                        <div className="charts-grid">
+                                            <TlcGraphRenderer
+                                                plots={activeTabData.analysisData.pages?.["page 4"]?.plots}
+                                            />
+                                        </div>
 
+                                        {/* {
+                                            (activeTabData.analysisData.pages?.["page 4"]?.figures || []).map(
+                                                (html, index) => {
+
+                                                    return (
+                                                        <div key={index} className="table-box">
+                                                            {renderHtmlFigure(html)}
+                                                        </div>
+                                                    );
+                                                }
+                                            )
+                                        } */}
+                                    </>
                                     {activeTabData.analysisData.pages?.["page 4"]?.table && (
                                         <div className="table-box">
                                             {renderHtmlFigure(
