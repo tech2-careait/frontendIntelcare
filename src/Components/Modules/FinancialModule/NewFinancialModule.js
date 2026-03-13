@@ -926,7 +926,7 @@ const NewFinancialHealth = (props) => {
 
                 // console.log("Analysis API response:", analysisRes);
                 analysisData = analysisRes.data;
-                console.log("Analysis API response data of type api:", analysisData);
+                // console.log("Analysis API response data of type api:", analysisData);
                 const askAiFrames = analysisData?.csv_data
                 updateTab({
                     askAiDataframes: askAiFrames
@@ -950,8 +950,8 @@ const NewFinancialHealth = (props) => {
                 );
 
                 analysisData = analysisRes.data;
-                console.log("Analysis API response of type upload:", analysisData);
-                const dataframes = tablesToAskAiDataframes(analysisData?.normalized_files?.tables);
+                // console.log("Analysis API response of type upload:", analysisData);
+                // const dataframes = tablesToAskAiDataframes(analysisData?.normalized_files?.tables);
                 updateTab({
                     askAiDataframes: analysisData?.csv_data
                 })
