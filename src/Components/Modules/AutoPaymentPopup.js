@@ -7,11 +7,10 @@ const API_BASE =
 
 const AutoPaymentPopup = ({ onClose, userEmail }) => {
   const [loading, setLoading] = useState(false);
-
+  
   const handleProceedTopup = async () => {
     try {
       console.log("[AutoPaymentPopup] Proceed topup clicked");
-      console.log("[AutoPaymentPopup] userEmail:", userEmail);
 
       setLoading(true);
 

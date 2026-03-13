@@ -1580,7 +1580,7 @@ const HomePage = () => {
         )
       }
       {
-        showAutoPaymentPopup && (
+        showAutoPaymentPopup && !blockedAutoTopupDomains.includes(userDomain) &&(
           <AutoPaymentPopup
             userEmail={user?.email}
             onClose={() => setShowAutoPaymentPopup(false)}
