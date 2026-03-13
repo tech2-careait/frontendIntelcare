@@ -1505,7 +1505,6 @@ const HomePage = () => {
                             cursor: "pointer",
                           }}
                         >
-                          {/* <LuSpeech size={16} color="#fff" /> */}
                           <FaMicrophone size={16} color="#fff"/>
                         </div>
                         {/* <FaCircleArrowRight onClick={handleSend} size={22} style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#6C4CDC" }} /> */}
