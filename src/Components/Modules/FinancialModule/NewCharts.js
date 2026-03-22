@@ -60,15 +60,32 @@ const STACKED_DATA = {
     }
 };
 const formatYAxis = (value) => {
-    if (value >= 1000000) {
+    if (value === 0) return "0";
+
+    const abs = Math.abs(value);
+
+    if (abs >= 1000000) {
         return (value / 1000000).toFixed(1) + "M";
     }
-    if (value >= 1000) {
+
+    if (abs >= 1000) {
         return (value / 1000).toFixed(0) + "K";
     }
+
     return value;
 };
+const getXAxisHeight = (labels) => {
+  if (!labels || labels.length === 0) return 80;
 
+  const longest = labels.reduce((a, b) => (a.length > b.length ? a : b), "");
+
+  const baseHeight = 80;
+
+  if (longest.length > 20) return 160;
+  if (longest.length > 12) return 120;
+
+  return baseHeight;
+};
 const renderCustomXAxisTick = (props) => {
     const { x, y, payload } = props;
 
@@ -187,7 +204,7 @@ const Legend = ({ names, visible, toggle }) => {
 /* ---------------- BAR CHART ---------------- */
 
 const BarChartWrapper = ({ data, meta }) => {
-    // console.log("data in bar graph", data)
+    console.log("data in bar graph", data)
     const names = Object.keys(data.series);
     const [visible, setVisible] = useState(names);
     const labelOffset = getXAxisLabelOffset(data.x);
@@ -256,7 +273,7 @@ const BarChartWrapper = ({ data, meta }) => {
                             angle={-35}
                             textAnchor="end"
                             interval={0}
-                            height={80}
+                            height={getXAxisHeight(data.x)}
                             tick={{ fontSize: 12 }}
                             label={{
                                 value: meta?.x_label,
@@ -269,17 +286,19 @@ const BarChartWrapper = ({ data, meta }) => {
                                         meta?.title === "Hours of Service Delivered by Location"
                                         ? labelOffset + 30
                                         : labelOffset,
-                                style:{fill: "#0f172a"}        
+                                style: { fill: "#0f172a" }
                             }}
                         />
 
                         <YAxis
                             tickFormatter={formatYAxis}
+                            domain={['auto', 'auto']}
+                            allowDataOverflow={true}
                             label={{
                                 value: meta?.y_label,
                                 angle: -90,
                                 position: "insideLeft",
-                                style: { textAnchor: "middle",fill: "#0f172a" }
+                                style: { textAnchor: "middle", fill: "#0f172a" }
                             }}
                             tick={{ fontSize: "12px" }}
                         />
@@ -353,7 +372,7 @@ const LineChartWrapper = ({ data, meta }) => {
                                 value: meta?.x_label,
                                 position: "insideBottom",
                                 offset: labelOffset + 30,
-                                style:{fill: "#0f172a"}
+                                style: { fill: "#0f172a" }
                             }}
                         />
 
@@ -363,7 +382,7 @@ const LineChartWrapper = ({ data, meta }) => {
                                 value: meta?.y_label,
                                 angle: -90,
                                 position: "insideLeft",
-                                style: { textAnchor: "middle",fill: "#0f172a" }
+                                style: { textAnchor: "middle", fill: "#0f172a" }
                             }}
                             tick={{ fontSize: "12px" }}
                         />
@@ -496,7 +515,7 @@ const StackedBarChartWrapper = ({ data, meta }) => {
                                 value: meta?.x_label,
                                 position: "insideBottom",
                                 offset: -5,
-                                style:{fill: "#0f172a"}
+                                style: { fill: "#0f172a" }
                             }}
                         />
 
@@ -506,7 +525,7 @@ const StackedBarChartWrapper = ({ data, meta }) => {
                                 value: meta?.y_label,
                                 angle: -90,
                                 position: "insideLeft",
-                                style: { textAnchor: "middle",fill: "#0f172a" }
+                                style: { textAnchor: "middle", fill: "#0f172a" }
                             }}
                             tick={{ fontSize: "12px" }}
                         />
@@ -515,7 +534,8 @@ const StackedBarChartWrapper = ({ data, meta }) => {
 
                         {names.map((n, i) => {
 
-                            const isTop = i === names.length - 1;
+                            const visibleBars = names.filter(n => visible.includes(n));
+                            const isTop = visibleBars[visibleBars.length - 1] === n;
 
                             return (
                                 <Bar
@@ -550,13 +570,13 @@ export default function ChartVisualiser({ plotData, plotName }) {
         <div className="chart-visualizer-app">
 
             {chartType === "bar" && (
-                    <div className="chart-header">
+                <div className="chart-header">
 
-                        <div className="chart-title">
-                            {meta?.title || plotName}
-                        </div>
+                    <div className="chart-title">
+                        {meta?.title || plotName}
+                    </div>
 
-                        {/* {meta?.y_label && (
+                    {/* {meta?.y_label && (
                             <div className="chart-subtitle">
                                 {meta.y_label.toUpperCase()}
                             </div>
@@ -568,12 +588,12 @@ export default function ChartVisualiser({ plotData, plotName }) {
             )}
 
             {chartType === "line" && (
-                    <div className="chart-header">
-                        <div className="chart-title">
-                            {meta?.title || plotName}
-                        </div>
+                <div className="chart-header">
+                    <div className="chart-title">
+                        {meta?.title || plotName}
+                    </div>
 
-                        {/* {meta?.y_label && (
+                    {/* {meta?.y_label && (
                             <div className="chart-subtitle">
                                 {meta.y_label.toUpperCase()}
                             </div>
@@ -583,12 +603,12 @@ export default function ChartVisualiser({ plotData, plotName }) {
             )}
 
             {chartType === "area" && (
-                    <div className="chart-header">
-                        <div className="chart-title">
-                            {meta?.title || plotName}
-                        </div>
+                <div className="chart-header">
+                    <div className="chart-title">
+                        {meta?.title || plotName}
+                    </div>
 
-                        {/* {meta?.y_label && (
+                    {/* {meta?.y_label && (
                             <div className="chart-subtitle">
                                 {meta.y_label.toUpperCase()}
                             </div>
@@ -598,12 +618,12 @@ export default function ChartVisualiser({ plotData, plotName }) {
             )}
 
             {chartType === "pie" && (
-                    <div className="chart-header">
-                        <div className="chart-title">
-                            {meta?.title || plotName}
-                        </div>
+                <div className="chart-header">
+                    <div className="chart-title">
+                        {meta?.title || plotName}
+                    </div>
 
-                        {/* {meta?.y_label && (
+                    {/* {meta?.y_label && (
                             <div className="chart-subtitle">
                                 {meta.y_label.toUpperCase()}
                             </div>
@@ -613,12 +633,12 @@ export default function ChartVisualiser({ plotData, plotName }) {
             )}
 
             {chartType === "stacked_bar" && (
-                    <div className="chart-header">
-                        <div className="chart-title">
-                            {meta?.title || plotName}
-                        </div>
+                <div className="chart-header">
+                    <div className="chart-title">
+                        {meta?.title || plotName}
+                    </div>
 
-                        {/* {meta?.y_label && (
+                    {/* {meta?.y_label && (
                             <div className="chart-subtitle">
                                 {meta.y_label.toUpperCase()}
                             </div>

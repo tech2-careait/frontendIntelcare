@@ -82,7 +82,27 @@ const Sidebar = ({
   const [modulesOpen, setModulesOpen] = useState(false);
   const [usageSummary, setUsageSummary] = useState(null);
   const [usageLoading, setUsageLoading] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   console.log("user", user)
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const fetchUser = async () => {
+      try {
+        const res = await axios.get(
+          `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/user/get?userEmail=${user?.email}`,
+        );
+
+        console.log("User fetch:", res.data);
+
+        setIsAdmin(res.data.isAdmin);
+      } catch (error) {
+        console.error("User fetch error:", error);
+      }
+    };
+
+    fetchUser();
+  }, [user]);
   useEffect(() => {
     if (!user?.email) return;
 
@@ -499,7 +519,7 @@ const Sidebar = ({
               />
 
               <div className="profile-header-info">
-                <div className="profile-badge">Admin</div>
+                {isAdmin ? (<div className="profile-badge">Admin</div>) : (<div className="profile-badge">Staff</div>)}
                 <div className="profile-header-name">{user?.displayName}</div>
                 <div className="profile-header-email">{user?.email}</div>
               </div>

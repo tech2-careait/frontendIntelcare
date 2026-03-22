@@ -174,3 +174,79 @@ body {
 .financial-health-history-back-btn:hover {
   color: #4b2cc0;
 }
+.loading-screen {
+    height: 65vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.inline-loader-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    margin: 40px 0;
+    /* space around loader */
+}
+
+.loader {
+    width: 48px;
+    height: 48px;
+    border: 4px solid #eee;
+    border-top: 4px solid #6C4CDC;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-text {
+    margin-top: 14px;
+    font-family: "Inter", sans-serif;
+    font-size: 15px;
+    color: #333;
+    font-weight: 500;
+    animation: fadeText 1s ease-in-out infinite alternate;
+}
+.full-screen-loader {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(6px); /* 🔥 THIS IS THE BLUR */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+}
+
+.history-loader {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #e5e7eb;
+    border-top: 5px solid #6C4CDC;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+.financial-main-container {
+  height: 100vh;
+  overflow-y: auto;
+
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE/Edge */
+}
+
+.financial-main-container::-webkit-scrollbar {
+  display: none;               /* Chrome, Safari */
+}

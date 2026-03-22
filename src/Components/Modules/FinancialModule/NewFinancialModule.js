@@ -66,8 +66,8 @@ const NewFinancialHealth = (props) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedHistoryId, setSelectedHistoryId] = useState(null);
     const [deleting, setDeleting] = useState(false);
-
-
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const pageRef = useRef(null);
     // ---------------- UI TABS (SAFE, ISOLATED) ----------------
     const [tabs, setTabs] = useState([
         {
@@ -106,6 +106,8 @@ const NewFinancialHealth = (props) => {
                 summary: false,
             },
             savingHistory: false,
+            progressStage: "idle",
+            stage: "idle",
         },
     ]);
 
@@ -153,6 +155,8 @@ const NewFinancialHealth = (props) => {
                     summary: false,
                 },
                 savingHistory: false,
+                progressStage: "idle",
+                stage: "idle",
             }
 
         ]);
@@ -666,6 +670,8 @@ const NewFinancialHealth = (props) => {
 
     const handleHistoryClick = async (item) => {
         try {
+            setHistoryLoading(true);
+            await new Promise(resolve => setTimeout(resolve, 50));
             const res = await fetch(
                 `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/financial-module/${item.id}`
             );
@@ -705,7 +711,9 @@ const NewFinancialHealth = (props) => {
                 askAiDataframes: data.askAiDataframes || {},
                 isFromHistory: true,
                 loading: false,
-                progress: 100,
+                uploading: false,
+                progressStage: "idle",
+                stage: "overview",
                 apiPlots: data.apiPlots || [],
             };
 
@@ -741,6 +749,17 @@ const NewFinancialHealth = (props) => {
 
         } catch (err) {
             console.error("Failed to load history", err);
+        }
+        finally {
+            setHistoryLoading(false);
+            setTimeout(() => {
+                if (pageRef.current) {
+                    pageRef.current.scrollTo({
+                        top: 0,
+                        behavior: "smooth",
+                    });
+                }
+            }, 100);
         }
     };
 
@@ -795,17 +814,12 @@ const NewFinancialHealth = (props) => {
 
 
         props.handleClick();
-        updateTab({ loading: true, progress: 1 });
-
-        const interval = setInterval(() => {
-            setTabs(prev =>
-                prev.map(tab =>
-                    tab.id === activeTab
-                        ? { ...tab, progress: tab.progress < 92 ? tab.progress + 2 : tab.progress }
-                        : tab
-                )
-            );
-        }, 5000);
+        updateTab({
+            loading: true,
+            uploading: true,
+            progressStage: "uploading",
+            stage: "loading",
+        });
 
 
         try {
@@ -843,7 +857,6 @@ const NewFinancialHealth = (props) => {
 
                 if (!fromDate || !toDate) {
                     alert("Please select valid start and end dates for sync mode.");
-                    clearInterval(interval);
                     updateTab({
                         loading: false,
                     });
@@ -857,7 +870,6 @@ const NewFinancialHealth = (props) => {
             // Validate user email
             if (!props.user?.email) {
                 alert("User email is required. Please log in again.");
-                clearInterval(interval);
                 updateTab({
                     loading: false,
                 });
@@ -889,7 +901,6 @@ const NewFinancialHealth = (props) => {
             if (type === "upload") {
                 if (activeTabData.selectedFiles.length === 0) {
                     alert("No files selected for upload.");
-                    clearInterval(interval);
                     updateTab({
                         loading: false,
                     });
@@ -914,7 +925,10 @@ const NewFinancialHealth = (props) => {
                     fromDate,
                     toDate,
                 };
-
+                updateTab({
+                    uploading: false,
+                    progressStage: "analysing",
+                });
                 const analysisRes = await axios.post(
                     `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/financial-v2`,
                     apiPayload,
@@ -929,6 +943,9 @@ const NewFinancialHealth = (props) => {
                 // console.log("Analysis API response data of type api:", analysisData);
                 const askAiFrames = analysisData?.csv_data
                 updateTab({
+                    progressStage: "preparing",
+                });
+                updateTab({
                     askAiDataframes: askAiFrames
                 })
                 props.setFinancialAiPayload(askAiFrames);
@@ -938,6 +955,10 @@ const NewFinancialHealth = (props) => {
 
                 const reportEndpoint =
                     "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/report-middleware";
+                updateTab({
+                    uploading: false,
+                    progressStage: "analysing",
+                });
 
                 const analysisRes = await axios.post(
                     reportEndpoint,
@@ -948,8 +969,11 @@ const NewFinancialHealth = (props) => {
                         maxBodyLength: Infinity,
                     }
                 );
-
+                updateTab({
+                    progressStage: "preparing",
+                });
                 analysisData = analysisRes.data;
+
                 // console.log("Analysis API response of type upload:", analysisData);
                 // const dataframes = tablesToAskAiDataframes(analysisData?.normalized_files?.tables);
                 updateTab({
@@ -1257,7 +1281,9 @@ const NewFinancialHealth = (props) => {
                     excel_exports: analysisData?.csv_data || {},
                     reportType: type,
                     loading: false,
-                    progress: 100,
+                    uploading: false,
+                    progressStage: "idle",
+                    stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
 
@@ -1300,7 +1326,9 @@ const NewFinancialHealth = (props) => {
                     excel_exports: analysisData?.excel_exports || {},
                     reportType: type,
                     loading: false,
-                    progress: 100,
+                    uploading: false,
+                    progressStage: "idle",
+                    stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
             }
@@ -1317,10 +1345,10 @@ const NewFinancialHealth = (props) => {
                 alert(`Unexpected error: ${err.message}`);
             }
         } finally {
-            clearInterval(interval);
             updateTab({
                 loading: false,
-                progress: 100,
+                uploading: false,
+                progressStage: "idle",
             });
         }
     };
@@ -1569,7 +1597,15 @@ const NewFinancialHealth = (props) => {
     // console.log("activeTabData", activeTabData)
     return (
 
-        <>
+        <div
+            ref={pageRef}
+            className="financial-main-container"
+        >
+            {historyLoading && (
+                <div className="full-screen-loader">
+                    <div className="history-loader"></div>
+                </div>
+            )}
             {!activeTabData.responseData ? (
                 <>
                     {/* <PreviewDataSection
@@ -1676,7 +1712,7 @@ const NewFinancialHealth = (props) => {
                         }}
                     >
                         {/* LEFT: UI TABS */}
-                        {renderUiTabBar()}
+                        {activeTabData.stage !== "loading" && renderUiTabBar()}
 
                         {/* RIGHT: COMPARE & ANALYSE */}
                         <div
@@ -1687,7 +1723,7 @@ const NewFinancialHealth = (props) => {
                                 alignItems: "flex-end",
                             }}
                         >
-                            <button
+                            {activeTabData.stage !== "loading" && <button
                                 onClick={handleAnalyse} // existing financial analyse fn
                                 disabled={activeTabData.loading || activeTabData.uploading}
                                 style={{
@@ -1713,7 +1749,7 @@ const NewFinancialHealth = (props) => {
                                     style={{ width: "14px", height: "14px" }}
                                 />
                                 Compare and Analyse
-                            </button>
+                            </button>}
 
                         </div>
                     </div>
@@ -1834,34 +1870,36 @@ const NewFinancialHealth = (props) => {
                             }}
                         />
                     </section>
-                    <div className="search-section">
-                        <button
-                            className="analyse-btn"
-                            disabled={isButtonDisabled || activeTabData.loading}
-                            style={{
-                                backgroundColor:
-                                    isButtonDisabled || activeTabData.loading ? "#A1A1AA" : "#000",
-                                cursor: activeTabData.loading ? "not-allowed" : "pointer",
-                                marginTop: activeTabData.isFromHistory ? 0 : "40px",
-                            }}
-                            onClick={handleAnalyse}
-                        >
-                            {activeTabData.loading ? (
-                                `${activeTabData.progress}% Processing...`
-                            ) : (
-                                <div
-                                    style={{ display: "flex", alignItems: "center", gap: "10px" }}
-                                >
+                    {activeTabData.stage === "loading" && (
+                        <div className="inline-loader-wrapper">
+                            <div className="loader"></div>
+                            <div className="loading-text">
+                                {activeTabData.progressStage === "uploading" && "Uploading files..."}
+                                {activeTabData.progressStage === "analysing" && "Analysing data..."}
+                                {activeTabData.progressStage === "preparing" && "Preparing report..."}
+                            </div>
+                        </div>
+                    )}
+                    {activeTabData.stage !== "loading" && (
+                        <div className="search-section">
+                            <button
+                                className="analyse-btn"
+                                disabled={isButtonDisabled || activeTabData.loading}
+                                style={{
+                                    backgroundColor:
+                                        isButtonDisabled || activeTabData.loading ? "#A1A1AA" : "#000",
+                                    cursor: activeTabData.loading ? "not-allowed" : "pointer",
+                                    marginTop: activeTabData.isFromHistory ? 0 : "40px",
+                                }}
+                                onClick={handleAnalyse}
+                            >
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                                     AI Analyse
-                                    <img
-                                        src={star}
-                                        alt="img"
-                                        style={{ width: "20px", height: "20px" }}
-                                    />
+                                    <img src={star} alt="img" style={{ width: "20px", height: "20px" }} />
                                 </div>
-                            )}
-                        </button>
-                    </div>
+                            </button>
+                        </div>
+                    )}
                     {/* <div
                         style={{
                             fontSize: "12px",
@@ -1974,7 +2012,7 @@ const NewFinancialHealth = (props) => {
                         }}
                     >
                         {/* LEFT: UI TABS */}
-                        {renderUiTabBar()}
+                        {activeTabData.stage !== "loading" && renderUiTabBar()}
 
                         {/* RIGHT: COMPARE & ANALYSE */}
                         <div
@@ -1985,7 +2023,7 @@ const NewFinancialHealth = (props) => {
                                 alignItems: "flex-end",
                             }}
                         >
-                            <button
+                            {activeTabData.stage !== "loading" && <button
                                 onClick={handleAnalyse} // existing financial analyse fn
                                 disabled={activeTabData?.loading || activeTabData?.uploading}
                                 style={{
@@ -2011,7 +2049,7 @@ const NewFinancialHealth = (props) => {
                                     style={{ width: "14px", height: "14px" }}
                                 />
                                 Compare and Analyse
-                            </button>
+                            </button>}
                             {!activeTabData.isFromHistory && (
                                 <button
                                     onClick={handleSaveFinancialHistory}
@@ -2390,7 +2428,7 @@ const NewFinancialHealth = (props) => {
             )}
             {renderHistorySection()}
 
-        </>
+        </div>
 
     );
 };
