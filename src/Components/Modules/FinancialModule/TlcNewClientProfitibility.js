@@ -69,6 +69,7 @@ const TlcNewClientProfitability = (props) => {
     const [aiProgressDisplay, setAiProgressDisplay] = useState(0);
     const [batchId, setBatchId] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [historyLoading, setHistoryLoading] = useState(false);
     const aiProgressRef = useRef({});
     const reportRef = useRef(null);
     const EMAIL_STATE_MAP = {
@@ -79,6 +80,8 @@ const TlcNewClientProfitability = (props) => {
     // Sync history when loading from history
 
     const userEmail = user?.email;
+    // const userEmail = "gjavier@tenderlovingcaredisability.com.au"
+    // const userEmail = "bastruc@tenderlovingcaredisability.com.au"
     // const userEmail = "amera@tenderlovingcare.com.au";
     // const userEmail = "lcowell@tenderlovingcare.com.au"
     const userState = EMAIL_STATE_MAP[userEmail];
@@ -117,11 +120,13 @@ const TlcNewClientProfitability = (props) => {
             aiProgress: 0,
             exporting: false,
             clientProfitabilityAiHistoryPayload: [],
+            stage: "filters",          // ⬅️ ADD
+            progressStage: "idle",
         },
     ]);
 
     const [activeTab, setActiveTab] = useState(1);
-
+    const pageRef = useRef(null);
     const activeTabData = tabs.find(t => t.id === activeTab);
     const { startDate, endDate } = activeTabData || {};
 
@@ -608,7 +613,13 @@ const TlcNewClientProfitability = (props) => {
                 return;
             }
 
-            updateTab({ loading: true });
+            updateTab({
+                loading: true,
+                stage: "loading",
+                progressStage: activeTabData.selectedFiles.length > 0
+                    ? "uploading"
+                    : "analysing"
+            });
 
             // 🔹 Step 1: If files selected → upload first
             let currentBatchId = batchId;
@@ -616,6 +627,7 @@ const TlcNewClientProfitability = (props) => {
             if (activeTabData.selectedFiles.length > 0) {
 
                 const uploadResult = await handleUpload();
+                updateTab({ progressStage: "analysing" });
 
                 if (!uploadResult) {
                     updateTab({ loading: false });
@@ -624,6 +636,7 @@ const TlcNewClientProfitability = (props) => {
 
                 currentBatchId = uploadResult.batchId;
             }
+            updateTab({ progressStage: "analysing" });
 
             // 🔹 Step 2: Now call analyze-by-date
             const payload = {
@@ -647,13 +660,18 @@ const TlcNewClientProfitability = (props) => {
             );
 
             const result = await res.json();
-            // console.log("result of tlc new profitibility", result)
+            updateTab({ progressStage: "preparing" });
+            console.log("result of tlc new profitibility", result)
             if (!res.ok) {
                 throw new Error(result.error || "Analysis failed");
             }
 
             updateTab({
                 responseData: result,
+                stage: "overview",
+                loading: false,
+                uploading: false,
+                progressStage: "idle",
                 name:
                     activeTabData.startDate && activeTabData.endDate
                         ? `${activeTabData.startDate.getDate()}-${activeTabData.startDate.getMonth() + 1}-${activeTabData.startDate.getFullYear()}
@@ -801,6 +819,8 @@ const TlcNewClientProfitability = (props) => {
 
     const handleHistoryClick = async (item) => {
         try {
+            setHistoryLoading(true);
+            await new Promise(resolve => setTimeout(resolve, 50));
             const res = await fetch(
                 `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/clients-profitability/history/${item.id}`
             );
@@ -850,6 +870,14 @@ const TlcNewClientProfitability = (props) => {
 
                 isFromHistory: true,
             });
+            setTimeout(() => {
+                if (pageRef.current) {
+                    pageRef.current.scrollTo({
+                        top: 0,
+                        behavior: "smooth",
+                    });
+                }
+            }, 100);
             // console.log("record.responseData.table", record.responseData.table)
             if (record?.responseData?.table) {
                 onPrepareAiPayload({
@@ -859,6 +887,9 @@ const TlcNewClientProfitability = (props) => {
         } catch (err) {
             console.error("History load failed:", err);
             alert("Failed to load history");
+        }
+        finally {
+            setHistoryLoading(false);
         }
     };
 
@@ -1437,8 +1468,12 @@ const TlcNewClientProfitability = (props) => {
     // console.log("activeTabData", activeTabData)
 
     return (
-        <div className="page-containersss">
-
+        <div className="page-containersss" ref={pageRef}>
+            {historyLoading && (
+                <div className="full-screen-loader">
+                    <div className="history-loader"></div>
+                </div>
+            )}
             <div className="financial-header">
                 <div
                     className="role-selector"
@@ -1757,10 +1792,34 @@ const TlcNewClientProfitability = (props) => {
 
 
                         </section>
+                        {activeTabData?.stage === "loading" && (
+                            <div className="inline-loader-wrapper" style={{ marginTop: "20px" }}>
+                                <div className="loader"></div>
+
+                                <div className="loading-text">
+                                    {activeTabData.progressStage === "uploading" && "Uploading your files..."}
+                                    {activeTabData.progressStage === "analysing" && "Analysing data..."}
+                                    {activeTabData.progressStage === "preparing" && "Preparing your dashboard..."}
+                                </div>
+                            </div>
+                        )}
                         <div className="search-section">
-                            <button className="analyse-btn" disabled={activeTabData?.loading} style={{ backgroundColor: '#000', marginTop: activeTabData.isFromHistory ? 0 : "40px", }} onClick={handleAnalyse}>
-                                {activeTabData?.loading ? `Analysing...` : <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>AI Analyse<img src={star} alt='img' style={{ width: '20px', height: '20px' }} /></div>}
-                            </button>
+                            {activeTabData?.stage !== "loading" && (
+                                <button
+                                    className="analyse-btn"
+                                    disabled={activeTabData?.loading}
+                                    style={{
+                                        backgroundColor: '#000',
+                                        marginTop: activeTabData.isFromHistory ? 0 : "40px",
+                                    }}
+                                    onClick={handleAnalyse}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        AI Analyse
+                                        <img src={star} alt='img' style={{ width: '20px', height: '20px' }} />
+                                    </div>
+                                </button>
+                            )}
                         </div>
                     </div>
                     {/* {renderHistorySection()} */}

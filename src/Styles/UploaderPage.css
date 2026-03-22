@@ -715,6 +715,7 @@ html,
   padding: 14px;
   padding: 20px 24px 20px 24px;
   background: #F3F4F6;
+  border-radius: 14px;
 }
 
 .profile-avatar {

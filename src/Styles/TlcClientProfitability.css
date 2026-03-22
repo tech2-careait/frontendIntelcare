@@ -220,3 +220,40 @@
   /* gap: 28px; */
   width: 100%;
 }
+.full-screen-loader {
+    position: fixed;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(6px); /* 🔥 THIS IS THE BLUR */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+}
+
+.history-loader {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #e5e7eb;
+    border-top: 5px solid #6C4CDC;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+/* Hide scrollbar but allow scroll */
+.page-containersss {
+  height: 100vh;
+  overflow-y: auto;
+
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* IE/Edge */
+}
+
+.page-containersss::-webkit-scrollbar {
+  display: none;               /* Chrome, Safari */
+}

@@ -45,7 +45,7 @@
 .team-table-card {
   background: white;
   border-radius: 14px;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid #e5e7eb;
 }
 
@@ -148,4 +148,70 @@
     border: none;
     padding: 8px 14px;
     border-radius: 6px;
+}
+.team-status-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.team-status-dropdown-menu {
+  position: absolute;
+  top: 120%;
+  right: 0;
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+  min-width: 120px;
+  z-index: 50;
+}
+
+.team-status-dropdown-item {
+  padding: 8px 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: 0.15s;
+}
+
+.team-status-dropdown-item:hover {
+  background: #f3f4f6;
+}
+
+.team-status-dropdown-item.selected {
+  font-weight: 500;
+}
+
+.disabled-pill {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.active-status {
+  background: #e6f4ff;
+  color: #1d4ed8;
+}
+
+.restricted-status {
+  background: #fce7e7;
+  color: #9e4941;
+}
+.status-radio-group {
+  display: flex;
+  /* flex-direction: column; */
+  gap: 32px;
+  margin-bottom: 24px;
+}
+
+.status-radio {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.status-radio input {
+  accent-color: #6C4CDC;
+  width: 16px;
+  height: 16px;
 }
