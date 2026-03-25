@@ -406,9 +406,12 @@ const NewFinancialHealth = (props) => {
 
 
     const optionsState = [
-        { label: "NSW", value: "NSW" },
-        { label: "VIC", value: "VIC" },
-        { label: "QLD", value: "QLD" },
+        { label: "New South Wales", value: "New South Wales" },
+        { label: "Victoria", value: "Victoria" },
+        { label: "Queensland", value: "Queensland" },
+        { label: "Western Australia", value: "Western Australia" },
+        { label: "South Australia", value: "South Australia" },
+        { label: "Tasmania", value: "Tasmania" },
     ];
 
     const optionsDepartment = [
@@ -1493,9 +1496,16 @@ const NewFinancialHealth = (props) => {
                             {/* FILTER SUMMARY */}
                             {item.filters && (
                                 <div className="history-filters">
-                                    {item.filters.state && (
+                                    {item.filters?.selectedState?.length > 0 && (
                                         <div className="filter-item">
-                                            <strong>State:</strong> {item.filters.state}
+                                            {item.filters?.selectedState?.length > 0 && (
+                                                <div className="filter-item">
+                                                    <strong>State:</strong>{" "}
+                                                    {item.filters.selectedState
+                                                        .map(s => s.label || s.value)
+                                                        .join(", ")}
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

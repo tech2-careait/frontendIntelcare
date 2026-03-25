@@ -296,13 +296,13 @@ export default function TlcNewCustomerReporting(props) {
     };
 
     const captureNode = async (node) => {
-        await waitForChartToRender(node); // 🔥 KEY FIX
+        await waitForChartToRender(node); 
 
         const canvas = await html2canvas(node, {
             scale: 1.25,
             backgroundColor: "#ffffff",
             useCORS: true,
-            foreignObjectRendering: false, // 🔥 IMPORTANT
+            foreignObjectRendering: false, 
         });
 
         return {

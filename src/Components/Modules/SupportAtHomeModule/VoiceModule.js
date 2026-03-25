@@ -1222,6 +1222,7 @@ const VoiceModule = (props) => {
 
             const data = await res.json();
             if (!data.success) throw new Error("Save failed");
+            savePromptDirectly()
             alert(editingTemplateId ? "Template updated successfully" : "Template saved successfully");
             if (!editingTemplateId) {
                 resetToTemplateList();
