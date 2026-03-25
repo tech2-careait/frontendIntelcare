@@ -255,7 +255,7 @@ export default function PromptBlockEditor({
                     </button>
                 </div>
 
-                <div className="pbe-right">{rightSlot}</div>
+                {/* <div className="pbe-right">{rightSlot}</div> */}
             </div>
 
             {tab === "visual" && (

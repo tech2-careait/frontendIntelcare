@@ -127,7 +127,7 @@ const HomePage = () => {
   const [isListening, setIsListening] = useState(false);
   const [isSTTActive, setIsSTTActive] = useState(false);
   let [isAdmin, setIsAdmin] = useState(false);
-  const [adminDetails,setAdminDetails] = useState({})
+  const [adminDetails, setAdminDetails] = useState({})
   const recognizerRef = useRef(null);
   const handleModalOpen = () => setModalVisible(true);
   const handleModalClose = () => setModalVisible(false);
@@ -160,7 +160,7 @@ const HomePage = () => {
         );
 
         const data = await res.json();
-        console.log("data",data)
+        console.log("data", data)
         setIsAdmin(data?.isAdmin === true);
         setAdminDetails(data?.admin)
       } catch (err) {
@@ -263,6 +263,12 @@ const HomePage = () => {
       { label: "Intuit Quickbooks", event: "quickbooks" },
       { label: "MYP Technologies", event: "myptechnologies" },
       { label: "MYOB", event: "myob" }
+    ],
+    financial: [
+      "How does my financial health looks like ?",
+      "Whats the most claimed amount ?",
+      "Which client has the highest revenue ?",
+      "What do I need to improve in my business ?"
     ],
     default: []
   };
@@ -772,6 +778,9 @@ const HomePage = () => {
     else if (isSoftwareConnectPage) {
       setSuggestions(moduleSuggestions.softWareConnect);
     }
+    else if (isNewFinancialModule) {   
+      setSuggestions(moduleSuggestions.financial);
+    }
     else {
       setSuggestions(moduleSuggestions.default);
     }
@@ -828,7 +837,7 @@ const HomePage = () => {
         <>
           {showPricingModal ? (
             // <PricingModal onClose={() => setShowPricingModal(false)} email={user?.email} />
-            <PricingPlansModal onClose={() => setShowPricingModal(false)} email={user?.email} firstName={user?.displayName} setSubscriptionInfo={setSubscriptionInfo} isAdmin={isAdmin} adminDetails={adminDetails}/>
+            <PricingPlansModal onClose={() => setShowPricingModal(false)} email={user?.email} firstName={user?.displayName} setSubscriptionInfo={setSubscriptionInfo} isAdmin={isAdmin} adminDetails={adminDetails} />
           ) : (
             <div className="page-container">
               {!isMobileOrTablet && sidebarVisible && (
@@ -1088,7 +1097,7 @@ const HomePage = () => {
                     <div className={isTlcPage ? "tlc-custom-main-content" : isSmartRosteringPage ? "smart-rostering-main-content" : "main-content"} style={{
                       display: showAIChat ? "none" : "block",
                     }}>
-                      {showFeedbackPopup && <FeedbackModal userEmail={user?.email} />}
+                      {/* {showFeedbackPopup && <FeedbackModal userEmail={user?.email} />} */}
                       {!loadingUser && selectedRole === "Connect Your Systems" && user && (
                         <SoftwareConnect user={user} />
                       )}

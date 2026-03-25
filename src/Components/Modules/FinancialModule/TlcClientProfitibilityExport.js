@@ -57,7 +57,7 @@ export const addSectionWithGraphsToWord = async ({
     });
 
     // const charts = sectionEl.querySelectorAll(".charts-grid > div");
-    const charts = sectionEl.querySelectorAll(".chart-box");
+    const charts = sectionEl.querySelectorAll(".chart-visualizer-card");
 
 
     // console.log(`📊 Charts found in ${sectionKey}:`, charts.length);

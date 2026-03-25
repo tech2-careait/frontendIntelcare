@@ -1420,7 +1420,7 @@ const UploaderPage = () => {
                             </div>
                         </div>
                         <div className="main-content" style={{ padding: showReport && '8px 10% 40px 10%', flex: 1 }}>
-                            {showFeedbackPopup && <FeedbackModal userEmail={user?.email} />}
+                            {/* {showFeedbackPopup && <FeedbackModal userEmail={user?.email} />} */}
                             {showUploadedReport && activeReportType && (
                                 <>
                                     {!analysedReportdata ? (
