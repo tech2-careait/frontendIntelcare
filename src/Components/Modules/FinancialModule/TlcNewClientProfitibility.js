@@ -664,7 +664,15 @@ const TlcNewClientProfitability = (props) => {
             updateTab({ progressStage: "preparing" });
             console.log("result of tlc new profitibility", result)
             if (!res.ok) {
-                throw new Error(result.error || "Analysis failed");
+                alert(result.error || "No data available for selected filters");
+
+                updateTab({
+                    loading: false,
+                    stage: "filters",
+                    progressStage: "idle"
+                });
+
+                return;
             }
 
             updateTab({
@@ -687,6 +695,14 @@ const TlcNewClientProfitability = (props) => {
 
         } catch (err) {
             console.error("Analyse failed:", err);
+
+            alert(err.message || "No data available");
+
+            updateTab({
+                loading: false,
+                stage: "filters",
+                progressStage: "idle"
+            });
         } finally {
             updateTab({ loading: false });
         }
