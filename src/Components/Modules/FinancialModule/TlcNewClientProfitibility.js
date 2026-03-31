@@ -80,6 +80,7 @@ const TlcNewClientProfitability = (props) => {
     // Sync history when loading from history
 
     const userEmail = user?.email;
+    // const userEmail = "SGonzales@tenderlovingcaredisability.com.au";
     // const userEmail = "molley@tenderlovingcaredisability.com.au";
     // const userEmail = "gjavier@tenderlovingcaredisability.com.au"
     // const userEmail = "mtalukder@tenderlovingcaredisability.com.au"
@@ -657,10 +658,7 @@ const TlcNewClientProfitability = (props) => {
             if (activeTabData.selectedState.length > 0) {
                 finalStates = activeTabData.selectedState.map(s => s.value);
             } else if (userState) {
-                // 👇 AUTO APPLY DEFAULT STATE
                 finalStates = [userState];
-
-                // 👇 OPTIONAL (UI also reflect kare)
                 updateTab({
                     selectedState: [{ label: userState, value: userState }]
                 });
@@ -671,9 +669,9 @@ const TlcNewClientProfitability = (props) => {
                 endDate: formatLocalDate(activeTabData.endDate),
                 email: userEmail,
                 batchId: currentBatchId,
-                states:finalStates
+                states: finalStates
             };
-
+            await new Promise(r => setTimeout(r, Math.random() * 1500));
             const res = await fetch(
                 `${BASE_URL}/api/analyzeClientsProfitability/client-profitability/analyze-by-date`,
                 {

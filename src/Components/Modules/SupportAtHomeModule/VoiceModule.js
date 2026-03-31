@@ -207,27 +207,49 @@ const VoiceModule = (props) => {
 
                 for (const doc of data.documents) {
 
-                    if (!doc.url) {
-                        console.log("Missing document url for:", doc.filename);
+                    // ✅ HANDLE BUFFER RESPONSE
+                    if (doc.attachment?.data) {
+
+                        console.log("Downloading buffer document:", doc.filename);
+
+                        const byteArray = new Uint8Array(doc.attachment.data);
+
+                        const blob = new Blob([byteArray], {
+                            type: doc.mime || "application/octet-stream"
+                        });
+
+                        const blobUrl = window.URL.createObjectURL(blob);
+
+                        const link = document.createElement("a");
+                        link.href = blobUrl;
+                        link.download = doc.filename || "document.docx";
+
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+
+                        window.URL.revokeObjectURL(blobUrl);
+
                         continue;
                     }
 
-                    // console.log("Downloading document:", doc.filename);
+                    // ✅ OPTIONAL: fallback if URL ever comes
+                    if (doc.url) {
+                        const fileResponse = await fetch(doc.url);
+                        const blob = await fileResponse.blob();
 
-                    const fileResponse = await fetch(doc.url);
-                    const blob = await fileResponse.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
 
-                    const blobUrl = window.URL.createObjectURL(blob);
+                        const link = document.createElement("a");
+                        link.href = blobUrl;
+                        link.download = doc.filename || "document.docx";
 
-                    const link = document.createElement("a");
-                    link.href = blobUrl;
-                    link.download = doc.filename || "document.docx";
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
 
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-
-                    window.URL.revokeObjectURL(blobUrl);
+                        window.URL.revokeObjectURL(blobUrl);
+                    }
                 }
 
                 console.log("ANDROID documents downloaded");
@@ -437,7 +459,7 @@ const VoiceModule = (props) => {
         return () => clearInterval(interval);
     }, [recordMode]);
     const formatTime = (seconds) => {
-        const total = Math.floor(seconds); // 🔥 FIX
+        const total = Math.floor(seconds); 
         const h = String(Math.floor(total / 3600)).padStart(2, "0");
         const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
         const s = String(total % 60).padStart(2, "0");
@@ -448,7 +470,7 @@ const VoiceModule = (props) => {
 
         //     try {
 
-        //         const res = await fetch("/you-re-cncdjd.webm");
+        //         const res = await fetch("/templates/videoplayback.webm");
         //         const blob = await res.blob();
 
         //         console.log("Test audio loaded size:", blob.size);
