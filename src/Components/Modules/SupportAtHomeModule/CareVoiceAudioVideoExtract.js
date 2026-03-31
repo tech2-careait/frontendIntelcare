@@ -5,32 +5,37 @@ export const extractAudioFromVideo = async (videoFile) => {
   return new Promise((resolve, reject) => {
     const videoURL = URL.createObjectURL(videoFile);
     const video = document.createElement("video");
-
-    // Don't mute the video - we need the audio track
-    video.muted = false;
+    
+    // CRITICAL: Mute the video to prevent audio playback
+    video.muted = true;
     video.crossOrigin = "anonymous";
     video.src = videoURL;
     video.preload = "auto";
 
-    // Create audio context and resume it
+    // Create audio context
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-
-    // We need to wait for user interaction to resume AudioContext in some browsers
-    // But since this is triggered by user click, we can resume it
-    audioContext.resume().catch(err => {
-      console.warn("AudioContext resume failed:", err);
-    });
-
+    
+    // Create a gain node with volume 0 to ensure silence
+    const gainNode = audioContext.createGain();
+    gainNode.gain.value = 0; // Set volume to 0 (completely silent)
+    
     const processVideo = async () => {
       try {
         // Create source from video element
         const source = audioContext.createMediaElementSource(video);
+        
+        // Connect to gain node first to ensure silence
+        source.connect(gainNode);
+        
+        // Create destination stream for recording
         const destination = audioContext.createMediaStreamDestination();
-        source.connect(destination);
-
-        // Also connect to speakers so video plays (optional, but helps with some browsers)
-        source.connect(audioContext.destination);
-
+        
+        // Connect gain node to the recording destination
+        gainNode.connect(destination);
+        
+        // IMPORTANT: Do NOT connect to audioContext.destination
+        // This prevents any audio from playing through speakers
+        
         const mediaRecorder = new MediaRecorder(destination.stream);
         const chunks = [];
 
@@ -54,13 +59,14 @@ export const extractAudioFromVideo = async (videoFile) => {
         // Start recording
         mediaRecorder.start();
 
-        // Play the video to extract audio
-        video.play().catch(err => {
-          reject(new Error(`Failed to play video: ${err.message}`));
-        });
+        // Resume audio context
+        await audioContext.resume();
+        
+        // Play the video to extract audio (muted + gain 0 = no sound)
+        await video.play();
 
-        // Wait for video to end or timeout after duration + buffer
-        const duration = video.duration || 30; // fallback to 30 seconds if duration unknown
+        // Wait for video to end or timeout
+        const duration = video.duration || 30;
         const timeout = setTimeout(() => {
           if (mediaRecorder.state !== "inactive") {
             mediaRecorder.stop();
@@ -95,6 +101,9 @@ export const extractAudioFromVideo = async (videoFile) => {
 // Upload audio → get transcript text
 // =================================
 export const getTranscriptTextFromAudioBlob = async (audioBlob) => {
+  // No need to play the audio, just upload it directly
+  // This function is already silent since we're just sending the blob to API
+  
   // 1️⃣ Upload audio
   const uploadRes = await fetch("https://api.assemblyai.com/v2/upload", {
     method: "POST",

@@ -1401,6 +1401,7 @@ export default function TlcNewCustomerReporting(props) {
         showInsightIcon = false,
         showDownloadIcon = false,   // ✅ NEW
         onDownload,
+        needMarginBottom
     }) => (
         <div
             onClick={onClick}
@@ -1413,7 +1414,7 @@ export default function TlcNewCustomerReporting(props) {
                 alignItems: "center",
                 gap: "12px",
                 fontWeight: 600,
-                marginBottom: "12px",
+                marginBottom: needMarginBottom ? "12px" : 0,
                 color: "black",
             }}
         >
@@ -2052,6 +2053,7 @@ export default function TlcNewCustomerReporting(props) {
                                         handleAiAnalysis();
                                     }
                                 }}
+                                needMarginBottom={true}
                             />
 
                             {activeTabData.aiAccordion && (
@@ -2076,6 +2078,7 @@ export default function TlcNewCustomerReporting(props) {
                                 isOpen={activeTabData.page1}
                                 showInsightIcon={false}
                                 onClick={() => togglePage("page1")}
+                                needMarginBottom={true}
                             />
 
                             {activeTabData.page1 && (
@@ -2134,6 +2137,7 @@ export default function TlcNewCustomerReporting(props) {
                                 isOpen={activeTabData.page2}
                                 showInsightIcon={false}
                                 onClick={() => togglePage("page2")}
+                                needMarginBottom={true}
                             />
 
                             {activeTabData.page2 && (
@@ -2170,6 +2174,7 @@ export default function TlcNewCustomerReporting(props) {
                                 isOpen={activeTabData.page3}
                                 showInsightIcon={false}
                                 onClick={() => togglePage("page3")}
+                                needMarginBottom={true}
                             />
 
                             {/* {activeTabData.page3 && (
@@ -2216,12 +2221,13 @@ export default function TlcNewCustomerReporting(props) {
                                 isOpen={activeTabData.page4}
                                 showInsightIcon={false}
                                 onClick={() => togglePage("page4")}
+                                needMarginBottom={false}
                             />
 
                             {activeTabData.page4 && (
                                 <>
                                     <>
-                                        <div className="charts-grid-payroll">
+                                        <div className="charts-grid-payroll no-padding">
                                             <TlcGraphRenderer
                                                 plots={activeTabData.analysisData.pages?.["page 4"]?.plots}
                                             />

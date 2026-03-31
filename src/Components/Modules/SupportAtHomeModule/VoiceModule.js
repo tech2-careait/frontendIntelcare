@@ -16,7 +16,7 @@ import careVoiceEndAndPreview from "../../../Images/careVoiceEndAndPreview.png"
 import careVoiceStaffTemplateIcon from "../../../Images/careVoiceStaffTemplateIcon.png"
 import careVoiceLeft from "../../../Images/careVoiceLeft.png"
 import careVoiceRight from "../../../Images/careVoiceRight.png"
-import { FiUploadCloud } from "react-icons/fi";
+import { FiDownload, FiUploadCloud } from "react-icons/fi";
 import MapperGrid from "./VoiceModuleMapper";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import PulsatingLoader from "../../PulsatingLoader";
@@ -137,6 +137,22 @@ const VoiceModule = (props) => {
     const [fileStage, setFileStage] = useState(null);
     const [audioProgress, setAudioProgress] = useState(0);
     const [fileProgress, setFileProgress] = useState(0);
+    const [clearAudioOnFileUpload, setClearAudioOnFileUpload] = useState(false);
+    const downloadRecording = () => {
+        if (!audioBlob) return;
+
+        const url = window.URL.createObjectURL(audioBlob);
+
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `recording_${Date.now()}.webm`;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        window.URL.revokeObjectURL(url);
+    };
     const getPlatformType = () => {
         const ua = navigator.userAgent;
 
@@ -459,7 +475,7 @@ const VoiceModule = (props) => {
         return () => clearInterval(interval);
     }, [recordMode]);
     const formatTime = (seconds) => {
-        const total = Math.floor(seconds); 
+        const total = Math.floor(seconds);
         const h = String(Math.floor(total / 3600)).padStart(2, "0");
         const m = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
         const s = String(total % 60).padStart(2, "0");
@@ -567,6 +583,20 @@ const VoiceModule = (props) => {
             audio.removeEventListener("ended", handleEnded);
         };
     }, [audioURL]);
+    // Add this useEffect to clear audio when files are uploaded
+    useEffect(() => {
+        if (clearAudioOnFileUpload && uploadedTranscriptFiles.length > 0) {
+            // Clear any playing audio
+            if (audioRef.current) {
+                audioRef.current.pause();
+                audioRef.current.src = "";
+                setIsPlaying(false);
+            }
+            setAudioURL(null);
+            setAudioBlob(null);
+            setClearAudioOnFileUpload(false);
+        }
+    }, [uploadedTranscriptFiles, clearAudioOnFileUpload]);
     const uploadAudioToAssemblyAI = async () => {
         const res = await fetch("https://api.assemblyai.com/v2/upload", {
             method: "POST",
@@ -1645,49 +1675,122 @@ const VoiceModule = (props) => {
             uploadedTranscriptFiles.length === 0
         ) return;
 
+        // Clear any playing audio
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            setIsPlaying(false);
+        }
+
         setIsGeneratingFile(true);
         setFileStage("generating");
-        animateProgress(fileProgress, setFileProgress, 40, 700);
+        setFileProgress(0);
+
+        // Calculate total number of operations
+        const totalOperations = selectedTemplate.templates.length * uploadedTranscriptFiles.length;
+        let completedOperations = 0;
+        let hasError = false;
+
         const docsToSend = [];
 
-        const tasks = [];
+        console.log(`Starting processing of ${totalOperations} total operations`);
+        console.log(`Templates: ${selectedTemplate.templates.length}, Files: ${uploadedTranscriptFiles.length}`);
 
+        // Process files sequentially to avoid overwhelming the server
         for (const tpl of selectedTemplate.templates) {
             for (const file of uploadedTranscriptFiles) {
-                tasks.push(
-                    (async () => {
+                try {
+                    console.log(`Processing file: ${file.name} with template: ${tpl.templateName || tpl.id}`);
+
+                    // Check if file is audio or video (both can be sent directly to API)
+                    if (isAudioFile(file) || isVideoFile(file)) {
+                        console.log(`Processing ${isAudioFile(file) ? "audio" : "video"} file with Android pipeline:`, file.name);
+
+                        const formData = new FormData();
+                        formData.append("audio", file, file.name);
+                        formData.append(
+                            "templates",
+                            JSON.stringify([tpl])
+                        );
+                        formData.append("userEmail", userEmail || "");
+                        formData.append("staffEmail", staffEmail || "");
+                        formData.append("staffName", staffName || "");
+
+                        console.log(`Sending request for ${file.name}...`);
+                        const res = await fetch(`${API_BASE}/api/process-recording`, {
+                            method: "POST",
+                            body: formData
+                        });
+
+                        console.log(`Response received for ${file.name}, status: ${res.status}`);
+                        const data = await res.json();
+                        console.log(`Processing response for ${file.name}:`, data);
+
+                        if (data.success && data.documents?.length > 0) {
+                            for (const doc of data.documents) {
+                                if (doc.attachment?.data) {
+                                    const byteArray = new Uint8Array(doc.attachment.data);
+                                    const blob = new Blob([byteArray], {
+                                        type: doc.mime || "application/octet-stream"
+                                    });
+                                    const blobUrl = window.URL.createObjectURL(blob);
+                                    const link = document.createElement("a");
+                                    link.href = blobUrl;
+                                    link.download = doc.filename || `document_${file.name.replace(/\.[^/.]+$/, "")}.docx`;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                    window.URL.revokeObjectURL(blobUrl);
+
+                                    docsToSend.push(doc);
+                                    console.log(`Document generated for ${file.name}: ${doc.filename}`);
+                                }
+                            }
+                        } else {
+                            console.log(`No documents generated for ${file.name}`);
+                        }
+                    }
+                    else {
+                        // For non-audio/video files (PDF, DOC, TXT, etc.), use existing flow
+                        console.log("Processing non-audio/video file:", file.name);
                         let transcriptText = null;
 
-                        if (isVideoFile(file)) {
-                            const audioBlob = await extractAudioFromVideo(file);
-                            transcriptText = await getTranscriptTextFromAudioBlob(audioBlob);
-                        }
-                        else if (isAudioFile(file)) {
-                            transcriptText = await getTranscriptTextFromAudioBlob(file);
-                        }
+                        // Note: For video files, we're not extracting audio since API handles it
+                        // So this else block should only handle document files
+                        const doc = await processSingleTranscriptWithTemplate(tpl, file);
+                        if (doc) docsToSend.push(doc);
+                    }
+                } catch (err) {
+                    console.error("Error processing file:", file.name, err);
+                    hasError = true;
+                } finally {
+                    completedOperations++;
+                    const progressPercent = Math.floor((completedOperations / totalOperations) * 100);
+                    setFileProgress(progressPercent);
+                    console.log(`Progress: ${completedOperations}/${totalOperations} (${progressPercent}%)`);
 
-                        if (transcriptText) {
-                            const doc = await processSingleTranscriptWithTemplateText(
-                                tpl,
-                                transcriptText
-                            );
-                            if (doc) docsToSend.push(doc);
-                        } else {
-                            // fallback: existing doc/pdf/txt flow
-                            const doc = await processSingleTranscriptWithTemplate(tpl, file);
-                            if (doc) docsToSend.push(doc);
-                        }
-                    })()
-                );
+                    // Add a small delay between file processing to prevent overwhelming the server
+                    if (completedOperations < totalOperations) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
             }
         }
 
-        await Promise.all(tasks);
-        animateProgress(fileProgress, setFileProgress, 75, 600);
-        setFileStage("emailing");
-        animateProgress(fileProgress, setFileProgress, 90, 500);
-        await sendGeneratedDocsEmail(docsToSend);
-        animateProgress(fileProgress, setFileProgress, 100, 400);
+        console.log(`All files processed. Total documents generated: ${docsToSend.length}`);
+
+        if (docsToSend.length > 0) {
+            setFileStage("emailing");
+            setFileProgress(90);
+            await sendGeneratedDocsEmail(docsToSend);
+        } else {
+            console.log("No documents were generated");
+            if (!hasError) {
+                alert("No documents were generated. Please check your audio files and templates.");
+            }
+        }
+
+        setFileProgress(100);
         emailSentRef.current = false;
         setIsGeneratingFile(false);
         setFileStage(null);
@@ -1747,7 +1850,10 @@ const VoiceModule = (props) => {
         setRecordTime(0);
         setPlayTime(0);
         setIsPlaying(false);
-
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.src = "";
+        }
         setTranscriptData(null);
         setUploadedTranscriptFiles([]);
         setTranscriptSource(null);
@@ -2683,6 +2789,21 @@ const VoiceModule = (props) => {
                                                     ? `Sending Emails... ${audioProgress}%`
                                                     : "✓ Submit"}
                                     </button>
+                                    <button
+                                        onClick={downloadRecording}
+                                        style={{
+                                            background: "#fff",
+                                            border: "1px solid #ddd",
+                                            borderRadius: "8px",
+                                            padding: "8px 12px",
+                                            cursor: "pointer",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            gap: "6px"
+                                        }}
+                                    >
+                                        <FiDownload size={28} /> Download
+                                    </button>
                                 </>
                             )}
 
@@ -2711,6 +2832,7 @@ const VoiceModule = (props) => {
                                 setUploadedTranscriptFiles(files);
                                 setTranscriptSource("file");
                                 setCurrentTranscriptIndex(0);
+                                setClearAudioOnFileUpload(true);
                             }}
                         />
 

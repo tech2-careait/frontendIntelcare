@@ -573,7 +573,7 @@ const IncidentAuditing = (props) => {
                 </div>
             ) : responseData ? (
                 /* ✅ Show response reports after processing finishes */
-                <>
+                <div style={{padding:'24px 4%'}}>
                     {isFromHistory && (
                         <div
                             className="financial-health-history-back-btn"
@@ -782,11 +782,10 @@ const IncidentAuditing = (props) => {
                             </div>
                         ))}
                     </div>
-
-                </>
+                </div>
             ) : (
                 /* 📁 Default: show upload + info UI */
-                <>
+                <div style={{padding:'24px 4%'}}>
                     <div className="financial-header">
                         <div></div>
                         <div
@@ -1013,7 +1012,7 @@ const IncidentAuditing = (props) => {
                             Analyse <img src={star} alt="img" style={{ width: "20px", height: "20px" }} />
                         </div>
                     </button>
-                </>
+                </div>
             )}
             {renderHistorySection()}
         </>
