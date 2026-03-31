@@ -103,10 +103,13 @@ export default function TlcNewCustomerReporting(props) {
         "kbrennen@tenderlovingcaredisability.com.au": "New South Wales",
     };
     const userEmail = props?.user?.email?.trim()?.toLowerCase();
+    // const userEmail = "molley@tenderlovingcaredisability.com.au";
     // const userEmail = "gjavier@tenderlovingcaredisability.com.au"
     // const userEmail = "bastruc@tenderlovingcaredisability.com.au"
     // const userEmail = "amera@tenderlovingcare.com.au"
     // const userEmail = "lcowell@tenderlovingcare.com.au"
+    // const userEmail = "mfarag@tenderlovingcare.com.au"
+    // const userEmail = "yzaki@tenderlovingcare.com.au"
     const setTlcPayrollAskAiConversationHistory = props.setTlcPayrollAskAiConversationHistory; // ✅ NEW
     const tlcPayrollAskAiConversationHistory = props.tlcPayrollAskAiConversationHistory; // ✅ NEW
     const userState = EMAIL_STATE_MAP[userEmail];
@@ -296,13 +299,13 @@ export default function TlcNewCustomerReporting(props) {
     };
 
     const captureNode = async (node) => {
-        await waitForChartToRender(node); 
+        await waitForChartToRender(node);
 
         const canvas = await html2canvas(node, {
             scale: 1.25,
             backgroundColor: "#ffffff",
             useCORS: true,
-            foreignObjectRendering: false, 
+            foreignObjectRendering: false,
         });
 
         return {
@@ -489,7 +492,18 @@ export default function TlcNewCustomerReporting(props) {
             alert("Please select a date range first!");
             return;
         }
+        if (userState && selectedState.length > 0) {
+            const selectedStates = selectedState.map(s => s.value);
 
+            const isInvalid = selectedStates.some(
+                state => state.toLowerCase() !== userState.toLowerCase()
+            );
+
+            if (isInvalid) {
+                alert(`You are allowed to analyse only ${userState} data.`);
+                return;
+            }
+        }
         try {
             updateTab({ loading: true, showReport: false });
 
@@ -612,8 +626,22 @@ export default function TlcNewCustomerReporting(props) {
                 end: endFormatted,
             });
 
-            if (selectedState.length)
-                query.append("state", selectedState.map((s) => s.value).join(","));
+            let finalStates = [];
+
+            if (selectedState.length > 0) {
+                finalStates = selectedState.map((s) => s.value);
+            } else if (userState) {
+                finalStates = [userState];
+
+                // 👇 Optional (UI auto-fill)
+                updateTab({
+                    selectedState: [{ label: userState, value: userState }]
+                });
+            }
+
+            if (finalStates.length) {
+                query.append("state", finalStates.join(","));
+            }
             if (selectedDepartment.length)
                 query.append("department", selectedDepartment.map((d) => d.value).join(","));
             if (selectedEmploymentType.length)

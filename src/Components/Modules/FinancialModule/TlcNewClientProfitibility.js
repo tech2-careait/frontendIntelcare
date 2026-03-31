@@ -80,11 +80,14 @@ const TlcNewClientProfitability = (props) => {
     // Sync history when loading from history
 
     const userEmail = user?.email;
+    // const userEmail = "molley@tenderlovingcaredisability.com.au";
     // const userEmail = "gjavier@tenderlovingcaredisability.com.au"
     // const userEmail = "mtalukder@tenderlovingcaredisability.com.au"
     // const userEmail = "bastruc@tenderlovingcaredisability.com.au"
     // const userEmail = "amera@tenderlovingcare.com.au";
     // const userEmail = "lcowell@tenderlovingcare.com.au"
+    // const userEmail = "mfarag@tenderlovingcare.com.au"
+    // const userEmail = "yzaki@tenderlovingcare.com.au"
     const userState = EMAIL_STATE_MAP[userEmail];
     const [tabs, setTabs] = useState([
         {
@@ -613,7 +616,18 @@ const TlcNewClientProfitability = (props) => {
                 alert("Please select date range");
                 return;
             }
+            if (userState && activeTabData.selectedState.length > 0) {
+                const selectedStates = activeTabData.selectedState.map(s => s.value);
 
+                const isInvalid = selectedStates.some(
+                    state => state.toLowerCase() !== userState.toLowerCase()
+                );
+
+                if (isInvalid) {
+                    alert(`You are allowed to analyse only ${userState} data.`);
+                    return;
+                }
+            }
             updateTab({
                 loading: true,
                 stage: "loading",
@@ -638,17 +652,26 @@ const TlcNewClientProfitability = (props) => {
                 currentBatchId = uploadResult.batchId;
             }
             updateTab({ progressStage: "analysing" });
+            let finalStates = [];
 
+            if (activeTabData.selectedState.length > 0) {
+                finalStates = activeTabData.selectedState.map(s => s.value);
+            } else if (userState) {
+                // 👇 AUTO APPLY DEFAULT STATE
+                finalStates = [userState];
+
+                // 👇 OPTIONAL (UI also reflect kare)
+                updateTab({
+                    selectedState: [{ label: userState, value: userState }]
+                });
+            }
             // 🔹 Step 2: Now call analyze-by-date
             const payload = {
                 startDate: formatLocalDate(activeTabData.startDate),
                 endDate: formatLocalDate(activeTabData.endDate),
                 email: userEmail,
                 batchId: currentBatchId,
-                states:
-                    activeTabData.selectedState.length > 0
-                        ? activeTabData.selectedState.map(s => s.value)
-                        : [],
+                states:finalStates
             };
 
             const res = await fetch(
@@ -1438,6 +1461,7 @@ const TlcNewClientProfitability = (props) => {
     useEffect(() => {
         const fetchHistory = async () => {
             const email = userEmail
+            console.log("userEmail in fetch history", email)
             if (!email) return;
 
             try {
