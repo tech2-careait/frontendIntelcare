@@ -74,14 +74,14 @@ html,
   max-height: 100vh; */
   box-sizing: border-box;
   text-align: center;
-  padding: 24px 4%;
+  /* padding: 24px 4%; */
 }
 
 .tlc-custom-main-content {
   flex: 1;
   box-sizing: border-box;
   text-align: center;
-  padding: 24px 4%;
+  /* padding: 24px 4%; */
 }
 
 .typeofreportmaindiv {

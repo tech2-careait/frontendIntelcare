@@ -1126,7 +1126,7 @@ const HomePage = () => {
                         <Afr selectedRole="Annual Financial Reporting" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} />
                       </div>
 
-                      <div style={{ display: selectedRole === "Custom Incident Management" ? "block" : "none" }}>
+                      <div style={{ display: selectedRole === "Custom Incident Management" ? "block" : "none" ,padding:'24px 4%'}}>
                         <IncidentManagement selectedRole="Custom Incident Management" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} />
                       </div>
 
