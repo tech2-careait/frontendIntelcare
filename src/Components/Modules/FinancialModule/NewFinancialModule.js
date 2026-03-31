@@ -117,6 +117,16 @@ const NewFinancialHealth = (props) => {
     const [startDate, endDate] = activeTabData?.dateRange || [];
 
     const previewRef = useRef(null);
+    const userEmail = props.user?.email;
+    // const userEmail = "SGonzales@tenderlovingcaredisability.com.au";
+    // const userEmail = "molley@tenderlovingcaredisability.com.au"
+    // const userEmail = "mtalukder@tenderlovingcaredisability.com.au";
+    const EMAIL_STATE_MAP = {
+        "molley@tenderlovingcaredisability.com.au": "South Australia",
+        "laurente@tenderlovingcaredisability.com.au": "Victoria",
+        "kbrennen@tenderlovingcaredisability.com.au": "New South Wales",
+    };
+    const userState = EMAIL_STATE_MAP[userEmail];
     const handleNewTab = () => {
         const newId = tabs.length
             ? Math.max(...tabs.map(t => t.id)) + 1
@@ -590,7 +600,7 @@ const NewFinancialHealth = (props) => {
             try {
                 setLoadingHistory(true);
 
-                const email = props.user?.email;
+                const email = userEmail;
 
                 const res = await fetch(
                     `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/financial-module?email=${email}`
@@ -601,7 +611,15 @@ const NewFinancialHealth = (props) => {
                 }
 
                 const json = await res.json();
-                setHistoryList(json.data || []);
+                const filteredHistory = userState
+                    ? (json.data || []).filter(item =>
+                        item.filters?.selectedState?.some(
+                            s => s.value?.toLowerCase() === userState.toLowerCase()
+                        )
+                    )
+                    : json.data;
+
+                setHistoryList(filteredHistory);
 
             } catch (err) {
                 console.error("Failed to load history", err);
@@ -610,7 +628,7 @@ const NewFinancialHealth = (props) => {
             }
         };
 
-        if (props.user?.email) {
+        if (userEmail) {
             fetchFinancialHistory();
         }
 
@@ -625,7 +643,7 @@ const NewFinancialHealth = (props) => {
             updateTab({ savingHistory: true });
 
             const payload = {
-                email: props?.user?.email || "",
+                email: userEmail || "",
 
                 // 🔴 CORE DATA (THIS WAS MISSING)
                 responseData: activeTabData.responseData,
@@ -806,6 +824,18 @@ const NewFinancialHealth = (props) => {
 
     const handleAnalyse = async () => {
         // Validation checks
+        if (userState && activeTabData.selectedState.length > 0) {
+            const selectedStates = activeTabData.selectedState.map(s => s.value);
+
+            const isInvalid = selectedStates.some(
+                state => state.toLowerCase() !== userState.toLowerCase()
+            );
+
+            if (isInvalid) {
+                alert(`You are allowed to analyse only ${userState} data.`);
+                return;
+            }
+        }
         if (activeTabData.selectedFiles.length === 0 && !syncEnabled) {
             alert("Please upload the report files or enable sync.");
             return;
@@ -871,18 +901,13 @@ const NewFinancialHealth = (props) => {
                 toDate = `${currentYear}-12-31T23:59:59Z`;
             }
             // Validate user email
-            if (!props.user?.email) {
+            if (!userEmail) {
                 alert("User email is required. Please log in again.");
                 updateTab({
                     loading: false,
                 });
                 return;
             }
-
-            const userEmail = props.user.email.trim().toLowerCase();
-
-            // const userEmail = "kris@curki.ai"
-            // console.log("Using email:", userEmail);
 
             // Append required fields
             formData.append("type", type);
@@ -932,6 +957,11 @@ const NewFinancialHealth = (props) => {
                     uploading: false,
                     progressStage: "analysing",
                 });
+                if (userState && activeTabData.selectedState.length === 0) {
+                    updateTab({
+                        selectedState: [{ label: userState, value: userState }]
+                    });
+                }
                 const analysisRes = await axios.post(
                     `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/financial-v2`,
                     apiPayload,
@@ -962,7 +992,11 @@ const NewFinancialHealth = (props) => {
                     uploading: false,
                     progressStage: "analysing",
                 });
-
+                if (userState && activeTabData.selectedState.length === 0) {
+                    updateTab({
+                        selectedState: [{ label: userState, value: userState }]
+                    });
+                }
                 const analysisRes = await axios.post(
                     reportEndpoint,
                     formData,
