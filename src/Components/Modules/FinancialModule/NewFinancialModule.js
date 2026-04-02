@@ -119,7 +119,8 @@ const NewFinancialHealth = (props) => {
     const previewRef = useRef(null);
     const userEmail = props.user?.email;
     // const userEmail = "SGonzales@tenderlovingcaredisability.com.au";
-    // const userEmail = "molley@tenderlovingcaredisability.com.au"
+    // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
+    // const userEmail = "laurente@tenderlovingcaredisability.com.au"
     // const userEmail = "mtalukder@tenderlovingcaredisability.com.au";
     const EMAIL_STATE_MAP = {
         "molley@tenderlovingcaredisability.com.au": "South Australia",
@@ -128,6 +129,10 @@ const NewFinancialHealth = (props) => {
     };
     const userState = EMAIL_STATE_MAP[userEmail];
     const handleNewTab = () => {
+        if (tabs.length >= 5) {
+            alert("Maximum tab limit reached");
+            return;
+        }
         const newId = tabs.length
             ? Math.max(...tabs.map(t => t.id)) + 1
             : 1;

@@ -71,6 +71,7 @@ const TlcNewClientProfitability = (props) => {
     const [deleting, setDeleting] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
     const aiProgressRef = useRef({});
+
     const reportRef = useRef(null);
     const EMAIL_STATE_MAP = {
         "molley@tenderlovingcaredisability.com.au": "South Australia",
@@ -127,9 +128,10 @@ const TlcNewClientProfitability = (props) => {
             clientProfitabilityAiHistoryPayload: [],
             stage: "filters",          // ⬅️ ADD
             progressStage: "idle",
+            jobId: null,
         },
     ]);
-
+    const tabsRef = useRef(tabs);
     const [activeTab, setActiveTab] = useState(1);
     const pageRef = useRef(null);
     const activeTabData = tabs.find(t => t.id === activeTab);
@@ -152,6 +154,7 @@ const TlcNewClientProfitability = (props) => {
         }
     }, [activeTabData?.isFromHistory, setClientProfitabilityAiHistoryPayload]);
     const BASE_URL = "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net";
+    // const BASE_URL = "http://localhost:5000";
     // const BASE_URL = "https://curki-backend-api-container.yellowflower-c21bea82.australiaeast.azurecontainerapps.io"
     // 🔹 MOCK FILTER OPTIONS (SHOWCASE ONLY)
     const optionsState = [
@@ -331,6 +334,10 @@ const TlcNewClientProfitability = (props) => {
         return `${year}-${month}`;
     };
     const handleNewTab = () => {
+        if (tabs.length >= 5) {
+            alert("Maximum tab limit reached");
+            return;
+        }
         const newId = tabs.length
             ? Math.max(...tabs.map(t => t.id)) + 1
             : 1;
@@ -368,20 +375,46 @@ const TlcNewClientProfitability = (props) => {
                 aiProgress: 0,
                 exporting: false,
                 clientProfitabilityAiHistoryPayload: [],
+                jobId: null,
             },
         ]);
 
         setActiveTab(newId);
     };
 
-    const handleCloseTab = (id) => {
+    const handleCloseTab = async (id) => {
+        try {
+            // ✅ find tab
+            const tab = tabs.find(t => t.id === id);
+
+            // ✅ CALL CANCEL API if job exists
+            if (tab?.jobId) {
+                console.log("❌ Cancelling job:", tab.jobId);
+
+                await fetch(
+                    `${BASE_URL}/api/analyzeClientsProfitability/client-profitability/cancel-job/${tab.jobId}`,
+                    {
+                        method: "POST",
+                    }
+                );
+            }
+
+        } catch (err) {
+            console.error("Cancel job error:", err);
+        }
+
+        // ✅ REMOVE TAB
         const remaining = tabs.filter(t => t.id !== id);
         setTabs(remaining);
 
+        // ✅ HANDLE ACTIVE TAB
         if (id === activeTab && remaining.length > 0) {
             setActiveTab(remaining[0].id);
         }
     };
+    useEffect(() => {
+        tabsRef.current = tabs;
+    }, [tabs]);
     const formatHistoryDateRange = (start, end = start) => {
         if (!start) return "–";
 
@@ -672,20 +705,33 @@ const TlcNewClientProfitability = (props) => {
                 states: finalStates
             };
             await new Promise(r => setTimeout(r, Math.random() * 1500));
+            // ✅ CREATE UNIQUE JOB ID (per tab)
+            const jobId = crypto.randomUUID();
+
+            // save in tab
+            updateTab({ jobId });
+
+            // ✅ START JOB (NO WAITING)
             const res = await fetch(
                 `${BASE_URL}/api/analyzeClientsProfitability/client-profitability/analyze-by-date`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload),
+                    body: JSON.stringify({
+                        jobId, // 🔥 VERY IMPORTANT
+                        startDate: formatLocalDate(activeTabData.startDate),
+                        endDate: formatLocalDate(activeTabData.endDate),
+                        email: userEmail,
+                        batchId: currentBatchId,
+                        states: finalStates
+                    }),
                 }
             );
 
-            const result = await res.json();
-            updateTab({ progressStage: "preparing" });
-            console.log("result of tlc new profitibility", result)
+            const startResponse = await res.json();
+
             if (!res.ok) {
-                alert(result.error || "No data available for selected filters");
+                alert(startResponse.error || "Failed to start job");
 
                 updateTab({
                     loading: false,
@@ -696,23 +742,72 @@ const TlcNewClientProfitability = (props) => {
                 return;
             }
 
-            updateTab({
-                responseData: result,
-                stage: "overview",
-                loading: false,
-                uploading: false,
-                progressStage: "idle",
-                name:
-                    activeTabData.startDate && activeTabData.endDate
-                        ? `${activeTabData.startDate.getDate()}-${activeTabData.startDate.getMonth() + 1}-${activeTabData.startDate.getFullYear()}
+            // ✅ START POLLING
+            const currentTabId = activeTab;
+
+            const pollInterval = setInterval(async () => {
+                try {
+                    const tab = tabsRef.current.find(t => t.id === currentTabId);
+
+                    // stop if user switched tab
+                    if (!tab || tab.jobId !== jobId) {
+                        clearInterval(pollInterval);
+                        return;
+                    }
+
+                    // STOP IF CANCELLED
+                    if (tab?.status === "cancelled") {
+                        console.log("Polling stopped (cancelled)");
+                        clearInterval(pollInterval);
+                        return;
+                    }
+
+                    const statusRes = await fetch(
+                        `${BASE_URL}/api/analyzeClientsProfitability/client-profitability/job-status/${jobId}`
+                    );
+
+                    const statusData = await statusRes.json();
+
+                    // console.log("JOB STATUS:", statusData);
+
+                    if (statusData.status === "completed") {
+                        clearInterval(pollInterval);
+
+                        updateTab({
+                            responseData: statusData.result,
+                            stage: "overview",
+                            loading: false,
+                            uploading: false,
+                            progressStage: "idle",
+                            name:
+                                activeTabData.startDate && activeTabData.endDate
+                                    ? `${activeTabData.startDate.getDate()}-${activeTabData.startDate.getMonth() + 1}-${activeTabData.startDate.getFullYear()}
                        - 
                        ${activeTabData.endDate.getDate()}-${activeTabData.endDate.getMonth() + 1}-${activeTabData.endDate.getFullYear()}`
-                        : activeTabData.name,
-            });
+                                    : activeTabData.name,
+                        });
 
-            onPrepareAiPayload({
-                table_data: result?.table,
-            });
+                        onPrepareAiPayload({
+                            table_data: statusData.result?.table,
+                        });
+                    }
+
+                    if (statusData.status === "failed") {
+                        clearInterval(pollInterval);
+
+                        alert("Analysis failed");
+
+                        updateTab({
+                            loading: false,
+                            stage: "filters",
+                            progressStage: "idle"
+                        });
+                    }
+
+                } catch (err) {
+                    console.error("Polling error:", err);
+                }
+            }, 2000);
 
         } catch (err) {
             console.error("Analyse failed:", err);

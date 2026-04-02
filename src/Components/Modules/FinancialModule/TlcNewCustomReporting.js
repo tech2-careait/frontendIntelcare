@@ -104,7 +104,7 @@ export default function TlcNewCustomerReporting(props) {
     };
     const userEmail = props?.user?.email?.trim();
     // const userEmail = "SGonzales@tenderlovingcaredisability.com.au";
-    // const userEmail = "molley@tenderlovingcaredisability.com.au";
+    // const userEmail = "laurente@tenderlovingcaredisability.com.au";
     // const userEmail = "gjavier@tenderlovingcaredisability.com.au"
     // const userEmail = "bastruc@tenderlovingcaredisability.com.au"
     // const userEmail = "amera@tenderlovingcare.com.au"
@@ -115,6 +115,10 @@ export default function TlcNewCustomerReporting(props) {
     const tlcPayrollAskAiConversationHistory = props.tlcPayrollAskAiConversationHistory; // ✅ NEW
     const userState = EMAIL_STATE_MAP[userEmail];
     const handleNewTab = () => {
+        if (tabs.length >= 5) {
+            alert("Maximum tab limit reached");
+            return;
+        }
         const newId = tabs.length ? Math.max(...tabs.map((t) => t.id)) + 1 : 1;
         const newTab = {
             id: newId,
