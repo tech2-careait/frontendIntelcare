@@ -129,10 +129,6 @@ const NewFinancialHealth = (props) => {
     };
     const userState = EMAIL_STATE_MAP[userEmail];
     const handleNewTab = () => {
-        if (tabs.length >= 5) {
-            alert("Maximum tab limit reached");
-            return;
-        }
         const newId = tabs.length
             ? Math.max(...tabs.map(t => t.id)) + 1
             : 1;

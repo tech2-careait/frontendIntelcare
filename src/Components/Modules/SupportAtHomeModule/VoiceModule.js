@@ -2792,17 +2792,19 @@ const VoiceModule = (props) => {
                                     <button
                                         onClick={downloadRecording}
                                         style={{
-                                            background: "#fff",
+                                            background: "#6c4cdc",
                                             border: "1px solid #ddd",
-                                            borderRadius: "8px",
+                                            borderRadius: "999px",
                                             padding: "8px 12px",
                                             cursor: "pointer",
                                             display: "flex",
                                             alignItems: "center",
-                                            gap: "6px"
+                                            gap: "6px",
+                                            color: "#fff",
+                                            fontWeight: 500,
                                         }}
                                     >
-                                        <FiDownload size={28} /> Download
+                                        <FiDownload size={20} /> Download
                                     </button>
                                 </>
                             )}
@@ -2814,13 +2816,13 @@ const VoiceModule = (props) => {
 
 
                     {/* ===== OR ===== */}
-                    <div className="voice-or-row">
+                    {!["recording", "paused"].includes(recordMode) && <div className="voice-or-row">
                         <span className="voice-or-line" />
                         <span className="voice-or-text">Or</span>
                         <span className="voice-or-line" />
-                    </div>
+                    </div>}
 
-                    <div className="voice-upload-col">
+                    {!["recording", "paused"].includes(recordMode) && <div className="voice-upload-col">
                         <TlcUploadBox
                             id="staff-transcript-upload"
                             title="Upload Transcript"
@@ -2859,7 +2861,7 @@ const VoiceModule = (props) => {
                                         : "✓ Generate Document"}
                             </button>
                         </div>
-                    </div>
+                    </div>}
 
 
 
