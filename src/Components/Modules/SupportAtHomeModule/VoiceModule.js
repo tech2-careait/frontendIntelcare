@@ -1667,136 +1667,148 @@ const VoiceModule = (props) => {
     };
 
 
-    const submitMultipleTranscripts = async () => {
-        if (
-            !selectedTemplate ||
-            !selectedTemplate.isMulti ||
-            selectedTemplate.templates.length === 0 ||
-            uploadedTranscriptFiles.length === 0
-        ) return;
+const submitMultipleTranscripts = async () => {
+    if (
+        !selectedTemplate ||
+        !selectedTemplate.isMulti ||
+        selectedTemplate.templates.length === 0 ||
+        uploadedTranscriptFiles.length === 0
+    ) return;
 
-        // Clear any playing audio
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-            setIsPlaying(false);
-        }
+    // Clear any playing audio
+    if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        setIsPlaying(false);
+    }
 
-        setIsGeneratingFile(true);
-        setFileStage("generating");
-        setFileProgress(0);
+    setIsGeneratingFile(true);
+    setFileStage("generating");
+    setFileProgress(0);
 
-        // Calculate total number of operations
-        const totalOperations = selectedTemplate.templates.length * uploadedTranscriptFiles.length;
-        let completedOperations = 0;
-        let hasError = false;
+    // Calculate total number of operations
+    const totalOperations = uploadedTranscriptFiles.length; // Only 1 API call per file now
+    let completedOperations = 0;
+    let hasError = false;
 
-        const docsToSend = [];
+    const docsToSend = [];
 
-        console.log(`Starting processing of ${totalOperations} total operations`);
-        console.log(`Templates: ${selectedTemplate.templates.length}, Files: ${uploadedTranscriptFiles.length}`);
+    console.log(`Starting processing of ${totalOperations} total operations`);
+    console.log(`Templates: ${selectedTemplate.templates.length}, Files: ${uploadedTranscriptFiles.length}`);
 
-        // Process files sequentially to avoid overwhelming the server
-        for (const tpl of selectedTemplate.templates) {
-            for (const file of uploadedTranscriptFiles) {
-                try {
-                    console.log(`Processing file: ${file.name} with template: ${tpl.templateName || tpl.id}`);
+    // Process each file with ALL templates in ONE API call
+    for (const file of uploadedTranscriptFiles) {
+        try {
+            console.log(`Processing file: ${file.name} with ${selectedTemplate.templates.length} templates`);
 
-                    // Check if file is audio or video (both can be sent directly to API)
-                    if (isAudioFile(file) || isVideoFile(file)) {
-                        console.log(`Processing ${isAudioFile(file) ? "audio" : "video"} file with Android pipeline:`, file.name);
+            // Check if file is audio or video
+            if (isAudioFile(file) || isVideoFile(file)) {
+                console.log(`Processing ${isAudioFile(file) ? "audio" : "video"} file with ALL templates:`, file.name);
 
-                        const formData = new FormData();
-                        formData.append("audio", file, file.name);
-                        formData.append(
-                            "templates",
-                            JSON.stringify([tpl])
-                        );
-                        formData.append("userEmail", userEmail || "");
-                        formData.append("staffEmail", staffEmail || "");
-                        formData.append("staffName", staffName || "");
+                const formData = new FormData();
+                formData.append("audio", file, file.name);
+                
+                // 🔥 OPTIMIZATION: Send ALL templates in ONE request
+                formData.append(
+                    "templates",
+                    JSON.stringify(selectedTemplate.templates) // Send all templates at once
+                );
+                formData.append("userEmail", userEmail || "");
+                formData.append("staffEmail", staffEmail || "");
+                formData.append("staffName", staffName || "");
 
-                        console.log(`Sending request for ${file.name}...`);
-                        const res = await fetch(`${API_BASE}/api/process-recording`, {
-                            method: "POST",
-                            body: formData
-                        });
+                console.log(`Sending request for ${file.name} with ${selectedTemplate.templates.length} templates...`);
+                const res = await fetch(`${API_BASE}/api/process-recording`, {
+                    method: "POST",
+                    body: formData
+                });
 
-                        console.log(`Response received for ${file.name}, status: ${res.status}`);
-                        const data = await res.json();
-                        console.log(`Processing response for ${file.name}:`, data);
+                console.log(`Response received for ${file.name}, status: ${res.status}`);
+                const data = await res.json();
+                console.log(`Processing response for ${file.name}:`, data);
 
-                        if (data.success && data.documents?.length > 0) {
-                            for (const doc of data.documents) {
-                                if (doc.attachment?.data) {
-                                    const byteArray = new Uint8Array(doc.attachment.data);
-                                    const blob = new Blob([byteArray], {
-                                        type: doc.mime || "application/octet-stream"
-                                    });
-                                    const blobUrl = window.URL.createObjectURL(blob);
-                                    const link = document.createElement("a");
-                                    link.href = blobUrl;
-                                    link.download = doc.filename || `document_${file.name.replace(/\.[^/.]+$/, "")}.docx`;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                    window.URL.revokeObjectURL(blobUrl);
+                if (data.success && data.documents?.length > 0) {
+                    // Backend returns documents for ALL templates
+                    for (const doc of data.documents) {
+                        if (doc.attachment?.data) {
+                            const byteArray = new Uint8Array(doc.attachment.data);
+                            const blob = new Blob([byteArray], {
+                                type: doc.mime || "application/octet-stream"
+                            });
+                            const blobUrl = window.URL.createObjectURL(blob);
+                            const link = document.createElement("a");
+                            link.href = blobUrl;
+                            link.download = doc.filename || `${file.name.replace(/\.[^/.]+$/, "")}_document.docx`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            window.URL.revokeObjectURL(blobUrl);
 
-                                    docsToSend.push(doc);
-                                    console.log(`Document generated for ${file.name}: ${doc.filename}`);
-                                }
-                            }
-                        } else {
-                            console.log(`No documents generated for ${file.name}`);
+                            docsToSend.push(doc);
+                            console.log(`Document generated for ${file.name}: ${doc.filename}`);
                         }
                     }
-                    else {
-                        // For non-audio/video files (PDF, DOC, TXT, etc.), use existing flow
-                        console.log("Processing non-audio/video file:", file.name);
-                        let transcriptText = null;
-
-                        // Note: For video files, we're not extracting audio since API handles it
-                        // So this else block should only handle document files
-                        const doc = await processSingleTranscriptWithTemplate(tpl, file);
-                        if (doc) docsToSend.push(doc);
-                    }
-                } catch (err) {
-                    console.error("Error processing file:", file.name, err);
-                    hasError = true;
-                } finally {
-                    completedOperations++;
-                    const progressPercent = Math.floor((completedOperations / totalOperations) * 100);
-                    setFileProgress(progressPercent);
-                    console.log(`Progress: ${completedOperations}/${totalOperations} (${progressPercent}%)`);
-
-                    // Add a small delay between file processing to prevent overwhelming the server
-                    if (completedOperations < totalOperations) {
-                        await new Promise(resolve => setTimeout(resolve, 500));
+                    console.log(`Generated ${data.documents.length} documents from ${file.name}`);
+                } else {
+                    console.log(`No documents generated for ${file.name}`);
+                    if (data.error) {
+                        console.error(`Error from backend:`, data.error);
                     }
                 }
             }
-        }
+            else {
+                // For non-audio/video files (PDF, DOC, TXT, etc.), use existing flow
+                // For document files, we still need to process one template at a time
+                // because document-filler API expects one template per request
+                console.log("Processing non-audio/video file:", file.name);
+                
+                for (const tpl of selectedTemplate.templates) {
+                    try {
+                        const doc = await processSingleTranscriptWithTemplate(tpl, file);
+                        if (doc) docsToSend.push(doc);
+                    } catch (err) {
+                        console.error(`Error processing template ${tpl.id} with file ${file.name}:`, err);
+                        hasError = true;
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Error processing file:", file.name, err);
+            hasError = true;
+        } finally {
+            completedOperations++;
+            const progressPercent = Math.floor((completedOperations / totalOperations) * 100);
+            setFileProgress(progressPercent);
+            console.log(`Progress: ${completedOperations}/${totalOperations} (${progressPercent}%)`);
 
-        console.log(`All files processed. Total documents generated: ${docsToSend.length}`);
-
-        if (docsToSend.length > 0) {
-            setFileStage("emailing");
-            setFileProgress(90);
-            await sendGeneratedDocsEmail(docsToSend);
-        } else {
-            console.log("No documents were generated");
-            if (!hasError) {
-                alert("No documents were generated. Please check your audio files and templates.");
+            // Add a small delay between file processing to prevent overwhelming the server
+            if (completedOperations < totalOperations) {
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
+    }
 
-        setFileProgress(100);
-        emailSentRef.current = false;
-        setIsGeneratingFile(false);
-        setFileStage(null);
-        resetStaffUI();
-        setCurrentTask("");
-    };
+    console.log(`All files processed. Total documents generated: ${docsToSend.length}`);
+
+    if (docsToSend.length > 0) {
+        setFileStage("emailing");
+        setFileProgress(90);
+        await sendGeneratedDocsEmail(docsToSend);
+        alert(`Successfully generated ${docsToSend.length} document(s)!`);
+    } else {
+        console.log("No documents were generated");
+        if (!hasError) {
+            alert("No documents were generated. Please check your audio files and templates.");
+        }
+    }
+
+    setFileProgress(100);
+    emailSentRef.current = false;
+    setIsGeneratingFile(false);
+    setFileStage(null);
+    resetStaffUI();
+    setCurrentTask("");
+};
 
 
 
