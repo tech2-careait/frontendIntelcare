@@ -84,6 +84,13 @@ const Sidebar = ({
   const [usageLoading, setUsageLoading] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   console.log("user", user)
+
+  const truncate = (text, maxLength = 25) => {
+    if (!text) return "";
+    return text.length > maxLength
+      ? text.slice(0, maxLength) + "..."
+      : text;
+  };
   useEffect(() => {
     if (!user?.email) return;
 
@@ -496,7 +503,7 @@ const Sidebar = ({
 
             <div>
               <div className="profile-name">{user?.displayName}</div>
-              <div className="profile-email">{user?.email}</div>
+              <div className="profile-email"> {truncate(user?.email, 25)}</div>
             </div>
 
           </div>
@@ -521,7 +528,7 @@ const Sidebar = ({
               <div className="profile-header-info">
                 {isAdmin ? (<div className="profile-badge">Admin</div>) : (<div className="profile-badge">Staff</div>)}
                 <div className="profile-header-name">{user?.displayName}</div>
-                <div className="profile-header-email">{user?.email}</div>
+                <div className="profile-header-email">{truncate(user?.email, 25)}</div>
               </div>
 
 
