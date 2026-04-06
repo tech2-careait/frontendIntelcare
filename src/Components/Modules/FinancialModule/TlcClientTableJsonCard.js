@@ -277,6 +277,7 @@ const JsonTableCard = ({ title, data }) => {
           border: "1px solid #e5e7eb",
           borderRadius: 8,
           width: "100%",
+          scrollbarWidth: 'thin',
         }}
       >
        

@@ -15,6 +15,7 @@
 }
 
 .chart-area {
+  /* min-height: 350px; */
   /* background: linear-gradient(
     to bottom,
     rgba(15,23,42,0.03),

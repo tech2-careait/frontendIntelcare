@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, memo } from "react";
 import {
     BarChart,
     Bar,
@@ -204,7 +204,6 @@ const Legend = ({ names, visible, toggle }) => {
 /* ---------------- BAR CHART ---------------- */
 
 const BarChartWrapper = ({ data, meta }) => {
-    console.log("data in bar graph", data)
     const names = Object.keys(data.series);
     const [visible, setVisible] = useState(names);
     const labelOffset = getXAxisLabelOffset(data.x);
@@ -561,7 +560,7 @@ const StackedBarChartWrapper = ({ data, meta }) => {
 
 /* ---------------- MAIN COMPONENT ---------------- */
 
-export default function ChartVisualiser({ plotData, plotName }) {
+function ChartVisualiser({ plotData, plotName }) {
     if (!plotData) return null;
 
     const chartType = plotData.type;
@@ -576,13 +575,6 @@ export default function ChartVisualiser({ plotData, plotName }) {
                         {meta?.title || plotName}
                     </div>
 
-                    {/* {meta?.y_label && (
-                            <div className="chart-subtitle">
-                                {meta.y_label.toUpperCase()}
-                            </div>
-                        )} */}
-
-
                     <BarChartWrapper data={plotData} meta={meta} />
                 </div>
             )}
@@ -593,11 +585,6 @@ export default function ChartVisualiser({ plotData, plotName }) {
                         {meta?.title || plotName}
                     </div>
 
-                    {/* {meta?.y_label && (
-                            <div className="chart-subtitle">
-                                {meta.y_label.toUpperCase()}
-                            </div>
-                        )} */}
                     <LineChartWrapper data={plotData} meta={meta} />
                 </div>
             )}
@@ -608,11 +595,6 @@ export default function ChartVisualiser({ plotData, plotName }) {
                         {meta?.title || plotName}
                     </div>
 
-                    {/* {meta?.y_label && (
-                            <div className="chart-subtitle">
-                                {meta.y_label.toUpperCase()}
-                            </div>
-                        )} */}
                     <LineChartWrapper data={plotData} meta={meta} />
                 </div>
             )}
@@ -623,11 +605,6 @@ export default function ChartVisualiser({ plotData, plotName }) {
                         {meta?.title || plotName}
                     </div>
 
-                    {/* {meta?.y_label && (
-                            <div className="chart-subtitle">
-                                {meta.y_label.toUpperCase()}
-                            </div>
-                        )} */}
                     <PieChartWrapper data={plotData} meta={meta} />
                 </div>
             )}
@@ -638,11 +615,6 @@ export default function ChartVisualiser({ plotData, plotName }) {
                         {meta?.title || plotName}
                     </div>
 
-                    {/* {meta?.y_label && (
-                            <div className="chart-subtitle">
-                                {meta.y_label.toUpperCase()}
-                            </div>
-                        )} */}
                     <StackedBarChartWrapper data={plotData} meta={meta} />
                 </div>
             )}
@@ -650,3 +622,8 @@ export default function ChartVisualiser({ plotData, plotName }) {
         </div>
     );
 }
+
+export default memo(
+    ChartVisualiser,
+    (prev, next) => prev.plotData === next.plotData && prev.plotName === next.plotName
+);
