@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -104,65 +104,78 @@ export default function AIAnalysisReportViewer({
   reportText,
   loading,
   onDownload,
-  progress=0
 }) {
-  // console.log("reportText",reportText)
- if (loading) {
-  return (
-    <div
-      style={{
-        padding: "16px",
-        borderRadius: "10px",
-        background: "#f9fafb",
-        border: "1px solid #e5e7eb",
-        fontFamily: "Inter, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          fontSize: "14px",
-          fontWeight: 500,
-          marginBottom: "10px",
-          color: "#374151",
-        }}
-      >
-        Generating AI insights…
-      </div>
+  const [localProgress, setLocalProgress] = useState(0);
 
-      {/* PROGRESS BAR */}
+  useEffect(() => {
+    if (!loading) {
+      setLocalProgress(0);
+      return;
+    }
+    setLocalProgress(5);
+    let p = 5;
+    const id = setInterval(() => {
+      p += Math.random() * 6;
+      if (p > 70) p = 70;
+      setLocalProgress(Math.floor(p));
+    }, 600);
+    return () => clearInterval(id);
+  }, [loading]);
+
+  if (loading) {
+    return (
       <div
         style={{
-          height: "8px",
-          width: "100%",
-          background: "#e5e7eb",
-          borderRadius: "999px",
-          overflow: "hidden",
+          padding: "16px",
+          borderRadius: "10px",
+          background: "#f9fafb",
+          border: "1px solid #e5e7eb",
+          fontFamily: "Inter, sans-serif",
         }}
       >
         <div
           style={{
-            height: "100%",
-            width: `${Math.max(5, progress || 0)}%`,
-            background: "linear-gradient(90deg, #6C4CDC, #8B5CF6)",
-            transition: "width 0.4s ease",
+            fontSize: "14px",
+            fontWeight: 500,
+            marginBottom: "10px",
+            color: "#374151",
           }}
-        />
-      </div>
+        >
+          Generating AI insights…
+        </div>
 
-      {/* PERCENTAGE */}
-      <div
-        style={{
-          textAlign: "right",
-          marginTop: "6px",
-          fontSize: "12px",
-          color: "#6b7280",
-        }}
-      >
-        {progress || 0}%
+        <div
+          style={{
+            height: "8px",
+            width: "100%",
+            background: "#e5e7eb",
+            borderRadius: "999px",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${Math.max(5, localProgress)}%`,
+              background: "linear-gradient(90deg, #6C4CDC, #8B5CF6)",
+              transition: "width 0.4s ease",
+            }}
+          />
+        </div>
+
+        <div
+          style={{
+            textAlign: "right",
+            marginTop: "6px",
+            fontSize: "12px",
+            color: "#6b7280",
+          }}
+        >
+          {localProgress}%
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 
 if (!reportText) return null;
