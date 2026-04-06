@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, memo, useMemo } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "../../../Styles/TlcNewCustomReporting.css";
@@ -35,6 +35,40 @@ import { registerLocale } from "react-datepicker";
 import enGB from "date-fns/locale/en-GB";
 import TlcGraphRenderer from "./TlcGraphRenderer";
 import MultiSelectCustom from "./MultiSelectCustom";
+
+const HtmlFigure = memo(function HtmlFigure({ htmlString }) {
+    const parsed = useMemo(
+        () =>
+            parse(htmlString, {
+                replace: (domNode) => (domNode.name === "script" ? null : undefined),
+            }),
+        [htmlString]
+    );
+
+    useEffect(() => {
+        const raf = requestAnimationFrame(() => {
+            try {
+                const tempDiv = document.createElement("div");
+                tempDiv.innerHTML = htmlString;
+
+                const scripts = tempDiv.getElementsByTagName("script");
+                for (let script of scripts) {
+                    const newScript = document.createElement("script");
+                    if (script.src) newScript.src = script.src;
+                    else if (script.textContent) newScript.text = script.textContent;
+                    document.body.appendChild(newScript);
+                    document.body.removeChild(newScript);
+                }
+            } catch (e) {
+                console.warn("Script execution error:", e);
+            }
+        });
+
+        return () => cancelAnimationFrame(raf);
+    }, [htmlString]);
+
+    return parsed;
+});
 
 registerLocale("en-GB", enGB);
 export default function TlcNewCustomerReporting(props) {
@@ -75,6 +109,7 @@ export default function TlcNewCustomerReporting(props) {
             aiProgress: 0,
             exporting: false,
             tlcPayrollAskAiConversationHistory: [],
+            isFromHistory: false,
         },
     ]);
     const [activeTab, setActiveTab] = useState(1);
@@ -151,6 +186,7 @@ export default function TlcNewCustomerReporting(props) {
             aiProgress: 0,
             exporting: false,
             tlcPayrollAskAiConversationHistory: [],
+            isFromHistory: false,
         };
         setTabs((prev) => [...prev, newTab]);
         setActiveTab(newId);
@@ -506,10 +542,14 @@ export default function TlcNewCustomerReporting(props) {
             }
         }
         try {
-            updateTab({ loading: true, showReport: false });
-
-            updateTab({ stage: "loading", error: null });
-            updateTab({ uploading: true, progressStage: "uploading" });
+            updateTab({
+                loading: true,
+                showReport: false,
+                stage: "loading",
+                error: null,
+                uploading: true,
+                progressStage: "uploading",
+            });
             // console.log("Starting analysis process for tab:", activeTab);
 
             // -------------------------------
@@ -560,8 +600,7 @@ export default function TlcNewCustomerReporting(props) {
                 );
 
                 if (invalidUploads.length > 0) {
-                    updateTab({ loading: false });
-                    updateTab({ stage: "filters" });
+                    updateTab({ loading: false, stage: "filters" });
 
                     let message = "⚠️ Please correct the following before analysing:\n\n";
                     if (invalidUploads.length > 0)
@@ -574,7 +613,6 @@ export default function TlcNewCustomerReporting(props) {
                 // If everything is valid, upload first
                 console.log("All uploaded files are valid. Uploading before analysis...");
                 try {
-                    updateTab({ uploading: true });
                     updateTab({ uploading: true, progressStage: "uploading" });
                     const formData = new FormData();
                     inputs.forEach((input) => {
@@ -718,17 +756,16 @@ export default function TlcNewCustomerReporting(props) {
             // 🧩 Handle invalid date range
             if (analyzeData.message && analyzeData.message.includes("Invalid date range")) {
                 alert("⚠️ Invalid date range selected. Please choose correct start and end dates.");
-                updateTab({ loading: false, uploading: false, stage: "filters" });
+                updateTab({ loading: false, uploading: false, stage: "filters", progressStage: "idle" });
                 return;
             }
 
             // 🧩 Handle no data found
             if (analyzeData.analysisResult?.message === "No data found for given filters.") {
                 alert("⚠️ No data found for the selected filters. Please adjust your filters and try again.");
-                updateTab({ loading: false, uploading: false, stage: "filters" });
+                updateTab({ loading: false, uploading: false, stage: "filters", progressStage: "idle" });
                 return;
             }
-            updateTab({ progressStage: "preparing" });
             if (!analyzeData.analysisResult) {
                 throw new Error(analyzeData.error || "Analysis failed. No valid response received.");
             }
@@ -764,7 +801,6 @@ export default function TlcNewCustomerReporting(props) {
             updateTab({ error: err.message, stage: "filters" });
             alert("Something went wrong: " + err.message);
         } finally {
-            updateTab({ loading: false, uploading: false });
             updateTab({ loading: false, uploading: false });
             setTimeout(() => updateTab({ progressStage: "idle" }), 800);
         }
@@ -849,9 +885,16 @@ export default function TlcNewCustomerReporting(props) {
     const handleSaveToDatabase = async () => {
         if (!activeTabData) return;
 
+
         // ✅ If loaded from history, block saving again
         if (activeTabData.isFromHistory) {
             alert("⚠️ This analysis is already saved in the history list.");
+            return;
+        }
+
+        // ✅ Also check if already saved in this session
+        if (activeTabData.analysisData?.savedToHistory) {
+            alert("⚠️ This analysis has already been saved.");
             return;
         }
 
@@ -911,8 +954,27 @@ export default function TlcNewCustomerReporting(props) {
 
             // console.log("Save response:", result);
             alert("Analysis data saved successfully!");
-            // ✅ Optional: Mark as saved to prevent double-save
-            updateTab({ isFromHistory: true });
+            updateTab({
+                isFromHistory: true,
+                analysisData: {
+                    ...activeTabData.analysisData,
+                    savedToHistory: true  // Add this flag
+                }
+            });
+
+            // instantly update history list
+            setHistoryList((prev) => [
+                {
+                    id: result?.id || Date.now(),
+                    filters: {
+                        start: `${startDate}`,
+                        end: `${endDate}`,
+                        state: selectedState.map((s) => s.value).join(", "),
+                    },
+                    createdAt: new Date().toISOString(),
+                },
+                ...prev,
+            ]);
         } catch (err) {
             console.error("❌ Error saving data:", err);
             alert("Something went wrong while saving data.");
@@ -1085,35 +1147,32 @@ export default function TlcNewCustomerReporting(props) {
             if (setTlcPayrollAskAiConversationHistory) {
                 setTlcPayrollAskAiConversationHistory([]);
             }
-            // console.log("data in history click", data)
+
             updateTab({ tlcPayrollAskAiConversationHistory: [], tlcAskAiHistoryPayload: data.data.analysisResult });
             if (tabs.find(t => t.id === activeTab)) {
                 props.setTlcAskAiHistoryPayload(data.data.analysisResult);
             }
 
-
             if (!res.ok) throw new Error(data.error || "Failed to fetch analysis");
             const { start, end } = data.data.filters || {};
-            // console.log("start,end", start, end)
+
             updateTab({
-                analysisData: data.data.analysisResult,
+                analysisData: {
+                    ...data.data.analysisResult,
+                    savedToHistory: true  // ✅ ADD THIS LINE
+                },
                 stage: "overview",
                 currentPage: 1,
-                isFromHistory: true,
+                isFromHistory: true,  // ✅ Keep this
 
-                // ✅ correct variables
                 startDate: start ? new Date(start) : null,
                 endDate: end ? new Date(end) : null,
 
-                // ✅ tab name shows date
-                // name: start && end ? `${start} - ${end}` : "History",
                 name: start && end
                     ? `${new Date(start).getDate()}-${new Date(start).getMonth() + 1}-${new Date(start).getFullYear()} - ${new Date(end).getDate()}-${new Date(end).getMonth() + 1}-${new Date(end).getFullYear()}`
                     : "History",
-
             });
 
-            // ✅ Show markdown report if exists
             if (data.data.reportMarkdown) {
                 updateTab({
                     aiReport: data.data.reportMarkdown,
@@ -1302,34 +1361,6 @@ export default function TlcNewCustomerReporting(props) {
 
 
 
-    const renderHtmlFigure = (htmlString) => {
-        const parsed = parse(htmlString, {
-            replace: (domNode) => (domNode.name === "script" ? null : undefined),
-        });
-
-        setTimeout(() => {
-            try {
-                const tempDiv = document.createElement("div");
-                tempDiv.innerHTML = htmlString;
-
-                const scripts = tempDiv.getElementsByTagName("script");
-                for (let script of scripts) {
-                    const newScript = document.createElement("script");
-                    if (script.src) newScript.src = script.src;
-                    else if (script.textContent) newScript.text = script.textContent;
-                    document.body.appendChild(newScript);
-                    document.body.removeChild(newScript);
-                }
-            } catch (e) {
-                console.warn("Script execution error:", e);
-            }
-        }, 0);
-
-        return parsed;
-    };
-
-
-
     // -------------------- TAB BAR --------------------
     const renderTabBar = () => (
         <div className="tab-bar" style={{ display: "flex", gap: "10px", alignItems: "center", marginBottom: "16px", paddingTop: "16px" }}>
@@ -1404,7 +1435,10 @@ export default function TlcNewCustomerReporting(props) {
         needMarginBottom
     }) => (
         <div
-            onClick={onClick}
+            onClick={(e) => {
+                e.stopPropagation(); // ✅ Prevent event bubbling
+                onClick();
+            }}
             style={{
                 padding: "14px 18px",
                 background: "linear-gradient(180deg, #6C4CDC -65.32%, #FFFFFF 157.07%, #FFFFFF 226.61%)",
@@ -1754,16 +1788,17 @@ export default function TlcNewCustomerReporting(props) {
                                 Compare and Analyse
                             </button>
 
-
                             {activeTabData.stage === "overview" && !activeTabData.viewingHistory && (
                                 <button
                                     className="save-btnss"
                                     onClick={handleSaveToDatabase}
-                                    disabled={saving}
+                                    disabled={saving || activeTabData?.isFromHistory || activeTabData?.analysisData?.savedToHistory}
                                     style={{
                                         display: "flex",
                                         alignItems: "center",
                                         gap: "8px",
+                                        opacity: (activeTabData?.isFromHistory || activeTabData?.analysisData?.savedToHistory) ? 0.6 : 1,
+                                        cursor: (activeTabData?.isFromHistory || activeTabData?.analysisData?.savedToHistory) ? "not-allowed" : "pointer",
                                     }}
                                 >
                                     <img
@@ -1771,9 +1806,13 @@ export default function TlcNewCustomerReporting(props) {
                                         alt="save"
                                         style={{ width: "14px", height: "14px" }}
                                     />
-                                    {saving ? "Processing..." : "Save"}
-                                </button>
 
+                                    {saving
+                                        ? "Processing..."
+                                        : (activeTabData?.isFromHistory || activeTabData?.analysisData?.savedToHistory)
+                                            ? "Saved"
+                                            : "Save"}
+                                </button>
                             )}
                         </div>
                     </div>
@@ -2044,11 +2083,20 @@ export default function TlcNewCustomerReporting(props) {
                                     }`}
                                 isOpen={activeTabData.aiAccordion}
                                 showInsightIcon={true}
-                                showDownloadIcon={!!activeTabData.aiReport}   // ✅ only show when ready
+                                showDownloadIcon={!!activeTabData.aiReport}
                                 onDownload={downloadWord}
                                 onClick={() => {
+                                    // ✅ Prevent toggling ONLY if AI is loading
+                                    if (activeTabData.aiLoading) {
+                                        return; // Don't allow closing AI accordion while generating
+                                    }
+
                                     const willOpen = !activeTabData.aiAccordion;
+
+                                    // Update state immediately for better UX
                                     updateTab({ aiAccordion: willOpen });
+
+                                    // Only trigger AI analysis if needed and not already loading
                                     if (willOpen && !activeTabData.aiReport && !activeTabData.aiLoading) {
                                         handleAiAnalysis();
                                     }
@@ -2066,7 +2114,6 @@ export default function TlcNewCustomerReporting(props) {
                                     />
                                 </div>
                             )}
-
                         </section>
                         {/* ================= PAGE 1 ================= */}
                         <section data-report-section="payroll-overview">
@@ -2111,7 +2158,7 @@ export default function TlcNewCustomerReporting(props) {
                                         {/* {(activeTabData.analysisData.pages?.["page 1"]?.figures || []).map(
                                             (html, index) => (
                                                 <div key={index} className="table-box">
-                                                    {renderHtmlFigure(html)}
+                                                    <HtmlFigure htmlString={html} />
                                                 </div>
                                             )
                                         )} */}
@@ -2119,9 +2166,7 @@ export default function TlcNewCustomerReporting(props) {
 
                                     {activeTabData.analysisData.pages?.["page 1"]?.table && (
                                         <div className="table-box">
-                                            {renderHtmlFigure(
-                                                activeTabData.analysisData.pages["page 1"].table
-                                            )}
+                                            <HtmlFigure htmlString={activeTabData.analysisData.pages["page 1"].table} />
                                         </div>
                                     )}
                                 </>
@@ -2155,7 +2200,7 @@ export default function TlcNewCustomerReporting(props) {
                                                 if (index !== 1 && index !== 3) return null;
                                                 return (
                                                     <div key={index} className="table-box">
-                                                        {renderHtmlFigure(html)}
+                                                        <HtmlFigure htmlString={html} />
                                                     </div>
                                                 );
                                             }
@@ -2181,7 +2226,7 @@ export default function TlcNewCustomerReporting(props) {
                                 <>
                                     {(activeTabData.analysisData.pages?.["page 3"]?.figures || []).map(
                                         (html, index) => (
-                                            <div key={index}>{renderHtmlFigure(html)}</div>
+                                            <div key={index}><HtmlFigure htmlString={html} /></div>
                                         )
                                     )}
                                 </>
@@ -2202,7 +2247,7 @@ export default function TlcNewCustomerReporting(props) {
 
                                                 return (
                                                     <div key={index} className="table-box">
-                                                        {renderHtmlFigure(html)}
+                                                        <HtmlFigure htmlString={html} />
                                                     </div>
                                                 );
                                             }
@@ -2239,7 +2284,7 @@ export default function TlcNewCustomerReporting(props) {
 
                                                     return (
                                                         <div key={index} className="table-box">
-                                                            {renderHtmlFigure(html)}
+                                                            <HtmlFigure htmlString={html} />
                                                         </div>
                                                     );
                                                 }
@@ -2248,9 +2293,7 @@ export default function TlcNewCustomerReporting(props) {
                                     </>
                                     {activeTabData.analysisData.pages?.["page 4"]?.table && (
                                         <div className="table-box">
-                                            {renderHtmlFigure(
-                                                activeTabData.analysisData.pages["page 4"].table
-                                            )}
+                                            <HtmlFigure htmlString={activeTabData.analysisData.pages["page 4"].table} />
                                         </div>
                                     )}
                                 </>
