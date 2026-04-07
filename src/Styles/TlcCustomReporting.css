@@ -177,7 +177,7 @@ body {
 
 .history-title {
   font-weight: 600;
-  margin-bottom: 15px;
+  /* margin-bottom: 15px; */
   font-size: 18px;
   display: flex;
   align-items: center;
