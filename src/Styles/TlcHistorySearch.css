@@ -1,0 +1,40 @@
+/* History Search Styles */
+.history-list-container {
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.history-list-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.history-list-container::-webkit-scrollbar-track {
+    background: #F3F4F6;
+    border-radius: 10px;
+}
+
+.history-list-container::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 10px;
+}
+
+.history-list-container::-webkit-scrollbar-thumb:hover {
+    background: #9CA3AF;
+}
+
+/* Quick filter chips animation */
+.history-card-modern {
+    transition: all 0.2s ease;
+}
+
+.history-card-modern:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Search input focus effect */
+.history-search-input:focus {
+    border-color: #6C4CDC;
+    box-shadow: 0 0 0 2px rgba(108, 76, 220, 0.1);
+}
