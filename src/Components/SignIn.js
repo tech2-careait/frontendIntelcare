@@ -167,9 +167,17 @@ const SignIn = ({ show, onClose }) => {
     }
   };
 
-
+  const isValidEmail = (email) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
   const handleContinueWithEmail = async () => {
     setError("");
+
+    if (!isValidEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    
     setLoading(true);
 
     try {
