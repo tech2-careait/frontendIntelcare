@@ -1504,7 +1504,7 @@ const TlcNewClientProfitability = (props) => {
                                 }
                             }}
                         />
-                        <button
+                        {/* <button
                             onClick={handleSearch}
                             disabled={searching}
                             style={{
@@ -1540,7 +1540,7 @@ const TlcNewClientProfitability = (props) => {
                             ) : (
                                 "Search"
                             )}
-                        </button>
+                        </button> */}
                         {searchMode && (
                             <button
                                 onClick={() => {
