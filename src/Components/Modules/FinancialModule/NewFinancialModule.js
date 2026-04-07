@@ -1621,7 +1621,7 @@ const NewFinancialHealth = (props) => {
                                 }
                             }}
                         />
-                        <button
+                        {/* <button
                             onClick={handleSearch}
                             disabled={searching}
                             style={{
@@ -1657,7 +1657,7 @@ const NewFinancialHealth = (props) => {
                             ) : (
                                 "Search"
                             )}
-                        </button>
+                        </button> */}
                         {searchMode && (
                             <button
                                 onClick={() => {

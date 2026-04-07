@@ -2531,7 +2531,7 @@ export default function TlcNewCustomerReporting(props) {
                                     }
                                 }}
                             />
-                            <button
+                            {/* <button
                                 onClick={handleSearch}
                                 disabled={searching}
                                 style={{
@@ -2567,7 +2567,7 @@ export default function TlcNewCustomerReporting(props) {
                                 ) : (
                                     "Search"
                                 )}
-                            </button>
+                            </button> */}
                             {searchMode && (
                                 <button
                                     onClick={() => {
