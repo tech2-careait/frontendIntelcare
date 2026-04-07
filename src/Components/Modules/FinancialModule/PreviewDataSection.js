@@ -2,6 +2,7 @@ import React, { useState, useEffect, useImperativeHandle,forwardRef } from "reac
 import * as XLSX from "xlsx";
 import icon2 from "../../../Images/Icon (2).png";
 import collapseIcon from "../../../Images/Vector.png";
+import '../../../Styles/TlcClientTableJsonCard.css';
 import {
     Document,
     Packer,
@@ -427,7 +428,7 @@ const PreviewDataSection = forwardRef(
                         </div>
 
                         {/* Data Rows */}
-                        <div style={{ maxHeight: "400px", overflow: "auto" }}>
+                        <div style={{ maxHeight: "400px", overflow: "auto",scrollbarWidth:'thin',scrollbarColor:'#6c4cdc transparent'}}>
                             {Array.from({ length: maxRows }, (_, rowIndex) => {
                                 const row = currentData[rowIndex] || [];
                                 const rowHeight = getRowHeight(rowIndex);
