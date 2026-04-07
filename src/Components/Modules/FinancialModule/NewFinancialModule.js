@@ -68,6 +68,120 @@ const NewFinancialHealth = (props) => {
     const [deleting, setDeleting] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
     const pageRef = useRef(null);
+    // Add these near your other state declarations
+    const [searchQuery, setSearchQuery] = useState("");
+    const [searching, setSearching] = useState(false);
+    const [filteredHistoryList, setFilteredHistoryList] = useState([]);
+    const [searchMode, setSearchMode] = useState(false); // To track if we're in search mode
+    // Add this function after handleDeleteHistory
+    const handleSearch = async () => {
+        if (!searchQuery.trim()) {
+            setSearchMode(false);
+            setFilteredHistoryList([]);
+            return;
+        }
+
+        setSearching(true);
+        try {
+            const response = await fetch("https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/searchParse", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ query: searchQuery }),
+            });
+
+            const result = await response.json();
+
+            if (!response.ok || !result.success) {
+                throw new Error(result.error || "Search failed");
+            }
+
+            const parsedRanges = result.data;
+            console.log("Parsed search ranges:", parsedRanges);
+
+            if (!parsedRanges || parsedRanges.length === 0) {
+                setFilteredHistoryList([]);
+                setSearchMode(true);
+                return;
+            }
+
+            // Filter history items based on search ranges
+            const filtered = historyList.filter(historyItem => {
+                // Get filters from history item
+                const filters = historyItem.filters || {};
+                const dateRange = filters.dateRange || [];
+                const state = filters.selectedState || [];
+
+                if (!dateRange || dateRange.length !== 2) return false;
+
+                const [start, end] = dateRange;
+                if (!start || !end) return false;
+
+                const historyStart = new Date(start);
+                const historyEnd = new Date(end);
+
+                return parsedRanges.some(range => {
+                    let matches = true;
+
+                    // Date range check - check if history date range is within search range
+                    if (range.Start && range.End) {
+                        const rangeStart = new Date(range.Start);
+                        const rangeEnd = new Date(range.End);
+
+                        // Check if history date range is within search range
+                        const datesMatch = historyStart >= rangeStart && historyEnd <= rangeEnd;
+                        if (!datesMatch) matches = false;
+                    }
+
+                    // STATE FILTER - handle empty states properly
+                    if (range.State && range.State.trim() !== "") {
+                        if (!state || state.length === 0) {
+                            matches = false;
+                        } else {
+                            const rangeStateLower = range.State.toLowerCase();
+                            // Check if any selected state matches the search state
+                            const hasMatchingState = state.some(s =>
+                                s.value?.toLowerCase().includes(rangeStateLower) ||
+                                s.label?.toLowerCase().includes(rangeStateLower)
+                            );
+
+                            if (!hasMatchingState) {
+                                matches = false;
+                            }
+                        }
+                    }
+
+                    return matches;
+                });
+            });
+
+            console.log(`Found ${filtered.length} matching history items`);
+            setFilteredHistoryList(filtered);
+            setSearchMode(true);
+
+        } catch (err) {
+            console.error("❌ Search error:", err);
+            alert("Search failed: " + err.message);
+            setSearchMode(false);
+            setFilteredHistoryList([]);
+        } finally {
+            setSearching(false);
+        }
+    };
+    // Add debounced search effect
+    useEffect(() => {
+        const delayDebounce = setTimeout(() => {
+            if (searchQuery.trim()) {
+                handleSearch();
+            } else {
+                setSearchMode(false);
+                setFilteredHistoryList([]);
+            }
+        }, 500); // Wait 500ms after user stops typing
+
+        return () => clearTimeout(delayDebounce);
+    }, [searchQuery]);
     // ---------------- UI TABS (SAFE, ISOLATED) ----------------
     const [tabs, setTabs] = useState([
         {
@@ -1421,224 +1535,342 @@ const NewFinancialHealth = (props) => {
 
     // console.log("financial Visualizations", financialVisualizations);
     // console.log("accordions", accordions)
-    const renderHistorySection = () => (
-        <section className="history-container">
-            {activeTabData?.responseData && (
-                <div
-                    style={{
-                        width: "100%",
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        marginBottom: "12px",
-                    }}
-                >
-                    <button
-                        // onClick={handleDownloadReport}
-                        style={{
-                            background: "var(--Curki-2nd-Portal-1, #14C8A8)",
-                            color: "#fff",
-                            border: "none",
-                            padding: "8px 16px",
-                            borderRadius: "8px",
-                            fontSize: "14px",
-                            fontWeight: 400,
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "8px",
-                        }}
-                    >
-                        <img
-                            src={TlcCompareAnalyseIcon}
-                            alt="download"
-                            style={{ width: "14px", height: "14px" }}
-                        />
-                        Download Report
-                    </button>
-                </div>
-            )}
+    const renderHistorySection = () => {
+        const displayHistoryList = searchMode ? filteredHistoryList : historyList;
 
-            {/* HEADER */}
-            <div style={{ display: "flex", gap: "8px" }}>
-                <img
-                    src={TlcPayrollHistoryIcon}
-                    alt="icon"
-                    style={{ width: "22px", height: "21px", pointerEvents: "none" }}
-                />
-                <div className="history-title">History</div>
-            </div>
-
-            {/* BODY */}
-            {loadingHistory && (
-                <p style={{ textAlign: "center", color: "#555", marginTop: "20px" }}>
-                    Loading history...
-                </p>
-            )}
-            {!loadingHistory && historyList.length === 0 && (
-                <p style={{ textAlign: "center", color: "#777", marginTop: "20px" }}>
-                    No saved history found.
-                </p>
-            )}
-            {!loadingHistory && historyList.length > 0 && (
-                <div className="history-list">
-                    {historyList.map(item => (
-                        <div
-                            key={item.id}
-                            className="history-card-modern"
-                            onClick={() => handleHistoryClick(item)}
-                            style={{ position: "relative" }}
-                        >
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedHistoryId(item.id);
-                                    setShowDeleteModal(true);
-                                }}
-                                style={{
-                                    position: "absolute",
-                                    top: "10px",
-                                    right: "10px",
-                                    background: "transparent",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    color: "#6C4CDC",
-                                }}
-                                title="Delete"
-                            >
-                                <RiDeleteBin6Line size={18} />
-                            </button>
-
-                            {/* TOP ROW */}
-                            <div className="history-top">
-                                <div className="history-date-range">
-                                    <span className="label">Date Range: </span>
-                                    <span className="value">
-                                        {formatHistoryDateRange(item.filters?.dateRange)}
-
-                                    </span>
-                                </div>
-                            </div>
-
-                            {/* SAVED ON */}
-                            <div className="saved-on">
-                                <span className="saved-label">Saved on: </span>
-                                <span style={{ color: "#000" }}>
-                                    {new Date(item.createdAt).toLocaleString()}
-                                </span>
-                            </div>
-
-
-                            {/* FILTER SUMMARY */}
-                            {item.filters && (
-                                <div className="history-filters">
-                                    {item.filters?.selectedState?.length > 0 && (
-                                        <div className="filter-item">
-                                            {item.filters?.selectedState?.length > 0 && (
-                                                <div className="filter-item">
-                                                    <strong>State:</strong>{" "}
-                                                    {item.filters.selectedState
-                                                        .map(s => s.label || s.value)
-                                                        .join(", ")}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-
-                                    {item.filters.department && (
-                                        <div className="filter-item">
-                                            <strong>Department:</strong> {item.filters.department}
-                                        </div>
-                                    )}
-
-                                    {item.filters.role && (
-                                        <div className="filter-item">
-                                            <strong>Role:</strong> {item.filters.role}
-                                        </div>
-                                    )}
-
-                                    {item.filters.employmentType && (
-                                        <div className="filter-item">
-                                            <strong>Employment Type:</strong> {item.filters.employmentType}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
-            {showDeleteModal && (
-                <div
-                    style={{
-                        position: "fixed",
-                        inset: 0,
-                        background: "rgba(0,0,0,0.35)",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        zIndex: 9999,
-                    }}
-                >
+        return (
+            <section className="history-container">
+                {activeTabData?.responseData && (
                     <div
                         style={{
-                            background: "#fff",
-                            borderRadius: "12px",
-                            padding: "20px 24px",
-                            minWidth: "360px",
-                            textAlign: "center",
+                            width: "100%",
+                            display: "flex",
+                            justifyContent: "flex-end",
+                            marginBottom: "12px",
+                        }}
+                    >
+                        <button
+                            // onClick={handleDownloadReport}
+                            style={{
+                                background: "var(--Curki-2nd-Portal-1, #14C8A8)",
+                                color: "#fff",
+                                border: "none",
+                                padding: "8px 16px",
+                                borderRadius: "8px",
+                                fontSize: "14px",
+                                fontWeight: 400,
+                                cursor: "pointer",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                            }}
+                        >
+                            <img
+                                src={TlcCompareAnalyseIcon}
+                                alt="download"
+                                style={{ width: "14px", height: "14px" }}
+                            />
+                            Download Report
+                        </button>
+                    </div>
+                )}
+
+                {/* HEADER with SEARCH BAR */}
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        marginBottom: "16px",
+                        flexWrap: "wrap",
+                        gap: "12px",
+                    }}
+                >
+                    <div style={{ display: "flex", gap: "8px" }}>
+                        <img
+                            src={TlcPayrollHistoryIcon}
+                            alt="icon"
+                            style={{ width: "22px", height: "21px", pointerEvents: "none" }}
+                        />
+                        <div className="history-title">History</div>
+                    </div>
+
+                    {/* SEARCH BAR */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: "1", maxWidth: "400px" }}>
+                        <input
+                            type="text"
+                            placeholder="Search history (e.g., 'April to May, Victoria' or 'last week')"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            style={{
+                                flex: 1,
+                                padding: "8px 12px",
+                                border: "1px solid #D1D5DB",
+                                borderRadius: "8px",
+                                fontSize: "13px",
+                                fontFamily: "Inter",
+                                outline: "none",
+                                transition: "all 0.2s ease",
+                            }}
+                            onKeyPress={(e) => {
+                                if (e.key === "Enter") {
+                                    handleSearch();
+                                }
+                            }}
+                        />
+                        <button
+                            onClick={handleSearch}
+                            disabled={searching}
+                            style={{
+                                background: "#6C4CDC",
+                                color: "#fff",
+                                border: "none",
+                                padding: "8px 16px",
+                                borderRadius: "8px",
+                                fontSize: "13px",
+                                fontWeight: 500,
+                                cursor: searching ? "not-allowed" : "pointer",
+                                opacity: searching ? 0.7 : 1,
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                                whiteSpace: "nowrap",
+                            }}
+                        >
+                            {searching ? (
+                                <>
+                                    <div
+                                        style={{
+                                            width: "14px",
+                                            height: "14px",
+                                            border: "2px solid #fff",
+                                            borderTop: "2px solid transparent",
+                                            borderRadius: "50%",
+                                            animation: "spin 0.8s linear infinite",
+                                        }}
+                                    />
+                                    Searching...
+                                </>
+                            ) : (
+                                "Search"
+                            )}
+                        </button>
+                        {searchMode && (
+                            <button
+                                onClick={() => {
+                                    setSearchQuery("");
+                                    setSearchMode(false);
+                                    setFilteredHistoryList([]);
+                                }}
+                                style={{
+                                    background: "#E5E7EB",
+                                    color: "#374151",
+                                    border: "none",
+                                    padding: "8px 12px",
+                                    borderRadius: "8px",
+                                    fontSize: "13px",
+                                    fontWeight: 500,
+                                    cursor: "pointer",
+                                    whiteSpace: "nowrap",
+                                }}
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Search results count */}
+                {searchMode && searchQuery && (
+                    <div
+                        style={{
+                            fontSize: "12px",
+                            color: "#6B7280",
+                            marginBottom: "12px",
+                            padding: "6px 12px",
+                            background: "#F3F4F6",
+                            borderRadius: "6px",
+                            display: "inline-block",
+                        }}
+                    >
+                        Found {displayHistoryList.length} result(s) for "{searchQuery}"
+                    </div>
+                )}
+
+                {/* BODY */}
+                {loadingHistory && (
+                    <p style={{ textAlign: "center", color: "#555", marginTop: "20px" }}>
+                        Loading history...
+                    </p>
+                )}
+                {!loadingHistory && displayHistoryList.length === 0 && (
+                    <p style={{ textAlign: "center", color: "#777", marginTop: "20px" }}>
+                        {searchMode ? "No matching history found." : "No saved history found."}
+                    </p>
+                )}
+                {!loadingHistory && displayHistoryList.length > 0 && (
+                    <div className="history-list">
+                        {displayHistoryList.map(item => (
+                            <div
+                                key={item.id}
+                                className="history-card-modern"
+                                onClick={() => handleHistoryClick(item)}
+                                style={{ position: "relative" }}
+                            >
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedHistoryId(item.id);
+                                        setShowDeleteModal(true);
+                                    }}
+                                    style={{
+                                        position: "absolute",
+                                        top: "10px",
+                                        right: "10px",
+                                        background: "transparent",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        color: "#6C4CDC",
+                                    }}
+                                    title="Delete"
+                                >
+                                    <RiDeleteBin6Line size={18} />
+                                </button>
+
+                                {/* TOP ROW */}
+                                <div className="history-top">
+                                    <div className="history-date-range">
+                                        <span className="label">Date Range: </span>
+                                        <span className="value">
+                                            {formatHistoryDateRange(item.filters?.dateRange)}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* SAVED ON */}
+                                <div className="saved-on">
+                                    <span className="saved-label">Saved on: </span>
+                                    <span style={{ color: "#000" }}>
+                                        {new Date(item.createdAt).toLocaleString()}
+                                    </span>
+                                </div>
+
+                                {/* FILTER SUMMARY */}
+                                {item.filters && (
+                                    <div className="history-filters">
+                                        {item.filters?.selectedState?.length > 0 && (
+                                            <div className="filter-item">
+                                                <strong>State:</strong>{" "}
+                                                {item.filters.selectedState
+                                                    .map(s => s.label || s.value)
+                                                    .join(", ")}
+                                            </div>
+                                        )}
+
+                                        {item.filters.selectedDepartment?.length > 0 && (
+                                            <div className="filter-item">
+                                                <strong>Department:</strong>{" "}
+                                                {item.filters.selectedDepartment
+                                                    .map(d => d.label || d.value)
+                                                    .join(", ")}
+                                            </div>
+                                        )}
+
+                                        {item.filters.selectedRole?.length > 0 && (
+                                            <div className="filter-item">
+                                                <strong>Role:</strong>{" "}
+                                                {item.filters.selectedRole
+                                                    .map(r => r.label || r.value)
+                                                    .join(", ")}
+                                            </div>
+                                        )}
+
+                                        {item.filters.selectedType?.length > 0 && (
+                                            <div className="filter-item">
+                                                <strong>Employment Type:</strong>{" "}
+                                                {item.filters.selectedType
+                                                    .map(t => t.label || t.value)
+                                                    .join(", ")}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                )}
+                {showDeleteModal && (
+                    <div
+                        style={{
+                            position: "fixed",
+                            inset: 0,
+                            background: "rgba(0,0,0,0.35)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            zIndex: 9999,
                         }}
                     >
                         <div
                             style={{
-                                fontSize: "16px",
-                                fontWeight: 600,
-                                color: "#1f2937",
-                                marginBottom: "20px",
+                                background: "#fff",
+                                borderRadius: "12px",
+                                padding: "20px 24px",
+                                minWidth: "360px",
+                                textAlign: "center",
                             }}
                         >
-                            Are you sure you want to delete history?
-                        </div>
-
-                        <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
-                            <button
-                                onClick={() => {
-                                    setShowDeleteModal(false);
-                                    setSelectedHistoryId(null);
-                                }}
+                            <div
                                 style={{
-                                    padding: "8px 22px",
-                                    borderRadius: "6px",
-                                    border: "none",
-                                    background: "#e5e7eb",
-                                    cursor: "pointer",
-                                    fontWeight: "500",
+                                    fontSize: "16px",
+                                    fontWeight: 600,
+                                    color: "#1f2937",
+                                    marginBottom: "20px",
                                 }}
                             >
-                                No
-                            </button>
+                                Are you sure you want to delete history?
+                            </div>
 
-                            <button
-                                onClick={handleDeleteHistory}
-                                disabled={deleting}
-                                style={{
-                                    padding: "8px 22px",
-                                    borderRadius: "6px",
-                                    border: "none",
-                                    background: "#6C4CDC",
-                                    color: "#fff",
-                                    cursor: "pointer",
-                                    fontWeight: "500",
-                                }}
-                            >
-                                {deleting ? "..." : "Yes"}
-                            </button>
+                            <div style={{ display: "flex", justifyContent: "center", gap: "12px" }}>
+                                <button
+                                    onClick={() => {
+                                        setShowDeleteModal(false);
+                                        setSelectedHistoryId(null);
+                                    }}
+                                    style={{
+                                        padding: "8px 22px",
+                                        borderRadius: "6px",
+                                        border: "none",
+                                        background: "#e5e7eb",
+                                        cursor: "pointer",
+                                        fontWeight: "500",
+                                    }}
+                                >
+                                    No
+                                </button>
+
+                                <button
+                                    onClick={handleDeleteHistory}
+                                    disabled={deleting}
+                                    style={{
+                                        padding: "8px 22px",
+                                        borderRadius: "6px",
+                                        border: "none",
+                                        background: "#6C4CDC",
+                                        color: "#fff",
+                                        cursor: "pointer",
+                                        fontWeight: "500",
+                                    }}
+                                >
+                                    {deleting ? "..." : "Yes"}
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-
-        </section>
-    );
+                )}
+            </section>
+        );
+    };
     // console.log("activeTabData", activeTabData)
     return (
 
