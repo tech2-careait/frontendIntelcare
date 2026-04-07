@@ -874,7 +874,7 @@ const HomePage = () => {
                 />
               )}
 
-              <div style={{ flex: 1, height: "100vh", overflowY: "auto",scrollbarWidth:'thin' }}>
+              <div style={{ flex: 1, height: "100vh", overflowY: "auto",scrollbarWidth:'none' }}>
                 <div
                   className="typeofreportmaindiv"
                   style={{
