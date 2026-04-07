@@ -228,7 +228,7 @@ const Sidebar = ({
           Beta
         </div>
       </div>
-      <div className="sidebar-scroll-content" style={{ overflowY: "auto", flex: 1, scrollbarWidth: 'thin' }}>
+      <div className="sidebar-scroll-content" style={{ overflowY: "auto", flex: 1, scrollbarWidth: 'auto', }}>
         <div>
           {ConnectButton
             .map((report) => {

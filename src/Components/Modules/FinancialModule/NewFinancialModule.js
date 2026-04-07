@@ -130,7 +130,10 @@ const NewFinancialHealth = (props) => {
                         const rangeEnd = new Date(range.End);
 
                         // Check if history date range is within search range
-                        const datesMatch = historyStart >= rangeStart && historyEnd <= rangeEnd;
+                        const datesMatch = !(
+                            historyEnd < rangeStart ||
+                            historyStart > rangeEnd
+                        );
                         if (!datesMatch) matches = false;
                     }
 

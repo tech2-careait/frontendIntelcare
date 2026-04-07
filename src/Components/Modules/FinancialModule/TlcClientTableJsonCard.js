@@ -121,6 +121,7 @@
 
 
 import React, { useState, useMemo } from "react";
+import '../../../Styles/TlcClientTableJsonCard.css';
 
 /**
  * Format numbers to 2 decimal places
@@ -271,6 +272,7 @@ const JsonTableCard = ({ title, data }) => {
 
       {/* TABLE */}
       <div
+      className="custom-scroll"
         style={{
           maxHeight: 600,
           overflowY: "auto",
@@ -278,6 +280,8 @@ const JsonTableCard = ({ title, data }) => {
           borderRadius: 8,
           width: "100%",
           scrollbarWidth: 'thin',
+          scrollbarColor:'#6c4cdc transparent'
+          
         }}
       >
        

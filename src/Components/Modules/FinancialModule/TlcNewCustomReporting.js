@@ -266,7 +266,7 @@ export default function TlcNewCustomerReporting(props) {
                 // Try multiple possible locations for filters
                 const filters = historyItem.analysisResult?.filters || historyItem.filters || {};
                 const { start, end, state } = filters;
-                console.log(`Checking history item`,start, end, state);
+                console.log(`Checking history item`, start, end, state);
                 if (!start || !end) return false;
 
                 const historyStart = new Date(start);
@@ -280,13 +280,16 @@ export default function TlcNewCustomerReporting(props) {
                         const rangeEnd = new Date(range.End);
 
                         // Check for ANY overlap between the two date ranges
-                        console.log("history start",historyStart)
-                        console.log("history end",historyEnd)
-                        console.log("range start",rangeStart)
-                        console.log("range end",rangeEnd)
-                    
+                        console.log("history start", historyStart)
+                        console.log("history end", historyEnd)
+                        console.log("range start", rangeStart)
+                        console.log("range end", rangeEnd)
 
-                        const datesMatch = historyStart >= rangeStart && historyEnd <= rangeEnd;
+
+                        const datesMatch = !(
+                            historyEnd < rangeStart ||
+                            historyStart > rangeEnd
+                        );
                         console.log("Dates match?", datesMatch);
                         if (!datesMatch) matches = false;
                     }
