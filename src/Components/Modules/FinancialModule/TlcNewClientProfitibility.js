@@ -239,6 +239,7 @@ const TlcNewClientProfitability = (props) => {
             stage: "filters",          // ⬅️ ADD
             progressStage: "idle",
             jobId: null,
+            savedToHistory: false,
         },
     ]);
     const tabsRef = useRef(tabs);
@@ -482,6 +483,7 @@ const TlcNewClientProfitability = (props) => {
                 exporting: false,
                 clientProfitabilityAiHistoryPayload: [],
                 jobId: null,
+                savedToHistory: false,
             },
         ]);
 
@@ -874,7 +876,7 @@ const TlcNewClientProfitability = (props) => {
 
                     const statusData = await statusRes.json();
 
-                    // console.log("JOB STATUS:", statusData);
+                    console.log("JOB STATUS:", statusData);
 
                     if (statusData.status === "completed") {
                         clearInterval(pollInterval);
@@ -1019,7 +1021,7 @@ const TlcNewClientProfitability = (props) => {
             alert("Saved successfully");
 
             // 🔑 IMPORTANT: sirf current tab mark karo
-            updateTab({ isFromHistory: true, saving: false, });
+            updateTab({ saving: false, savedToHistory: true, });
 
             // history list me add
             setHistoryList(prev => [
@@ -2047,16 +2049,28 @@ const TlcNewClientProfitability = (props) => {
                             />
                             Compare and Analyse
                         </button>
-                        {activeTabData?.responseData && !activeTabData?.isFromHistory && (
+                        {activeTabData?.responseData && !activeTabData?.isFromHistory &&(
                             <button
                                 onClick={handleSaveClientProfitability}
-                                disabled={activeTabData?.saving}
-                                className="save-btnss"   // ✅ SAME CLASS AS CUSTOM REPORTING
+                                disabled={
+                                    activeTabData?.saving ||
+                                    activeTabData?.isFromHistory ||
+                                    activeTabData?.savedToHistory
+                                }
+                                className="save-btnss"
                                 style={{
                                     display: "flex",
                                     alignItems: "center",
                                     gap: "8px",
-                                    marginBottom: "10px"
+                                    marginBottom: "10px",
+                                    opacity:
+                                        (activeTabData?.isFromHistory || activeTabData?.savedToHistory)
+                                            ? 0.6
+                                            : 1,
+                                    cursor:
+                                        (activeTabData?.isFromHistory || activeTabData?.savedToHistory)
+                                            ? "not-allowed"
+                                            : "pointer",
                                 }}
                             >
                                 <img
@@ -2064,7 +2078,12 @@ const TlcNewClientProfitability = (props) => {
                                     alt="save"
                                     style={{ width: "14px", height: "14px" }}
                                 />
-                                {activeTabData?.saving ? "Processing..." : "Save"}
+
+                                {activeTabData?.saving
+                                    ? "Processing..."
+                                    : (activeTabData?.isFromHistory || activeTabData?.savedToHistory)
+                                        ? "Saved"
+                                        : "Save"}
                             </button>
                         )}
 
