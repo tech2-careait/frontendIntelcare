@@ -225,6 +225,7 @@ const NewFinancialHealth = (props) => {
             savingHistory: false,
             progressStage: "idle",
             stage: "idle",
+            savedToHistory: false,
         },
     ]);
 
@@ -285,6 +286,7 @@ const NewFinancialHealth = (props) => {
                 savingHistory: false,
                 progressStage: "idle",
                 stage: "idle",
+                savedToHistory: false,
             }
 
         ]);
@@ -795,8 +797,20 @@ const NewFinancialHealth = (props) => {
             if (!res.ok) {
                 throw new Error("Failed to save history");
             }
+            const data = await res.json(); 
 
+            setHistoryList(prev => [
+                {
+                    id: data.id,
+                    createdAt: new Date().toISOString(),
+                    filters: payload.filters,
+                },
+                ...prev,
+            ]);
             alert("Saved successfully");
+            updateTab({
+                savedToHistory: true,
+            });
         } catch (error) {
             console.error("Save history failed:", error);
             alert("Failed to save history");
@@ -854,6 +868,7 @@ const NewFinancialHealth = (props) => {
                 progressStage: "idle",
                 stage: "overview",
                 apiPlots: data.apiPlots || [],
+                savedToHistory: true,
             };
 
             // ---- TYPE-SPECIFIC HANDLING ----
@@ -941,6 +956,10 @@ const NewFinancialHealth = (props) => {
     };
 
     const handleAnalyse = async () => {
+        updateTab({
+            savedToHistory: false,
+            isFromHistory: false,
+        });
         // Validation checks
         if (userState && activeTabData.selectedState.length > 0) {
             const selectedStates = activeTabData.selectedState.map(s => s.value);
@@ -1992,7 +2011,7 @@ const NewFinancialHealth = (props) => {
                         }}
                     >
                         {/* LEFT: UI TABS */}
-                        {activeTabData.stage !== "loading" && renderUiTabBar()}
+                        {renderUiTabBar()}
 
                         {/* RIGHT: COMPARE & ANALYSE */}
                         <div
@@ -2003,7 +2022,7 @@ const NewFinancialHealth = (props) => {
                                 alignItems: "flex-end",
                             }}
                         >
-                            {activeTabData.stage !== "loading" && <button
+                            <button
                                 onClick={handleAnalyse} // existing financial analyse fn
                                 disabled={activeTabData.loading || activeTabData.uploading}
                                 style={{
@@ -2014,7 +2033,7 @@ const NewFinancialHealth = (props) => {
                                     borderRadius: "8px",
                                     fontSize: "14px",
                                     fontWeight: 400,
-                                    cursor: "pointer",
+                                    cursor: activeTabData.loading || activeTabData.uploading ? "not-allowed" : "pointer",
                                     display: "flex",
                                     alignItems: "center",
                                     gap: "8px",
@@ -2029,7 +2048,7 @@ const NewFinancialHealth = (props) => {
                                     style={{ width: "14px", height: "14px" }}
                                 />
                                 Compare and Analyse
-                            </button>}
+                            </button>
 
                         </div>
                     </div>
@@ -2292,7 +2311,7 @@ const NewFinancialHealth = (props) => {
                         }}
                     >
                         {/* LEFT: UI TABS */}
-                        {activeTabData.stage !== "loading" && renderUiTabBar()}
+                        {renderUiTabBar()}
 
                         {/* RIGHT: COMPARE & ANALYSE */}
                         <div
@@ -2303,7 +2322,7 @@ const NewFinancialHealth = (props) => {
                                 alignItems: "flex-end",
                             }}
                         >
-                            {activeTabData.stage !== "loading" && <button
+                            <button
                                 onClick={handleAnalyse} // existing financial analyse fn
                                 disabled={activeTabData?.loading || activeTabData?.uploading}
                                 style={{
@@ -2314,7 +2333,7 @@ const NewFinancialHealth = (props) => {
                                     borderRadius: "8px",
                                     fontSize: "14px",
                                     fontWeight: 400,
-                                    cursor: "pointer",
+                                    cursor: activeTabData?.loading || activeTabData?.uploading ? "not-allowed" : "pointer",
                                     display: "flex",
                                     alignItems: "center",
                                     gap: "8px",
@@ -2329,10 +2348,15 @@ const NewFinancialHealth = (props) => {
                                     style={{ width: "14px", height: "14px" }}
                                 />
                                 Compare and Analyse
-                            </button>}
+                            </button>
                             {!activeTabData.isFromHistory && (
                                 <button
                                     onClick={handleSaveFinancialHistory}
+                                    disabled={
+                                        activeTabData.savingHistory ||
+                                        activeTabData.isFromHistory ||
+                                        activeTabData.savedToHistory
+                                    }
                                     style={{
                                         background: "#6C4CDC",
                                         color: "#fff",
@@ -2341,11 +2365,16 @@ const NewFinancialHealth = (props) => {
                                         borderRadius: "8px",
                                         fontSize: "14px",
                                         fontWeight: 400,
-                                        cursor: "pointer",
+                                        cursor: activeTabData.savedToHistory ? "not-allowed" : "pointer",
+                                        opacity: activeTabData.savedToHistory ? 0.6 : 1,
                                         marginBottom: "10px"
                                     }}
                                 >
-                                    {activeTabData.savingHistory ? "Saving..." : "Save"}
+                                    {activeTabData.savingHistory
+                                        ? "Processing..."
+                                        : activeTabData.isFromHistory || activeTabData.savedToHistory
+                                            ? "Saved"
+                                            : "Save"}
                                 </button>
                             )}
 
