@@ -44,8 +44,11 @@ import PromptBlockEditor from "./PromptBlockEditor";
 import incrementAnalysisCount from "../FinancialModule/TLcAnalysisCount";
 import { FiMic } from "react-icons/fi";
 import { extractAudioFromVideo, getTranscriptTextFromAudioBlob } from "./CareVoiceAudioVideoExtract";
+import { Document, Packer, Paragraph, TextRun } from "docx";
+
 const VoiceModule = (props) => {
     const userEmail = props?.user?.email;
+    const setCareVoiceFiles = props?.setCareVoiceFiles;
     const domain = userEmail?.split("@")[1] || "";
     // console.log("userEmail", userEmail)
     // console.log("domain", domain)
@@ -138,6 +141,80 @@ const VoiceModule = (props) => {
     const [audioProgress, setAudioProgress] = useState(0);
     const [fileProgress, setFileProgress] = useState(0);
     const [clearAudioOnFileUpload, setClearAudioOnFileUpload] = useState(false);
+    useEffect(() => {
+        if (!generatedDocs?.length) return;
+
+        const files = generatedDocs.map((doc, index) => {
+            const byteCharacters = atob(doc.base64);
+            const byteNumbers = new Array(byteCharacters.length)
+                .fill(0)
+                .map((_, i) => byteCharacters.charCodeAt(i));
+
+            const byteArray = new Uint8Array(byteNumbers);
+
+            return new File(
+                [byteArray],
+                doc.filename || `doc_${index}.docx`,
+                { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }
+            );
+        });
+
+        console.log("📁 Sending docs to HomePage:", files);
+
+        setCareVoiceFiles(files);
+
+    }, [generatedDocs]);
+    useEffect(() => {
+        if (!uploadedTranscriptFiles?.length) return;
+
+        console.log("Sending transcripts to HomePage:", uploadedTranscriptFiles);
+
+        setCareVoiceFiles(prev => [
+            ...prev,
+            ...uploadedTranscriptFiles
+        ]);
+
+    }, [uploadedTranscriptFiles]);
+    const createTranscriptDoc = async (text, filename) => {
+        const doc = new Document({
+            sections: [
+                {
+                    children: [
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: "Transcript",
+                                    bold: true,
+                                    size: 28
+                                })
+                            ]
+                        }),
+
+                        new Paragraph(""), // spacing
+
+                        new Paragraph({
+                            children: [
+                                new TextRun({
+                                    text: text,
+                                    size: 22
+                                })
+                            ]
+                        })
+                    ]
+                }
+            ]
+        });
+
+        const blob = await Packer.toBlob(doc);
+
+        return new File(
+            [blob],
+            filename || `transcript_${Date.now()}.docx`,
+            {
+                type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            }
+        );
+    };
     const downloadRecording = () => {
         if (!audioBlob) return;
 
@@ -216,11 +293,28 @@ const VoiceModule = (props) => {
             const data = await res.json();
 
             console.log("ANDROID voice response", data);
+            //HANDLE TRANSCRIPTS
+            if (data.transcripts?.length) {
+                const transcriptFiles = await Promise.all(
+                    data.transcripts.map((t, i) =>
+                        createTranscriptDoc(
+                            t.text,
+                            `${t.fileName || "transcript"}_${i}.docx`
+                        )
+                    )
+                );
 
+                console.log("Transcripts converted:", transcriptFiles);
+
+                setCareVoiceFiles(prev => [
+                    ...prev,
+                    ...transcriptFiles
+                ]);
+            }
             if (data.success && data.documents?.length > 0) {
 
                 // console.log("Documents received:", data.documents.length);
-
+                const generatedFiles = [];
                 for (const doc of data.documents) {
 
                     // ✅ HANDLE BUFFER RESPONSE
@@ -245,7 +339,15 @@ const VoiceModule = (props) => {
                         document.body.removeChild(link);
 
                         window.URL.revokeObjectURL(blobUrl);
+                        const file = new File(
+                            [blob],
+                            doc.filename || "document.docx",
+                            {
+                                type: doc.mime || "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                            }
+                        );
 
+                        generatedFiles.push(file);
                         continue;
                     }
 
@@ -267,7 +369,14 @@ const VoiceModule = (props) => {
                         window.URL.revokeObjectURL(blobUrl);
                     }
                 }
+                if (generatedFiles.length > 0) {
+                    setCareVoiceFiles(prev => [
+                        ...prev,
+                        ...generatedFiles
+                    ]);
 
+                    console.log("Generated files sent to Ask AI:", generatedFiles);
+                }
                 console.log("ANDROID documents downloaded");
 
                 animateProgress(70, setAudioProgress, 100, 500);
@@ -486,7 +595,7 @@ const VoiceModule = (props) => {
 
         //     try {
 
-        //         const res = await fetch("/templates/videoplayback.webm");
+        //         const res = await fetch("/templates/You_re.mp3");
         //         const blob = await res.blob();
 
         //         console.log("Test audio loaded size:", blob.size);
@@ -679,7 +788,7 @@ const VoiceModule = (props) => {
             return;
         }
         try {
-            if (platformType !== "windows" || platformType !== "mac") {
+            if (platformType !== "windows" || platformType === "windows" || platformType !== "mac") {
 
                 console.log("ANDROID detected, using backend voice pipeline");
 
@@ -1667,148 +1776,192 @@ const VoiceModule = (props) => {
     };
 
 
-const submitMultipleTranscripts = async () => {
-    if (
-        !selectedTemplate ||
-        !selectedTemplate.isMulti ||
-        selectedTemplate.templates.length === 0 ||
-        uploadedTranscriptFiles.length === 0
-    ) return;
+    const submitMultipleTranscripts = async () => {
+        if (
+            !selectedTemplate ||
+            !selectedTemplate.isMulti ||
+            selectedTemplate.templates.length === 0 ||
+            uploadedTranscriptFiles.length === 0
+        ) return;
 
-    // Clear any playing audio
-    if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        setIsPlaying(false);
-    }
+        // Clear any playing audio
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+            setIsPlaying(false);
+        }
 
-    setIsGeneratingFile(true);
-    setFileStage("generating");
-    setFileProgress(0);
+        setIsGeneratingFile(true);
+        setFileStage("generating");
+        setFileProgress(0);
 
-    // Calculate total number of operations
-    const totalOperations = uploadedTranscriptFiles.length; // Only 1 API call per file now
-    let completedOperations = 0;
-    let hasError = false;
+        // Calculate total number of operations
+        const totalOperations = uploadedTranscriptFiles.length; // Only 1 API call per file now
+        let completedOperations = 0;
+        let hasError = false;
 
-    const docsToSend = [];
+        const docsToSend = [];
 
-    console.log(`Starting processing of ${totalOperations} total operations`);
-    console.log(`Templates: ${selectedTemplate.templates.length}, Files: ${uploadedTranscriptFiles.length}`);
+        console.log(`Starting processing of ${totalOperations} total operations`);
+        console.log(`Templates: ${selectedTemplate.templates.length}, Files: ${uploadedTranscriptFiles.length}`);
 
-    // Process each file with ALL templates in ONE API call
-    for (const file of uploadedTranscriptFiles) {
-        try {
-            console.log(`Processing file: ${file.name} with ${selectedTemplate.templates.length} templates`);
+        // Process each file with ALL templates in ONE API call
+        for (const file of uploadedTranscriptFiles) {
+            try {
+                console.log(`Processing file: ${file.name} with ${selectedTemplate.templates.length} templates`);
 
-            // Check if file is audio or video
-            if (isAudioFile(file) || isVideoFile(file)) {
-                console.log(`Processing ${isAudioFile(file) ? "audio" : "video"} file with ALL templates:`, file.name);
+                // Check if file is audio or video
+                if (isAudioFile(file) || isVideoFile(file)) {
+                    console.log(`Processing ${isAudioFile(file) ? "audio" : "video"} file with ALL templates:`, file.name);
 
-                const formData = new FormData();
-                formData.append("audio", file, file.name);
-                
-                // 🔥 OPTIMIZATION: Send ALL templates in ONE request
-                formData.append(
-                    "templates",
-                    JSON.stringify(selectedTemplate.templates) // Send all templates at once
-                );
-                formData.append("userEmail", userEmail || "");
-                formData.append("staffEmail", staffEmail || "");
-                formData.append("staffName", staffName || "");
+                    const formData = new FormData();
+                    formData.append("audio", file, file.name);
 
-                console.log(`Sending request for ${file.name} with ${selectedTemplate.templates.length} templates...`);
-                const res = await fetch(`${API_BASE}/api/process-recording`, {
-                    method: "POST",
-                    body: formData
-                });
+                    // 🔥 OPTIMIZATION: Send ALL templates in ONE request
+                    formData.append(
+                        "templates",
+                        JSON.stringify(selectedTemplate.templates) // Send all templates at once
+                    );
+                    formData.append("userEmail", userEmail || "");
+                    formData.append("staffEmail", staffEmail || "");
+                    formData.append("staffName", staffName || "");
 
-                console.log(`Response received for ${file.name}, status: ${res.status}`);
-                const data = await res.json();
-                console.log(`Processing response for ${file.name}:`, data);
+                    console.log(`Sending request for ${file.name} with ${selectedTemplate.templates.length} templates...`);
+                    const res = await fetch(`${API_BASE}/api/process-recording`, {
+                        method: "POST",
+                        body: formData
+                    });
 
-                if (data.success && data.documents?.length > 0) {
-                    // Backend returns documents for ALL templates
-                    for (const doc of data.documents) {
-                        if (doc.attachment?.data) {
-                            const byteArray = new Uint8Array(doc.attachment.data);
-                            const blob = new Blob([byteArray], {
-                                type: doc.mime || "application/octet-stream"
-                            });
-                            const blobUrl = window.URL.createObjectURL(blob);
-                            const link = document.createElement("a");
-                            link.href = blobUrl;
-                            link.download = doc.filename || `${file.name.replace(/\.[^/.]+$/, "")}_document.docx`;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            window.URL.revokeObjectURL(blobUrl);
+                    console.log(`Response received for ${file.name}, status: ${res.status}`);
+                    const data = await res.json();
+                    console.log(`Processing response for ${file.name}:`, data);
+                    //HANDLE TRANSCRIPTS HERE ALSO
+                    if (data.transcripts?.length) {
+                        const transcriptFiles = await Promise.all(
+                            data.transcripts.map((t, i) =>
+                                createTranscriptDoc(
+                                    t.text,
+                                    `${t.fileName || file.name}_transcript_${i}.docx`
+                                )
+                            )
+                        );
 
-                            docsToSend.push(doc);
-                            console.log(`Document generated for ${file.name}: ${doc.filename}`);
+                        console.log("Transcripts converted (multi):", transcriptFiles);
+
+                        setCareVoiceFiles(prev => [
+                            ...prev,
+                            ...transcriptFiles
+                        ]);
+                    }
+                    if (data.success && data.documents?.length > 0) {
+                        // Backend returns documents for ALL templates
+                        const generatedFiles = [];
+                        for (const doc of data.documents) {
+                            if (doc.attachment?.data) {
+
+                                const byteArray = new Uint8Array(doc.attachment.data);
+
+                                const blob = new Blob([byteArray], {
+                                    type: doc.mime || "application/octet-stream"
+                                });
+
+                                // ✅ DOWNLOAD (same)
+                                const blobUrl = window.URL.createObjectURL(blob);
+
+                                const link = document.createElement("a");
+                                link.href = blobUrl;
+                                link.download = doc.filename || `${file.name}_document.docx`;
+
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+
+                                window.URL.revokeObjectURL(blobUrl);
+
+                                // ✅ ADD THIS (IMPORTANT)
+                                const fileObj = new File(
+                                    [blob],
+                                    doc.filename || `${file.name}_document.docx`,
+                                    {
+                                        type: doc.mime || "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                    }
+                                );
+
+                                generatedFiles.push(fileObj);
+
+                                // existing
+                                docsToSend.push(doc);
+                            }
+                        }
+                        if (generatedFiles.length > 0) {
+                            setCareVoiceFiles(prev => [
+                                ...prev,
+                                ...generatedFiles
+                            ]);
+
+                            console.log("Generated files sent to Ask AI (multi):", generatedFiles);
+                        }
+                        console.log(`Generated ${data.documents.length} documents from ${file.name}`);
+                    } else {
+                        console.log(`No documents generated for ${file.name}`);
+                        if (data.error) {
+                            console.error(`Error from backend:`, data.error);
                         }
                     }
-                    console.log(`Generated ${data.documents.length} documents from ${file.name}`);
-                } else {
-                    console.log(`No documents generated for ${file.name}`);
-                    if (data.error) {
-                        console.error(`Error from backend:`, data.error);
+                }
+                else {
+                    // For non-audio/video files (PDF, DOC, TXT, etc.), use existing flow
+                    // For document files, we still need to process one template at a time
+                    // because document-filler API expects one template per request
+                    console.log("Processing non-audio/video file:", file.name);
+
+                    for (const tpl of selectedTemplate.templates) {
+                        try {
+                            const doc = await processSingleTranscriptWithTemplate(tpl, file);
+                            if (doc) docsToSend.push(doc);
+                        } catch (err) {
+                            console.error(`Error processing template ${tpl.id} with file ${file.name}:`, err);
+                            hasError = true;
+                        }
                     }
                 }
-            }
-            else {
-                // For non-audio/video files (PDF, DOC, TXT, etc.), use existing flow
-                // For document files, we still need to process one template at a time
-                // because document-filler API expects one template per request
-                console.log("Processing non-audio/video file:", file.name);
-                
-                for (const tpl of selectedTemplate.templates) {
-                    try {
-                        const doc = await processSingleTranscriptWithTemplate(tpl, file);
-                        if (doc) docsToSend.push(doc);
-                    } catch (err) {
-                        console.error(`Error processing template ${tpl.id} with file ${file.name}:`, err);
-                        hasError = true;
-                    }
+            } catch (err) {
+                console.error("Error processing file:", file.name, err);
+                hasError = true;
+            } finally {
+                completedOperations++;
+                const progressPercent = Math.floor((completedOperations / totalOperations) * 100);
+                setFileProgress(progressPercent);
+                console.log(`Progress: ${completedOperations}/${totalOperations} (${progressPercent}%)`);
+
+                // Add a small delay between file processing to prevent overwhelming the server
+                if (completedOperations < totalOperations) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
                 }
             }
-        } catch (err) {
-            console.error("Error processing file:", file.name, err);
-            hasError = true;
-        } finally {
-            completedOperations++;
-            const progressPercent = Math.floor((completedOperations / totalOperations) * 100);
-            setFileProgress(progressPercent);
-            console.log(`Progress: ${completedOperations}/${totalOperations} (${progressPercent}%)`);
+        }
 
-            // Add a small delay between file processing to prevent overwhelming the server
-            if (completedOperations < totalOperations) {
-                await new Promise(resolve => setTimeout(resolve, 500));
+        console.log(`All files processed. Total documents generated: ${docsToSend.length}`);
+
+        if (docsToSend.length > 0) {
+            setFileStage("emailing");
+            setFileProgress(90);
+            await sendGeneratedDocsEmail(docsToSend);
+            alert(`Successfully generated ${docsToSend.length} document(s)!`);
+        } else {
+            console.log("No documents were generated");
+            if (!hasError) {
+                alert("No documents were generated. Please check your audio files and templates.");
             }
         }
-    }
 
-    console.log(`All files processed. Total documents generated: ${docsToSend.length}`);
-
-    if (docsToSend.length > 0) {
-        setFileStage("emailing");
-        setFileProgress(90);
-        await sendGeneratedDocsEmail(docsToSend);
-        alert(`Successfully generated ${docsToSend.length} document(s)!`);
-    } else {
-        console.log("No documents were generated");
-        if (!hasError) {
-            alert("No documents were generated. Please check your audio files and templates.");
-        }
-    }
-
-    setFileProgress(100);
-    emailSentRef.current = false;
-    setIsGeneratingFile(false);
-    setFileStage(null);
-    resetStaffUI();
-    setCurrentTask("");
-};
+        setFileProgress(100);
+        emailSentRef.current = false;
+        setIsGeneratingFile(false);
+        setFileStage(null);
+        resetStaffUI();
+        setCurrentTask("");
+    };
 
 
 

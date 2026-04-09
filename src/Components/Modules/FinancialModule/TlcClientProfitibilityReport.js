@@ -10,207 +10,212 @@ export default function ClientProfitabilityAIAnalysisReportViewer({
     loading,
     progress = 0,
 }) {
- if (loading) {
-  return (
-    <div
-      style={{
-        padding: "16px",
-        borderRadius: "10px",
-        background: "#f9fafb",
-        border: "1px solid #e5e7eb",
-        fontFamily: "Inter, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          fontSize: "14px",
-          fontWeight: 500,
-          marginBottom: "10px",
-          color: "#374151",
-        }}
-      >
-        Generating AI insights…
-      </div>
+    if (loading) {
+        return (
+            <div
+                style={{
+                    padding: "16px",
+                    borderRadius: "10px",
+                    background: "#f9fafb",
+                    border: "1px solid #e5e7eb",
+                    fontFamily: "Inter, sans-serif",
+                }}
+            >
+                <div
+                    style={{
+                        fontSize: "14px",
+                        fontWeight: 500,
+                        marginBottom: "10px",
+                        color: "#374151",
+                    }}
+                >
+                    Generating AI insights…
+                </div>
 
-      {/* PROGRESS BAR */}
-      <div
-        style={{
-          height: "8px",
-          width: "100%",
-          background: "#e5e7eb",
-          borderRadius: "999px",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            height: "100%",
-            width: `${Math.max(5, progress || 0)}%`,
-            background: "linear-gradient(90deg, #6C4CDC, #8B5CF6)",
-            transition: "width 0.4s ease",
-          }}
-        />
-      </div>
+                {/* PROGRESS BAR */}
+                <div
+                    style={{
+                        height: "8px",
+                        width: "100%",
+                        background: "#e5e7eb",
+                        borderRadius: "999px",
+                        overflow: "hidden",
+                    }}
+                >
+                    <div
+                        style={{
+                            height: "100%",
+                            width: `${Math.max(5, progress || 0)}%`,
+                            background: "linear-gradient(90deg, #6C4CDC, #8B5CF6)",
+                            transition: "width 0.4s ease",
+                        }}
+                    />
+                </div>
 
-      {/* PERCENTAGE */}
-      <div
-        style={{
-          textAlign: "right",
-          marginTop: "6px",
-          fontSize: "12px",
-          color: "#6b7280",
-        }}
-      >
-        {progress || 0}%
-      </div>
-    </div>
-  );
-}
+                {/* PERCENTAGE */}
+                <div
+                    style={{
+                        textAlign: "right",
+                        marginTop: "6px",
+                        fontSize: "12px",
+                        color: "#6b7280",
+                    }}
+                >
+                    {progress || 0}%
+                </div>
+            </div>
+        );
+    }
 
 
     if (!reportText) return null;
 
     return (
         <div
-            className="ai-markdown-body"
-            style={{
-                background: "#ffffff",
-                borderRadius: "12px",
-                marginBottom: "30px",
-                border: "1px solid #e5e7eb",
-                fontFamily: "Inter, sans-serif",
-                fontSize: "15px",
-                lineHeight: "1.75",
-                color: "#1f2937",
-                textAlign: "left",
-                padding: "24px",
-            }}
+            className="reports-box"
+            style={{ height: "auto", marginTop: "20px", padding: "10px" }}
         >
-            <ReactMarkdown
-                children={reportText.replace(/```(?:markdown)?|```/g, "")}
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeRaw, rehypeHighlight]}
-                components={{
-                    h1: () => null,
-
-                    h2: ({ node, ...props }) => (
-                        <h2
-                            style={{
-                                fontSize: "20px",
-                                fontWeight: 700,
-                                marginTop: "28px",
-                                marginBottom: "12px",
-                                borderBottom: "1px solid #e5e7eb",
-                                paddingBottom: "6px",
-                                color: "#111827",
-                            }}
-                            {...props}
-                        />
-                    ),
-
-                    h3: ({ node, ...props }) => (
-                        <h3
-                            style={{
-                                fontSize: "16px",
-                                fontWeight: 600,
-                                marginTop: "18px",
-                                marginBottom: "8px",
-                                color: "#374151",
-                            }}
-                            {...props}
-                        />
-                    ),
-
-                    p: ({ node, ...props }) => (
-                        <p
-                            style={{
-                                marginBottom: "10px",
-                                color: "#2d2d2d",
-                            }}
-                            {...props}
-                        />
-                    ),
-
-                    strong: ({ node, ...props }) => (
-                        <strong
-                            style={{
-                                fontWeight: 600,
-                                color: "#111827",
-                            }}
-                            {...props}
-                        />
-                    ),
-
-                    ul: ({ node, ...props }) => (
-                        <ul
-                            style={{
-                                paddingLeft: "22px",
-                                marginBottom: "12px",
-                                listStyleType: "disc",
-                            }}
-                            {...props}
-                        />
-                    ),
-
-                    ol: ({ node, ...props }) => (
-                        <ol
-                            style={{
-                                paddingLeft: "22px",
-                                marginBottom: "12px",
-                                listStyleType: "decimal",
-                            }}
-                            {...props}
-                        />
-                    ),
-
-                    li: ({ node, ...props }) => (
-                        <li
-                            style={{
-                                marginBottom: "6px",
-                            }}
-                            {...props}
-                        />
-                    ),
-
-                    table: ({ node, ...props }) => (
-                        <table
-                            style={{
-                                width: "100%",
-                                borderCollapse: "collapse",
-                                marginTop: "14px",
-                                marginBottom: "20px",
-                                fontSize: "14px",
-                            }}
-                            {...props}
-                        />
-                    ),
-
-                    th: ({ node, ...props }) => (
-                        <th
-                            style={{
-                                background: "#f9fafb",
-                                border: "1px solid #e5e7eb",
-                                padding: "8px",
-                                fontWeight: 600,
-                                color: "#111827",
-                                textAlign: "left",
-                            }}
-                            {...props}
-                        />
-                    ),
-
-                    td: ({ node, ...props }) => (
-                        <td
-                            style={{
-                                border: "1px solid #e5e7eb",
-                                padding: "8px",
-                                color: "#374151",
-                            }}
-                            {...props}
-                        />
-                    ),
+            <div
+                className="ai-markdown-body"
+                style={{
+                    background: "#ffffff",
+                    borderRadius: "12px",
+                    marginBottom: "30px",
+                    // border: "1px solid #e5e7eb",
+                    fontFamily: "Inter, sans-serif",
+                    fontSize: "15px",
+                    lineHeight: "1.75",
+                    color: "#1f2937",
+                    textAlign: "left",
+                    padding: "24px",
                 }}
-            />
+            >
+                <ReactMarkdown
+                    children={reportText.replace(/```(?:markdown)?|```/g, "")}
+                    remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw, rehypeHighlight]}
+                    components={{
+                        h1: () => null,
+
+                        h2: ({ node, ...props }) => (
+                            <h2
+                                style={{
+                                    fontSize: "20px",
+                                    fontWeight: 700,
+                                    marginTop: "28px",
+                                    marginBottom: "12px",
+                                    borderBottom: "1px solid #e5e7eb",
+                                    paddingBottom: "6px",
+                                    color: "#111827",
+                                }}
+                                {...props}
+                            />
+                        ),
+
+                        h3: ({ node, ...props }) => (
+                            <h3
+                                style={{
+                                    fontSize: "16px",
+                                    fontWeight: 600,
+                                    marginTop: "18px",
+                                    marginBottom: "8px",
+                                    color: "#374151",
+                                }}
+                                {...props}
+                            />
+                        ),
+
+                        p: ({ node, ...props }) => (
+                            <p
+                                style={{
+                                    marginBottom: "10px",
+                                    color: "#2d2d2d",
+                                }}
+                                {...props}
+                            />
+                        ),
+
+                        strong: ({ node, ...props }) => (
+                            <strong
+                                style={{
+                                    fontWeight: 600,
+                                    color: "#111827",
+                                }}
+                                {...props}
+                            />
+                        ),
+
+                        ul: ({ node, ...props }) => (
+                            <ul
+                                style={{
+                                    paddingLeft: "22px",
+                                    marginBottom: "12px",
+                                    listStyleType: "disc",
+                                }}
+                                {...props}
+                            />
+                        ),
+
+                        ol: ({ node, ...props }) => (
+                            <ol
+                                style={{
+                                    paddingLeft: "22px",
+                                    marginBottom: "12px",
+                                    listStyleType: "decimal",
+                                }}
+                                {...props}
+                            />
+                        ),
+
+                        li: ({ node, ...props }) => (
+                            <li
+                                style={{
+                                    marginBottom: "6px",
+                                }}
+                                {...props}
+                            />
+                        ),
+
+                        table: ({ node, ...props }) => (
+                            <table
+                                style={{
+                                    width: "100%",
+                                    borderCollapse: "collapse",
+                                    marginTop: "14px",
+                                    marginBottom: "20px",
+                                    fontSize: "14px",
+                                }}
+                                {...props}
+                            />
+                        ),
+
+                        th: ({ node, ...props }) => (
+                            <th
+                                style={{
+                                    background: "#f9fafb",
+                                    border: "1px solid #e5e7eb",
+                                    padding: "8px",
+                                    fontWeight: 600,
+                                    color: "#111827",
+                                    textAlign: "left",
+                                }}
+                                {...props}
+                            />
+                        ),
+
+                        td: ({ node, ...props }) => (
+                            <td
+                                style={{
+                                    border: "1px solid #e5e7eb",
+                                    padding: "8px",
+                                    color: "#374151",
+                                }}
+                                {...props}
+                            />
+                        ),
+                    }}
+                />
+            </div>
         </div>
     );
 }
