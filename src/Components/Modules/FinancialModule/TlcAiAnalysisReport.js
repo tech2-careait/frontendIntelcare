@@ -178,218 +178,223 @@ export default function AIAnalysisReportViewer({
   }
 
 
-if (!reportText) return null;
+  if (!reportText) return null;
 
-// Clean and fix markdown
-const cleanedMarkdown = reportText.replace(/```(?:markdown)?|```/g, "");
-const fixedMarkdown = fixMarkdownTables(cleanedMarkdown);
+  // Clean and fix markdown
+  const cleanedMarkdown = reportText.replace(/```(?:markdown)?|```/g, "");
+  const fixedMarkdown = fixMarkdownTables(cleanedMarkdown);
 
-return (
-  <div
-    className="ai-markdown-body"
-    style={{
-      background: "#ffffff",
-      borderRadius: "12px",
-      marginBottom: "30px",
-      border: "1px solid #e5e7eb",
-      fontFamily: "Inter, sans-serif",
-      fontSize: "15px",
-      lineHeight: "1.75",
-      color: "#1f2937",
-      textAlign: "left",
-      padding: "16px",
-    }}
-  >
-    <ReactMarkdown
-      children={fixedMarkdown}
-      remarkPlugins={[remarkGfm]}
-      rehypePlugins={[rehypeRaw, rehypeHighlight]}
-      components={{
-        /* ---------- HEADINGS ---------- */
-        h1: () => null,
+  return (
+    <div
+      className="reports-box"
+      style={{ height: "auto", marginTop: "20px", padding: "10px" }}
+    >
+      <div
+        className="ai-markdown-body"
+        style={{
+          background: "#ffffff",
+          borderRadius: "12px",
+          marginBottom: "30px",
+          border: "1px solid #e5e7eb",
+          fontFamily: "Inter, sans-serif",
+          fontSize: "15px",
+          lineHeight: "1.75",
+          color: "#1f2937",
+          textAlign: "left",
+          padding: "16px",
+        }}
+      >
+        <ReactMarkdown
+          children={fixedMarkdown}
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={[rehypeRaw, rehypeHighlight]}
+          components={{
+            /* ---------- HEADINGS ---------- */
+            h1: () => null,
 
-        h2: ({ ...props }) => (
-          <h2
-            style={{
-              fontSize: "20px",
-              fontWeight: 700,
-              marginTop: "28px",
-              marginBottom: "12px",
-              borderBottom: "1px solid #e5e7eb",
-              paddingBottom: "6px",
-              color: "#111827",
-            }}
-            {...props}
-          />
-        ),
+            h2: ({ ...props }) => (
+              <h2
+                style={{
+                  fontSize: "20px",
+                  fontWeight: 700,
+                  marginTop: "28px",
+                  marginBottom: "12px",
+                  borderBottom: "1px solid #e5e7eb",
+                  paddingBottom: "6px",
+                  color: "#111827",
+                }}
+                {...props}
+              />
+            ),
 
-        h3: ({ ...props }) => (
-          <h3
-            style={{
-              fontSize: "16px",
-              fontWeight: 600,
-              marginTop: "18px",
-              marginBottom: "8px",
-              color: "#374151",
-            }}
-            {...props}
-          />
-        ),
+            h3: ({ ...props }) => (
+              <h3
+                style={{
+                  fontSize: "16px",
+                  fontWeight: 600,
+                  marginTop: "18px",
+                  marginBottom: "8px",
+                  color: "#374151",
+                }}
+                {...props}
+              />
+            ),
 
-        /* ---------- TEXT ---------- */
-        p: ({ ...props }) => (
-          <p
-            style={{
-              marginBottom: "10px",
-              color: "#2d2d2d",
-            }}
-            {...props}
-          />
-        ),
+            /* ---------- TEXT ---------- */
+            p: ({ ...props }) => (
+              <p
+                style={{
+                  marginBottom: "10px",
+                  color: "#2d2d2d",
+                }}
+                {...props}
+              />
+            ),
 
-        strong: ({ ...props }) => (
-          <strong
-            style={{
-              fontWeight: 600,
-              color: "#111827",
-            }}
-            {...props}
-          />
-        ),
+            strong: ({ ...props }) => (
+              <strong
+                style={{
+                  fontWeight: 600,
+                  color: "#111827",
+                }}
+                {...props}
+              />
+            ),
 
-        /* ---------- LISTS ---------- */
-        ul: ({ ...props }) => (
-          <ul
-            style={{
-              paddingLeft: "22px",
-              marginBottom: "12px",
-            }}
-            {...props}
-          />
-        ),
+            /* ---------- LISTS ---------- */
+            ul: ({ ...props }) => (
+              <ul
+                style={{
+                  paddingLeft: "22px",
+                  marginBottom: "12px",
+                }}
+                {...props}
+              />
+            ),
 
-        ol: ({ ...props }) => (
-          <ol
-            style={{
-              paddingLeft: "22px",
-              marginBottom: "12px",
-            }}
-            {...props}
-          />
-        ),
+            ol: ({ ...props }) => (
+              <ol
+                style={{
+                  paddingLeft: "22px",
+                  marginBottom: "12px",
+                }}
+                {...props}
+              />
+            ),
 
-        li: ({ ...props }) => (
-          <li
-            style={{
-              marginBottom: "6px",
-            }}
-            {...props}
-          />
-        ),
+            li: ({ ...props }) => (
+              <li
+                style={{
+                  marginBottom: "6px",
+                }}
+                {...props}
+              />
+            ),
 
-        /* ---------- ENHANCED TABLE STYLING ---------- */
-        table: ({ ...props }) => (
-          <div
-            style={{
-              overflowX: "auto",
-              marginTop: "14px",
-              marginBottom: "20px",
-              border: "1px solid #e5e7eb",
-              borderRadius: "8px",
-            }}
-          >
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                fontSize: "13px",
-              }}
-              {...props}
-            />
-          </div>
-        ),
+            /* ---------- ENHANCED TABLE STYLING ---------- */
+            table: ({ ...props }) => (
+              <div
+                style={{
+                  overflowX: "auto",
+                  marginTop: "14px",
+                  marginBottom: "20px",
+                  border: "1px solid #e5e7eb",
+                  borderRadius: "8px",
+                }}
+              >
+                <table
+                  style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                    fontSize: "13px",
+                  }}
+                  {...props}
+                />
+              </div>
+            ),
 
-        thead: ({ ...props }) => (
-          <thead
-            style={{
-              position: "sticky",
-              top: 0,
-              background: "#f9fafb",
-              zIndex: 1,
-            }}
-            {...props}
-          />
-        ),
+            thead: ({ ...props }) => (
+              <thead
+                style={{
+                  position: "sticky",
+                  top: 0,
+                  background: "#f9fafb",
+                  zIndex: 1,
+                }}
+                {...props}
+              />
+            ),
 
-        th: ({ style, children, ...props }) => {
-          // Detect alignment from style or content
-          const align = style?.textAlign || "left";
+            th: ({ style, children, ...props }) => {
+              // Detect alignment from style or content
+              const align = style?.textAlign || "left";
 
-          return (
-            <th
-              style={{
-                background: "#f9fafb",
-                borderBottom: "2px solid #d1d5db",
-                borderRight: "1px solid #e5e7eb",
-                padding: "12px 10px",
-                fontWeight: 600,
-                textAlign: align,
-                fontSize: "13px",
-                color: "#374151",
-                whiteSpace: "nowrap",
-                ...style,
-              }}
-              {...props}
-            >
-              {children}
-            </th>
-          );
-        },
+              return (
+                <th
+                  style={{
+                    background: "#f9fafb",
+                    borderBottom: "2px solid #d1d5db",
+                    borderRight: "1px solid #e5e7eb",
+                    padding: "12px 10px",
+                    fontWeight: 600,
+                    textAlign: align,
+                    fontSize: "13px",
+                    color: "#374151",
+                    whiteSpace: "nowrap",
+                    ...style,
+                  }}
+                  {...props}
+                >
+                  {children}
+                </th>
+              );
+            },
 
-        tbody: ({ ...props }) => (
-          <tbody
-            style={{
-              background: "#ffffff",
-            }}
-            {...props}
-          />
-        ),
+            tbody: ({ ...props }) => (
+              <tbody
+                style={{
+                  background: "#ffffff",
+                }}
+                {...props}
+              />
+            ),
 
-        tr: ({ ...props }) => (
-          <tr
-            style={{
-              borderBottom: "1px solid #e5e7eb",
-            }}
-            {...props}
-          />
-        ),
+            tr: ({ ...props }) => (
+              <tr
+                style={{
+                  borderBottom: "1px solid #e5e7eb",
+                }}
+                {...props}
+              />
+            ),
 
-        td: ({ style, children, ...props }) => {
-          // Detect alignment
-          const align = style?.textAlign || "left";
+            td: ({ style, children, ...props }) => {
+              // Detect alignment
+              const align = style?.textAlign || "left";
 
-          return (
-            <td
-              style={{
-                borderRight: "1px solid #f3f4f6",
-                padding: "10px",
-                textAlign: align,
-                fontSize: "13px",
-                color: "#1f2937",
-                maxWidth: "300px",
-                wordBreak: "break-word",
-                whiteSpace: "normal",
-                lineHeight: "1.5",
-                ...style,
-              }}
-              {...props}
-            >
-              {children}
-            </td>
-          );
-        },
-      }}
-    />
-  </div>
-);
+              return (
+                <td
+                  style={{
+                    borderRight: "1px solid #f3f4f6",
+                    padding: "10px",
+                    textAlign: align,
+                    fontSize: "13px",
+                    color: "#1f2937",
+                    maxWidth: "300px",
+                    wordBreak: "break-word",
+                    whiteSpace: "normal",
+                    lineHeight: "1.5",
+                    ...style,
+                  }}
+                  {...props}
+                >
+                  {children}
+                </td>
+              );
+            },
+          }}
+        />
+      </div>
+    </div>
+  );
 }
