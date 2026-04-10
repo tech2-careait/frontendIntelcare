@@ -67,8 +67,12 @@ import PlansAndBillings from "./PlansAndBillings";
 import chatBotKeyIcon from "../Images/chatBoyKeyIcon.svg"
 import apiTutorialsIcon from "../Images/apiTutorialKeyIcon.svg"
 import { startSpeechRecognition, stopSpeechRecognition } from "./AskAiSTT";
+import { SlLike, SlDislike } from "react-icons/sl";
 import { LuSpeech } from "react-icons/lu";
 import { FaThumbsUp, FaThumbsDown } from "react-icons/fa";
+import { FiFileText } from "react-icons/fi";
+import { IoChevronForward, IoChevronDown } from "react-icons/io5";
+import { BiDislike, BiLike, BiSolidDislike, BiSolidLike } from "react-icons/bi";
 const HomePage = () => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [documentString, setDocumentString] = useState("");
@@ -144,6 +148,8 @@ const HomePage = () => {
   const handleModalClose = () => setModalVisible(false);
   const handleLeftModalOpen = () => setLeftModalVisible(true);
   const handleLeftModalClose = () => setLeftModalVisible(false);
+  const [feedbackMode, setFeedbackMode] = useState(null);
+  // { index, message }
   // console.log("user?.email",user?.email)
   const userEmail = user?.email;
   // const userEmail = "kris@curki.ai";
@@ -173,7 +179,7 @@ const HomePage = () => {
       }
     }));
   };
-  const submitFeedback = async (index, message, type) => {
+  const submitFeedback = async (index, message, type, feedbackText = "") => {
     const key = `${selectedRole}_${index}`;
     try {
       const data = feedbackState[key] || {};
@@ -188,11 +194,11 @@ const HomePage = () => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          firebaseUid: user?.uid, 
+          firebaseUid: user?.uid,
           userEmail: user?.email,
           message,
           feedbackType: type,
-          feedbackText: data.text || "" 
+          feedbackText: feedbackText
         })
       });
 
@@ -544,6 +550,50 @@ const HomePage = () => {
 
 
   const handleSend = async (customText, eventName = null) => {
+    // 🚨 FEEDBACK MODE HANDLER (ADD THIS AT TOP)
+    if (feedbackMode) {
+      const rawQuery =
+        typeof customText === "string"
+          ? customText
+          : inputRef.current || "";
+
+      const feedbackText = rawQuery.trim();
+      if (!feedbackText) return;
+
+      const key = `${selectedRole}_${feedbackMode.index}`;
+
+      try {
+        // ✅ CALL YOUR EXISTING API FUNCTION
+        await submitFeedback(
+          feedbackMode.index,
+          feedbackMode.message,
+          "down",
+          feedbackText
+        );
+
+        // ✅ SAVE FEEDBACK TEXT
+        setFeedbackState((prev) => ({
+          ...prev,
+          [key]: {
+            ...prev[key],
+            text: feedbackText,
+            submitted: true
+          }
+        }));
+
+      } catch (err) {
+        console.error("Feedback error:", err);
+      }
+
+      // ✅ RESET MODE
+      setFeedbackMode(null);
+
+      // ✅ CLEAR INPUT
+      if (textareaRef.current) textareaRef.current.value = "";
+      inputRef.current = "";
+
+      return;
+    }
     const rawQuery =
       typeof customText === "string"
         ? customText
@@ -1519,98 +1569,26 @@ const HomePage = () => {
                                         remarkPlugins={[remarkGfm]}
                                         rehypePlugins={[rehypeRaw, rehypeHighlight]}
                                       />
-                                      {msg.sender === "bot" && !msg.temp && (
-                                        <div style={{ marginTop: "10px" }}>
 
-                                          {/* 👍 👎 BUTTONS */}
-                                          {!feedbackState[`${selectedRole}_${index}`]?.submitted && (
-                                            <div style={{ display: "flex", gap: "10px" }}>
-
-                                              <FaThumbsUp
-                                                size={16}
-                                                style={{
-                                                  cursor: "pointer",
-                                                  color: feedbackState[`${selectedRole}_${index}`]?.type === "up" ? "#6C4CDC" : "#999"
-                                                }}
-                                                onClick={() => {
-                                                  handleFeedbackClick(index, "up");
-                                                  submitFeedback(index, msg.text, "up");
-                                                }}
-                                              />
-
-                                              <FaThumbsDown
-                                                size={16}
-                                                style={{
-                                                  cursor: "pointer",
-                                                  color: feedbackState[`${selectedRole}_${index}`]?.type === "down" ? "#6C4CDC" : "#999"
-                                                }}
-                                                onClick={() => handleFeedbackClick(index, "down")}
-                                              />
-                                            </div>
-                                          )}
-
-                                          {/* 👎 INPUT BOX */}
-                                          {feedbackState[`${selectedRole}_${index}`]?.showInput && !feedbackState[`${selectedRole}_${index}`]?.submitted && (
-                                            <div style={{ marginTop: "10px" }}>
-                                              <textarea
-                                                placeholder="Please share your feedback..."
-                                                value={feedbackState[`${selectedRole}_${index}`]?.text || ""}
-                                                onChange={(e) => {
-                                                  const key = `${selectedRole}_${index}`;
-
-                                                  setFeedbackState((prev) => ({
-                                                    ...prev,
-                                                    [key]: {
-                                                      ...prev[key],
-                                                      text: e.target.value
-                                                    }
-                                                  }));
-                                                }}
-                                                style={{
-                                                  width: "100%",
-                                                  padding: "8px",
-                                                  borderRadius: "8px",
-                                                  border: "1px solid #ccc",
-                                                  marginBottom: "8px"
-                                                }}
-                                              />
-
-                                              <button
-                                                onClick={() => submitFeedback(index, msg.text, "down")}
-                                                disabled={feedbackState[`${selectedRole}_${index}`]?.submitting}
-                                                style={{
-                                                  padding: "6px 12px",
-                                                  background: "#6C4CDC",
-                                                  color: "#fff",
-                                                  border: "none",
-                                                  borderRadius: "6px",
-                                                  cursor: "pointer"
-                                                }}
-                                              >
-                                                {feedbackState[`${selectedRole}_${index}`]?.submitting ? "Submitting..." : "Submit"}
-                                              </button>
-                                            </div>
-                                          )}
-                                          {/* {feedbackState[`${selectedRole}_${index}`]?.submitted && (
-                                            <div style={{ marginTop: "8px", fontSize: "12px", color: "#6C4CDC" }}>
-                                              Thanks for your feedback 🙌
-                                            </div>
-                                          )} */}
-
-                                        </div>
-                                      )}
                                     </>
                                   )}
                                   {msg.sender === "bot" && msg.sources?.length > 0 && (
                                     <div style={{ marginTop: "12px" }}>
-
+                                      <div
+                                        style={{
+                                          width: "100%",
+                                          height: "1px",
+                                          background: "#E5E7EB",
+                                          marginBottom: "10px"
+                                        }}
+                                      />
                                       <div style={{
                                         fontSize: "13px",
                                         fontWeight: 600,
                                         marginBottom: "8px",
                                         color: "#555"
                                       }}>
-                                        🔍 SOURCES ({msg.sources.length})
+                                        SOURCES ({Math.min(msg.sources.length, 5)})
                                       </div>
 
                                       <div
@@ -1621,7 +1599,7 @@ const HomePage = () => {
                                           overflowX: expandedSource !== null ? "hidden" : "auto"
                                         }}
                                       >
-                                        {msg.sources.map((src, i) => {
+                                        {msg.sources.slice(0, 5).map((src, i) => {
                                           const isOpen = expandedSource === i;
 
                                           return (
@@ -1632,19 +1610,17 @@ const HomePage = () => {
                                                 minWidth: expandedSource !== null ? "100%" : "200px",
                                                 maxWidth: expandedSource !== null ? "100%" : "200px",
                                                 flexShrink: 0,
-
                                                 border: isOpen ? "1px solid #6C4CDC" : "1px solid #E5E7EB",
                                                 borderRadius: "14px",
                                                 padding: "12px 14px",
                                                 cursor: "pointer",
                                                 background: "#fff",
                                                 transition: "all 0.2s ease",
-
                                                 display: "flex",
                                                 flexDirection: "column",
-                                                justifyContent: "space-between",
-
-                                                height: expandedSource !== null ? "auto" : "64px", // ✅ equal height
+                                                justifyContent: "center",
+                                                alignItems: "flex-start",
+                                                height: expandedSource !== null ? "auto" : "60px",
                                               }}
                                             >
 
@@ -1654,36 +1630,56 @@ const HomePage = () => {
                                                   display: "flex",
                                                   justifyContent: "space-between",
                                                   alignItems: "center",
-                                                  gap: "8px"
+                                                  width: "100%"
                                                 }}
                                               >
-                                                <span
-                                                  style={{
-                                                    fontSize: "13px",
-                                                    fontWeight: 500,
-                                                    color: "#6C4CDC", // ✅ PURPLE
 
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    whiteSpace: "nowrap",
-                                                    maxWidth: "120px"
-                                                  }}
-                                                >
-                                                  📄 {src.document_name}
-                                                </span>
-
-                                                <span
+                                                {/* LEFT SIDE */}
+                                                <div
                                                   style={{
-                                                    fontSize: "11px",
-                                                    color: "#6C4CDC", // ✅ PURPLE
-                                                    fontWeight: 500,
                                                     display: "flex",
                                                     alignItems: "center",
-                                                    gap: "2px"
+                                                    gap: "6px",
+                                                    overflow: "hidden"
                                                   }}
                                                 >
-                                                  {i + 1} {isOpen ? "▼" : "›"}
-                                                </span>
+                                                  <FiFileText size={14} color="#6C4CDC" />
+
+                                                  <span
+                                                    style={{
+                                                      fontSize: "13px",
+                                                      fontWeight: 500,
+                                                      color: "#6C4CDC",
+                                                      overflow: "hidden",
+                                                      textOverflow: "ellipsis",
+                                                      whiteSpace: "nowrap",
+                                                      maxWidth: "120px"
+                                                    }}
+                                                  >
+                                                    {src.document_name}
+                                                  </span>
+                                                </div>
+
+                                                {/* RIGHT SIDE */}
+                                                <div
+                                                  style={{
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    gap: "6px",
+                                                    color: "#6C4CDC",
+                                                    fontSize: "11px",
+                                                    fontWeight: 500
+                                                  }}
+                                                >
+                                                  {i + 1}
+
+                                                  {isOpen ? (
+                                                    <IoChevronDown size={14} />
+                                                  ) : (
+                                                    <IoChevronForward size={14} />
+                                                  )}
+                                                </div>
+
                                               </div>
 
                                               {/* EXPANDED */}
@@ -1784,6 +1780,111 @@ const HomePage = () => {
                                     </div>
                                   )}
                                 </div>
+                                {msg.sender === "bot" && !msg.temp && (
+                                  <div style={{ marginTop: "10px" }}>
+
+                                    {/* 👍 👎 ALWAYS VISIBLE */}
+                                    <div style={{ display: "flex", gap: "10px" }}>
+
+                                      {
+                                        feedbackState[`${selectedRole}_${index}`]?.type === "up" ? (
+                                          <BiSolidLike
+                                            size={24}
+                                            style={{ cursor: "pointer", color: "#4FD46E" }}
+                                            onClick={() => {
+                                              handleFeedbackClick(index, "up");
+                                              submitFeedback(index, msg.text, "up");
+                                            }}
+                                          />
+                                        ) : (
+                                          <BiLike
+                                            size={24}
+                                            style={{ cursor: "pointer", color: "#999" }}
+                                            onClick={() => {
+                                              handleFeedbackClick(index, "up");
+                                              submitFeedback(index, msg.text, "up");
+                                            }}
+                                          />
+                                        )
+                                      }
+
+                                      {
+                                        feedbackState[`${selectedRole}_${index}`]?.type === "down" ? (
+                                          <BiSolidDislike
+                                            size={24}
+                                            style={{ cursor: "pointer", color: "#C6685F" }}
+                                            onClick={() => {
+                                              const key = `${selectedRole}_${index}`;
+
+                                              // toggle OFF
+                                              if (feedbackMode && feedbackMode.index === index) {
+                                                setFeedbackMode(null);
+                                                setFeedbackState((prev) => ({
+                                                  ...prev,
+                                                  [key]: { ...prev[key], type: null }
+                                                }));
+                                                return;
+                                              }
+
+                                              // toggle ON
+                                              setFeedbackState((prev) => ({
+                                                ...prev,
+                                                [key]: { ...prev[key], type: "down" }
+                                              }));
+
+                                              setFeedbackMode({
+                                                index,
+                                                message: msg.text
+                                              });
+
+                                              setTimeout(() => {
+                                                textareaRef.current?.focus();
+                                              }, 100);
+                                            }}
+                                          />
+                                        ) : (
+                                          <BiDislike
+                                            size={24}
+                                            style={{ cursor: "pointer", color: "#999" }}
+                                            onClick={() => {
+                                              const key = `${selectedRole}_${index}`;
+
+                                              setFeedbackState((prev) => ({
+                                                ...prev,
+                                                [key]: { ...prev[key], type: "down" }
+                                              }));
+
+                                              setFeedbackMode({
+                                                index,
+                                                message: msg.text
+                                              });
+
+                                              setTimeout(() => {
+                                                textareaRef.current?.focus();
+                                              }, 100);
+                                            }}
+                                          />
+                                        )
+                                      }
+                                    </div>
+
+                                    {/* 👇 MESSAGE BELOW THUMBS (ONLY ON DISLIKE) */}
+                                    {feedbackMode && feedbackMode.index === index && (
+                                      <div
+                                        style={{
+                                          marginTop: "6px",
+                                          fontSize: "13px",
+                                          fontWeight: 500,
+                                          color: "#3C3B42",
+                                          fontFamily: "Inter"
+                                        }}
+                                      >
+                                        Please submit your feedback below 👇 Or press icon again to discard
+                                      </div>
+                                    )}
+
+                                  </div>
+                                )}
                               </div>
                               {msg.sender === "user" && (
                                 <div
@@ -1929,7 +2030,7 @@ const HomePage = () => {
 
                         <textarea
                           rows={1}
-                          placeholder="Ask me anything..."
+                          placeholder={feedbackMode ? "Please submit your feedback here..." : "Ask me anything..."}
                           ref={textareaRef}
                           defaultValue=""
                           onChange={(e) => {
