@@ -16,7 +16,7 @@ import careVoiceEndAndPreview from "../../../Images/careVoiceEndAndPreview.png"
 import careVoiceStaffTemplateIcon from "../../../Images/careVoiceStaffTemplateIcon.png"
 import careVoiceLeft from "../../../Images/careVoiceLeft.png"
 import careVoiceRight from "../../../Images/careVoiceRight.png"
-import { FiDownload, FiUploadCloud } from "react-icons/fi";
+import { FiDownload, FiFileText, FiUploadCloud } from "react-icons/fi";
 import MapperGrid from "./VoiceModuleMapper";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import PulsatingLoader from "../../PulsatingLoader";
@@ -49,7 +49,11 @@ import { Document, Packer, Paragraph, TextRun } from "docx";
 const VoiceModule = (props) => {
     const userEmail = props?.user?.email;
     const setCareVoiceFiles = props?.setCareVoiceFiles;
+    const setIsCareVoiceGeneratingDocs = props?.setIsCareVoiceGeneratingDocs;
+    const setTotalCareVoiceDocsToGenerate = props?.setTotalCareVoiceDocsToGenerate;
+    const setGeneratedCareVoiceDocsCount = props?.setGeneratedCareVoiceDocsCount;
     const domain = userEmail?.split("@")[1] || "";
+    // console.log("props.careVoiceFiles", props.careVoiceFiles)
     // console.log("userEmail", userEmail)
     // console.log("domain", domain)
     const organizationId = domain;
@@ -141,6 +145,10 @@ const VoiceModule = (props) => {
     const [audioProgress, setAudioProgress] = useState(0);
     const [fileProgress, setFileProgress] = useState(0);
     const [clearAudioOnFileUpload, setClearAudioOnFileUpload] = useState(false);
+    // Add near other state declarations
+    const [docsGeneratedCount, setDocsGeneratedCount] = useState(0);
+    const [totalDocsToGenerate, setTotalDocsToGenerate] = useState(0);
+    const [showGeneratedFilesUI, setShowGeneratedFilesUI] = useState(false);
     useEffect(() => {
         if (!generatedDocs?.length) return;
 
@@ -159,15 +167,18 @@ const VoiceModule = (props) => {
             );
         });
 
-        console.log("📁 Sending docs to HomePage:", files);
+        // console.log("Sending docs to HomePage:", files);
 
-        setCareVoiceFiles(files);
+        setCareVoiceFiles(prev => [
+            ...prev,
+            ...files
+        ]);
 
     }, [generatedDocs]);
     useEffect(() => {
         if (!uploadedTranscriptFiles?.length) return;
 
-        console.log("Sending transcripts to HomePage:", uploadedTranscriptFiles);
+        // console.log("Sending transcripts to HomePage:", uploadedTranscriptFiles);
 
         setCareVoiceFiles(prev => [
             ...prev,
@@ -175,6 +186,7 @@ const VoiceModule = (props) => {
         ]);
 
     }, [uploadedTranscriptFiles]);
+
     const createTranscriptDoc = async (text, filename) => {
         const doc = new Document({
             sections: [
@@ -253,24 +265,17 @@ const VoiceModule = (props) => {
         file.type.startsWith("audio/");
     const processVoiceRecordingAndroid = async () => {
         try {
-            // console.log("ANDROID voice pipeline started");
-
             if (!audioBlob) {
                 console.log("No audio blob");
                 return;
             }
 
-            // console.log("selectedTemplate?.templates", selectedTemplate?.templates);
-
             const formData = new FormData();
-
             formData.append("audio", audioBlob, "recording.webm");
-
             formData.append(
                 "templates",
                 JSON.stringify(selectedTemplate?.templates || [])
             );
-
             formData.append("userEmail", userEmail || "");
             formData.append("staffEmail", staffEmail || "");
             formData.append("staffName", staffName || "");
@@ -278,7 +283,6 @@ const VoiceModule = (props) => {
             console.log("ANDROID request payload ready");
 
             setGenerationStage("generating");
-
             animateProgress(audioProgress, setAudioProgress, 30, 600);
 
             const res = await fetch(`${API_BASE}/api/process-recording`, {
@@ -291,9 +295,11 @@ const VoiceModule = (props) => {
             animateProgress(30, setAudioProgress, 70, 800);
 
             const data = await res.json();
+            // console.log("ANDROID voice response", data);
 
-            console.log("ANDROID voice response", data);
-            //HANDLE TRANSCRIPTS
+            let documentsGenerated = 0;
+
+            // HANDLE TRANSCRIPTS
             if (data.transcripts?.length) {
                 const transcriptFiles = await Promise.all(
                     data.transcripts.map((t, i) =>
@@ -304,41 +310,40 @@ const VoiceModule = (props) => {
                     )
                 );
 
-                console.log("Transcripts converted:", transcriptFiles);
+                // console.log("Transcripts converted:", transcriptFiles);
+                documentsGenerated += transcriptFiles.length;
+
+                // Update parent state
+                if (setGeneratedCareVoiceDocsCount) setGeneratedCareVoiceDocsCount(documentsGenerated);
+                if (setTotalCareVoiceDocsToGenerate) setTotalCareVoiceDocsToGenerate(documentsGenerated);
+
+                setDocsGeneratedCount(documentsGenerated);
+                setTotalDocsToGenerate(documentsGenerated);
 
                 setCareVoiceFiles(prev => [
                     ...prev,
                     ...transcriptFiles
                 ]);
             }
-            if (data.success && data.documents?.length > 0) {
 
-                // console.log("Documents received:", data.documents.length);
+            if (data.success && data.documents?.length > 0) {
                 const generatedFiles = [];
                 for (const doc of data.documents) {
-
-                    // ✅ HANDLE BUFFER RESPONSE
                     if (doc.attachment?.data) {
-
-                        console.log("Downloading buffer document:", doc.filename);
-
+                        // console.log("Downloading buffer document:", doc.filename);
                         const byteArray = new Uint8Array(doc.attachment.data);
-
                         const blob = new Blob([byteArray], {
                             type: doc.mime || "application/octet-stream"
                         });
-
                         const blobUrl = window.URL.createObjectURL(blob);
-
                         const link = document.createElement("a");
                         link.href = blobUrl;
                         link.download = doc.filename || "document.docx";
-
                         document.body.appendChild(link);
                         link.click();
                         document.body.removeChild(link);
-
                         window.URL.revokeObjectURL(blobUrl);
+
                         const file = new File(
                             [blob],
                             doc.filename || "document.docx",
@@ -346,46 +351,42 @@ const VoiceModule = (props) => {
                                 type: doc.mime || "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                             }
                         );
-
                         generatedFiles.push(file);
-                        continue;
-                    }
+                        documentsGenerated++;
 
-                    // ✅ OPTIONAL: fallback if URL ever comes
-                    if (doc.url) {
-                        const fileResponse = await fetch(doc.url);
-                        const blob = await fileResponse.blob();
+                        // Update parent state
+                        if (setGeneratedCareVoiceDocsCount) setGeneratedCareVoiceDocsCount(documentsGenerated);
+                        if (setTotalCareVoiceDocsToGenerate) setTotalCareVoiceDocsToGenerate(documentsGenerated);
 
-                        const blobUrl = window.URL.createObjectURL(blob);
-
-                        const link = document.createElement("a");
-                        link.href = blobUrl;
-                        link.download = doc.filename || "document.docx";
-
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-
-                        window.URL.revokeObjectURL(blobUrl);
+                        setDocsGeneratedCount(documentsGenerated);
+                        setTotalDocsToGenerate(documentsGenerated);
                     }
                 }
+
                 if (generatedFiles.length > 0) {
                     setCareVoiceFiles(prev => [
                         ...prev,
                         ...generatedFiles
                     ]);
-
-                    console.log("Generated files sent to Ask AI:", generatedFiles);
+                    // console.log("Generated files sent to Ask AI:", generatedFiles);
                 }
-                console.log("ANDROID documents downloaded");
-
+                // console.log("ANDROID documents downloaded");
                 animateProgress(70, setAudioProgress, 100, 500);
             } else {
-                console.log("No documents returned from backend");
+                // console.log("No documents returned from backend");
             }
 
         } catch (err) {
             console.error("ANDROID voice processing failed", err);
+        } finally {
+            // Reset generating flag after a delay
+
+            if (setIsCareVoiceGeneratingDocs) setIsCareVoiceGeneratingDocs(false);
+            if (setGeneratedCareVoiceDocsCount) setGeneratedCareVoiceDocsCount(0);
+            if (setTotalCareVoiceDocsToGenerate) setTotalCareVoiceDocsToGenerate(0);
+            setDocsGeneratedCount(0);
+            setTotalDocsToGenerate(0);
+
         }
     };
     const openDropdown = (e, tplId) => {
@@ -789,17 +790,27 @@ const VoiceModule = (props) => {
         }
         try {
             if (platformType !== "windows" || platformType === "windows" || platformType !== "mac") {
-
                 console.log("ANDROID detected, using backend voice pipeline");
 
                 setGenerationStage("generating");
 
+                // Set generating flag
+                if (setIsCareVoiceGeneratingDocs) setIsCareVoiceGeneratingDocs(true);
+                if (setTotalCareVoiceDocsToGenerate) setTotalCareVoiceDocsToGenerate(1);
+                if (setGeneratedCareVoiceDocsCount) setGeneratedCareVoiceDocsCount(0);
+                setShowGeneratedFilesUI(true);
                 await processVoiceRecordingAndroid();
 
                 setGenerationStage(null);
 
-                resetStaffUI();
+                // Reset after delay
 
+                if (setIsCareVoiceGeneratingDocs) setIsCareVoiceGeneratingDocs(false);
+                if (setGeneratedCareVoiceDocsCount) setGeneratedCareVoiceDocsCount(0);
+                if (setTotalCareVoiceDocsToGenerate) setTotalCareVoiceDocsToGenerate(0);
+
+
+                // resetStaffUI();
                 return;
             }
             setGenerationStage("transcribing");
@@ -1479,7 +1490,7 @@ const VoiceModule = (props) => {
         emailSentRef.current = false;
         setIsGeneratingAudio(false);
         setGenerationStage(null);
-        resetStaffUI();
+        // resetStaffUI();
         setCurrentTask("");
         setAudioProgress(0);
     };
@@ -1629,7 +1640,7 @@ const VoiceModule = (props) => {
                 downloadBase64File(data.filled_document, filename);
 
                 await sendGeneratedDocsEmail(docs);
-                resetStaffUI();
+                // resetStaffUI();
             }
 
             setGeneratedDocs([]);
@@ -1675,7 +1686,7 @@ const VoiceModule = (props) => {
                 throw new Error(data.error || "Email API failed");
             }
 
-            // console.log("📧 Email sent:", docs.length);
+            // console.log("Email sent:", docs.length);
         } catch (err) {
             console.error("❌ Email send failed", err.message);
         }
@@ -1777,6 +1788,7 @@ const VoiceModule = (props) => {
 
 
     const submitMultipleTranscripts = async () => {
+        setShowGeneratedFilesUI(true);
         if (
             !selectedTemplate ||
             !selectedTemplate.isMulti ||
@@ -1795,47 +1807,54 @@ const VoiceModule = (props) => {
         setFileStage("generating");
         setFileProgress(0);
 
-        // Calculate total number of operations
-        const totalOperations = uploadedTranscriptFiles.length; // Only 1 API call per file now
+        // Set generating docs flag in parent
+        if (setIsCareVoiceGeneratingDocs) setIsCareVoiceGeneratingDocs(true);
+
+        // Reset counters
+        let totalDocsExpected = 0;
+        let docsGeneratedSoFar = 0;
+
+        // Calculate total operations
+        const totalOperations = uploadedTranscriptFiles.length;
         let completedOperations = 0;
         let hasError = false;
-
         const docsToSend = [];
 
-        console.log(`Starting processing of ${totalOperations} total operations`);
-        console.log(`Templates: ${selectedTemplate.templates.length}, Files: ${uploadedTranscriptFiles.length}`);
+        // console.log(`Starting processing of ${totalOperations} total operations`);
+        // console.log(`Templates: ${selectedTemplate.templates.length}, Files: ${uploadedTranscriptFiles.length}`);
 
         // Process each file with ALL templates in ONE API call
         for (const file of uploadedTranscriptFiles) {
             try {
-                console.log(`Processing file: ${file.name} with ${selectedTemplate.templates.length} templates`);
+                // console.log(`Processing file: ${file.name} with ${selectedTemplate.templates.length} templates`);
 
                 // Check if file is audio or video
                 if (isAudioFile(file) || isVideoFile(file)) {
-                    console.log(`Processing ${isAudioFile(file) ? "audio" : "video"} file with ALL templates:`, file.name);
+                    // console.log(`Processing ${isAudioFile(file) ? "audio" : "video"} file with ALL templates:`, file.name);
 
                     const formData = new FormData();
                     formData.append("audio", file, file.name);
 
-                    // 🔥 OPTIMIZATION: Send ALL templates in ONE request
+                    // OPTIMIZATION: Send ALL templates in ONE request
                     formData.append(
                         "templates",
-                        JSON.stringify(selectedTemplate.templates) // Send all templates at once
+                        JSON.stringify(selectedTemplate.templates)
                     );
                     formData.append("userEmail", userEmail || "");
                     formData.append("staffEmail", staffEmail || "");
                     formData.append("staffName", staffName || "");
 
-                    console.log(`Sending request for ${file.name} with ${selectedTemplate.templates.length} templates...`);
+                    // console.log(`Sending request for ${file.name} with ${selectedTemplate.templates.length} templates...`);
                     const res = await fetch(`${API_BASE}/api/process-recording`, {
                         method: "POST",
                         body: formData
                     });
 
-                    console.log(`Response received for ${file.name}, status: ${res.status}`);
+                    // console.log(`Response received for ${file.name}, status: ${res.status}`);
                     const data = await res.json();
-                    console.log(`Processing response for ${file.name}:`, data);
-                    //HANDLE TRANSCRIPTS HERE ALSO
+                    // console.log(`Processing response for ${file.name}:`, data);
+
+                    // HANDLE TRANSCRIPTS
                     if (data.transcripts?.length) {
                         const transcriptFiles = await Promise.all(
                             data.transcripts.map((t, i) =>
@@ -1846,36 +1865,41 @@ const VoiceModule = (props) => {
                             )
                         );
 
-                        console.log("Transcripts converted (multi):", transcriptFiles);
+                        // console.log("Transcripts converted (multi):", transcriptFiles);
+                        docsGeneratedSoFar += transcriptFiles.length;
+                        totalDocsExpected += transcriptFiles.length;
+
+                        // Update parent state
+                        if (setGeneratedCareVoiceDocsCount) setGeneratedCareVoiceDocsCount(docsGeneratedSoFar);
+                        if (setTotalCareVoiceDocsToGenerate) setTotalCareVoiceDocsToGenerate(totalDocsExpected);
+
+                        setDocsGeneratedCount(docsGeneratedSoFar);
+                        setTotalDocsToGenerate(totalDocsExpected);
 
                         setCareVoiceFiles(prev => [
                             ...prev,
                             ...transcriptFiles
                         ]);
                     }
+
                     if (data.success && data.documents?.length > 0) {
                         // Backend returns documents for ALL templates
                         const generatedFiles = [];
                         for (const doc of data.documents) {
                             if (doc.attachment?.data) {
-
                                 const byteArray = new Uint8Array(doc.attachment.data);
-
                                 const blob = new Blob([byteArray], {
                                     type: doc.mime || "application/octet-stream"
                                 });
 
-                                // ✅ DOWNLOAD (same)
+                                // ✅ DOWNLOAD
                                 const blobUrl = window.URL.createObjectURL(blob);
-
                                 const link = document.createElement("a");
                                 link.href = blobUrl;
                                 link.download = doc.filename || `${file.name}_document.docx`;
-
                                 document.body.appendChild(link);
                                 link.click();
                                 document.body.removeChild(link);
-
                                 window.URL.revokeObjectURL(blobUrl);
 
                                 // ✅ ADD THIS (IMPORTANT)
@@ -1888,37 +1912,77 @@ const VoiceModule = (props) => {
                                 );
 
                                 generatedFiles.push(fileObj);
-
-                                // existing
                                 docsToSend.push(doc);
+                                docsGeneratedSoFar++;
+                                totalDocsExpected++;
+
+                                // Update parent state
+                                if (setGeneratedCareVoiceDocsCount) setGeneratedCareVoiceDocsCount(docsGeneratedSoFar);
+                                if (setTotalCareVoiceDocsToGenerate) setTotalCareVoiceDocsToGenerate(totalDocsExpected);
+
+                                setDocsGeneratedCount(docsGeneratedSoFar);
+                                setTotalDocsToGenerate(totalDocsExpected);
                             }
                         }
+
                         if (generatedFiles.length > 0) {
                             setCareVoiceFiles(prev => [
                                 ...prev,
                                 ...generatedFiles
                             ]);
 
-                            console.log("Generated files sent to Ask AI (multi):", generatedFiles);
+                            // console.log("Generated files sent to Ask AI (multi):", generatedFiles);
                         }
-                        console.log(`Generated ${data.documents.length} documents from ${file.name}`);
+                        // console.log(`Generated ${data.documents.length} documents from ${file.name}`);
                     } else {
-                        console.log(`No documents generated for ${file.name}`);
+                        // console.log(`No documents generated for ${file.name}`);
                         if (data.error) {
                             console.error(`Error from backend:`, data.error);
                         }
                     }
                 }
                 else {
-                    // For non-audio/video files (PDF, DOC, TXT, etc.), use existing flow
-                    // For document files, we still need to process one template at a time
-                    // because document-filler API expects one template per request
+                    // For non-audio/video files (PDF, DOC, TXT, etc.)
                     console.log("Processing non-audio/video file:", file.name);
 
                     for (const tpl of selectedTemplate.templates) {
                         try {
                             const doc = await processSingleTranscriptWithTemplate(tpl, file);
-                            if (doc) docsToSend.push(doc);
+
+                            if (doc) {
+                                docsToSend.push(doc);
+
+                                //CONVERT BASE64 → FILE (IMPORTANT)
+                                const byteCharacters = atob(doc.base64);
+                                const byteNumbers = new Array(byteCharacters.length)
+                                    .fill(0)
+                                    .map((_, i) => byteCharacters.charCodeAt(i));
+
+                                const byteArray = new Uint8Array(byteNumbers);
+
+                                const fileObj = new File(
+                                    [byteArray],
+                                    doc.filename,
+                                    {
+                                        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                    }
+                                );
+
+                                // ✅ ADD TO UI STATE (THIS WAS MISSING)
+                                setCareVoiceFiles(prev => [
+                                    ...prev,
+                                    fileObj
+                                ]);
+
+                                docsGeneratedSoFar++;
+                                totalDocsExpected++;
+
+                                if (setGeneratedCareVoiceDocsCount) setGeneratedCareVoiceDocsCount(docsGeneratedSoFar);
+                                if (setTotalCareVoiceDocsToGenerate) setTotalCareVoiceDocsToGenerate(totalDocsExpected);
+
+                                setDocsGeneratedCount(docsGeneratedSoFar);
+                                setTotalDocsToGenerate(totalDocsExpected);
+                            }
                         } catch (err) {
                             console.error(`Error processing template ${tpl.id} with file ${file.name}:`, err);
                             hasError = true;
@@ -1934,7 +1998,7 @@ const VoiceModule = (props) => {
                 setFileProgress(progressPercent);
                 console.log(`Progress: ${completedOperations}/${totalOperations} (${progressPercent}%)`);
 
-                // Add a small delay between file processing to prevent overwhelming the server
+                // Add a small delay between file processing
                 if (completedOperations < totalOperations) {
                     await new Promise(resolve => setTimeout(resolve, 500));
                 }
@@ -1959,7 +2023,17 @@ const VoiceModule = (props) => {
         emailSentRef.current = false;
         setIsGeneratingFile(false);
         setFileStage(null);
-        resetStaffUI();
+
+        // Reset generating flag after all documents are processed
+
+        if (setIsCareVoiceGeneratingDocs) setIsCareVoiceGeneratingDocs(false);
+        if (setGeneratedCareVoiceDocsCount) setGeneratedCareVoiceDocsCount(0);
+        if (setTotalCareVoiceDocsToGenerate) setTotalCareVoiceDocsToGenerate(0);
+        setDocsGeneratedCount(0);
+        setTotalDocsToGenerate(0);
+
+
+        // resetStaffUI();
         setCurrentTask("");
     };
 
@@ -2029,6 +2103,29 @@ const VoiceModule = (props) => {
         setStaffName("");
         setStaffEmail("");
     };
+    const handleResetAll = () => {
+        props.onReset?.();
+        // 1. Reset staff UI
+        resetStaffUI();
+        setShowGeneratedFilesUI(false);
+        // 2. Clear Care Voice files
+        setCareVoiceFiles([]);
+
+        // 3. Reset generation states
+        setIsCareVoiceGeneratingDocs(false);
+        setTotalCareVoiceDocsToGenerate(0);
+        setGeneratedCareVoiceDocsCount(0);
+
+        // 4. Reset Ask AI session (VERY IMPORTANT)
+        if (props?.setCareVoiceSessionId) props.setCareVoiceSessionId(null);
+        if (props?.setCareVoiceUserId) props.setCareVoiceUserId(null);
+        if (props?.setCareVoiceStarted) props.setCareVoiceStarted(false);
+
+        // 5. Clear Ask AI chat
+        if (props?.setMessages) props.setMessages([]);
+
+        console.log("Full reset done");
+    };
     return (
         <div className="voice-container">
             {/* ================= TOP ROW ================= */}
@@ -2053,7 +2150,7 @@ const VoiceModule = (props) => {
                     disabled={props.isMobileOrTablet}
                 />
 
-                {role === "Staff" && (
+                {role === "Staff" && !showGeneratedFilesUI && (
                     <>
                         <div className="voice-field">
                             <img
@@ -2100,7 +2197,7 @@ const VoiceModule = (props) => {
                 </div>
 
             )} */}
-            {role === "Staff" && staffStep === "landing" && (
+            {role === "Staff" && !showGeneratedFilesUI && staffStep === "landing" && (
                 <div style={{ textAlign: "center", marginTop: "40px" }}>
                     <h2 style={{ fontWeight: 600, fontSize: "24px", color: "#0e0c16" }}>
                         Select A Template To Populate
@@ -2769,7 +2866,7 @@ const VoiceModule = (props) => {
             )}
 
             {/* ================= STAFF VIEW ================= */}
-            {role === "Staff" && staffStep === "working" && (
+            {role === "Staff" && !showGeneratedFilesUI && staffStep === "working" && (
                 <>
                     <div className="record-conversation">
                         {/* LEFT */}
@@ -3248,6 +3345,123 @@ const VoiceModule = (props) => {
                 </div>
             )} */}
 
+            {showGeneratedFilesUI && (
+                <div style={{ padding: "20px", maxWidth: "1100px", margin: "0 auto" }}>
+
+                    {/* HEADER */}
+                    <div
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            marginBottom: "36px",
+                            fontWeight: 600,
+                            fontSize: "24px"
+                        }}
+                    >
+                        <h3 style={{ margin: 0 }}>{!props?.isCareVoiceGeneratingDocs ? "Generated Documents" : "Generating Documents..."}</h3>
+                    </div>
+                    
+                    {/* FILE CARDS */}
+                    {props?.careVoiceFiles?.length === 0 ||
+                        props?.isCareVoiceGeneratingDocs ? (
+                         <div className="round-loader"></div>
+                    ) : (
+                        <div
+                            style={{
+                                display: "grid",
+                                gridTemplateColumns: "repeat(3, 1fr)", // ✅ 3 per row
+                                gap: "15px",
+                                marginBottom: "36px"
+                            }}
+                        >
+                            {(props.careVoiceFiles || []).map((file, index) => (
+                                <div
+                                    key={index}
+                                    style={{
+                                        width: "100%",
+                                        height: "75px",
+                                        background: "#F5F5F7",
+                                        borderRadius: "10px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        padding: "12px 15px",
+                                        gap: "12px",
+                                        cursor: "pointer"
+                                    }}
+                                >
+                                    {/* FILE ICON */}
+                                    <div
+                                        style={{
+                                            width: "36px",
+                                            height: "36px",
+                                            background: "#4F46E5",
+                                            borderRadius: "8px",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            flexShrink: 0
+                                        }}
+                                    >
+                                        <FiFileText color="#fff" size={18} />
+                                    </div>
+
+                                    {/* FILE TEXT */}
+                                    <div
+                                        style={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            width: "100%",
+                                            textAlign: "left"
+                                        }}
+                                    >
+                                        {/* MAIN NAME (TRUNCATED) */}
+                                        <span
+                                            style={{
+                                                fontWeight: 500,
+                                                fontSize: "14px",
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                maxWidth: "220px"
+                                            }}
+                                            title={file.name}
+                                        >
+                                            {file.name?.split(".")[0]}
+                                        </span>
+
+                                        {/* FULL NAME SMALL (TRUNCATED) */}
+                                        <span
+                                            style={{
+                                                fontSize: "12px",
+                                                color: "#777",
+                                                whiteSpace: "nowrap",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                maxWidth: "220px"
+                                            }}
+                                            title={file.name}
+                                        >
+                                            {file.name}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* RESET BUTTON */}
+                    {!props?.isCareVoiceGeneratingDocs && <div style={{ display: "flex", justifyContent: "center" }}>
+                        <button
+                            className="staff-primary"
+                            onClick={handleResetAll}
+                        >
+                            Start With New Templates
+                        </button>
+                    </div>}
+
+                </div>
+            )}
         </div>
     );
 };
