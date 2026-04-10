@@ -188,11 +188,11 @@ const HomePage = () => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          firebaseUid: user?.uid, // ✅ FIX 2 (IMPORTANT)
+          firebaseUid: user?.uid, 
           userEmail: user?.email,
           message,
-          feedbackType: type, // ✅ FIX 3
-          feedbackText: data.text || "" // ✅ FIX 4
+          feedbackType: type,
+          feedbackText: data.text || "" 
         })
       });
 
