@@ -1588,7 +1588,7 @@ const HomePage = () => {
                                         marginBottom: "8px",
                                         color: "#555"
                                       }}>
-                                        SOURCES ({Math.min(msg.sources.length, 5)})
+                                        SOURCE DOCUMENTS({Math.min(msg.sources.length, 5)})
                                       </div>
 
                                       <div
@@ -1606,21 +1606,30 @@ const HomePage = () => {
                                             <div
                                               key={`${src.document_name}-${i}`}
                                               onClick={() => setExpandedSource(isOpen ? null : i)}
+
+
+                                              onMouseEnter={(e) => {
+                                                e.currentTarget.style.background = "#e4dff0";
+                                              }}
+                                              onMouseLeave={(e) => {
+                                                e.currentTarget.style.background = "transparent";
+                                              }}
+
                                               style={{
                                                 minWidth: expandedSource !== null ? "100%" : "200px",
                                                 maxWidth: expandedSource !== null ? "100%" : "200px",
                                                 flexShrink: 0,
                                                 border: isOpen ? "1px solid #6C4CDC" : "1px solid #E5E7EB",
-                                                borderRadius: "14px",
+                                                borderRadius: "4px",
                                                 padding: "12px 14px",
                                                 cursor: "pointer",
-                                                background: "#fff",
+                                                background: "transparent",
                                                 transition: "all 0.2s ease",
                                                 display: "flex",
                                                 flexDirection: "column",
                                                 justifyContent: "center",
                                                 alignItems: "flex-start",
-                                                height: expandedSource !== null ? "auto" : "60px",
+                                                height: expandedSource !== null ? "auto" : "48px",
                                               }}
                                             >
 
@@ -1643,7 +1652,7 @@ const HomePage = () => {
                                                     overflow: "hidden"
                                                   }}
                                                 >
-                                                  <FiFileText size={14} color="#6C4CDC" />
+                                                  <FiFileText size={18} color="#6C4CDC" />
 
                                                   <span
                                                     style={{
@@ -1656,7 +1665,9 @@ const HomePage = () => {
                                                       maxWidth: "120px"
                                                     }}
                                                   >
-                                                    {src.document_name}
+                                                    {src.document_name.length > 20
+                                                      ? src.document_name.slice(0, 20) + "..."
+                                                      : src.document_name}
                                                   </span>
                                                 </div>
 
@@ -1781,10 +1792,9 @@ const HomePage = () => {
                                   )}
                                 </div>
                                 {msg.sender === "bot" && !msg.temp && (
-                                  <div style={{ marginTop: "10px" }}>
+                                  <div style={{ width: "100%" }}>
 
-                                    {/* 👍 👎 ALWAYS VISIBLE */}
-                                    <div style={{ display: "flex", gap: "10px" }}>
+                                    <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
 
                                       {
                                         feedbackState[`${selectedRole}_${index}`]?.type === "up" ? (
@@ -1876,7 +1886,8 @@ const HomePage = () => {
                                           fontSize: "13px",
                                           fontWeight: 500,
                                           color: "#3C3B42",
-                                          fontFamily: "Inter"
+                                          fontFamily: "Inter",
+                                          textAlign: "end"
                                         }}
                                       >
                                         Please submit your feedback below 👇 Or press icon again to discard
