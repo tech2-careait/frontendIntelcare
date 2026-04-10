@@ -162,22 +162,24 @@ const HomePage = () => {
   const isTlcDomainUser = tlcDomains.includes(userDomain);
   const isDemoUser = userEmail === "kris@curki.ai";
   const handleFeedbackClick = (index, type) => {
+    const key = `${selectedRole}_${index}`;
+
     setFeedbackState((prev) => ({
       ...prev,
-      [index]: {
-        ...prev[index],
-        type, // ✅ VERY IMPORTANT
+      [key]: {
+        ...prev[key],
+        type,
         showInput: type === "down",
       }
     }));
   };
   const submitFeedback = async (index, message, type) => {
+    const key = `${selectedRole}_${index}`;
     try {
-      const data = feedbackState[index] || {}; // ✅ FIX 1
-
+      const data = feedbackState[key] || {};
       setFeedbackState((prev) => ({
         ...prev,
-        [index]: { ...prev[index], submitting: true }
+        [key]: { ...prev[key], submitting: true }
       }));
 
       await fetch("https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/askAiFeedback/shareFeedback", {
@@ -196,8 +198,8 @@ const HomePage = () => {
 
       setFeedbackState((prev) => ({
         ...prev,
-        [index]: {
-          ...prev[index],
+        [key]: {
+          ...prev[key],
           submitting: false,
           submitted: true
         }
@@ -208,8 +210,8 @@ const HomePage = () => {
 
       setFeedbackState((prev) => ({
         ...prev,
-        [index]: {
-          ...prev[index],
+        [key]: {
+          ...prev[key],
           submitting: false
         }
       }));
@@ -1521,14 +1523,14 @@ const HomePage = () => {
                                         <div style={{ marginTop: "10px" }}>
 
                                           {/* 👍 👎 BUTTONS */}
-                                          {!feedbackState[index]?.submitted && (
+                                          {!feedbackState[`${selectedRole}_${index}`]?.submitted && (
                                             <div style={{ display: "flex", gap: "10px" }}>
 
                                               <FaThumbsUp
                                                 size={16}
                                                 style={{
                                                   cursor: "pointer",
-                                                  color: feedbackState[index]?.type === "up" ? "#6C4CDC" : "#999"
+                                                  color: feedbackState[`${selectedRole}_${index}`]?.type === "up" ? "#6C4CDC" : "#999"
                                                 }}
                                                 onClick={() => {
                                                   handleFeedbackClick(index, "up");
@@ -1540,7 +1542,7 @@ const HomePage = () => {
                                                 size={16}
                                                 style={{
                                                   cursor: "pointer",
-                                                  color: feedbackState[index]?.type === "down" ? "#6C4CDC" : "#999"
+                                                  color: feedbackState[`${selectedRole}_${index}`]?.type === "down" ? "#6C4CDC" : "#999"
                                                 }}
                                                 onClick={() => handleFeedbackClick(index, "down")}
                                               />
@@ -1548,20 +1550,22 @@ const HomePage = () => {
                                           )}
 
                                           {/* 👎 INPUT BOX */}
-                                          {feedbackState[index]?.showInput && !feedbackState[index]?.submitted && (
+                                          {feedbackState[`${selectedRole}_${index}`]?.showInput && !feedbackState[`${selectedRole}_${index}`]?.submitted && (
                                             <div style={{ marginTop: "10px" }}>
                                               <textarea
                                                 placeholder="Please share your feedback..."
-                                                value={feedbackState[index]?.text || ""}
-                                                onChange={(e) =>
+                                                value={feedbackState[`${selectedRole}_${index}`]?.text || ""}
+                                                onChange={(e) => {
+                                                  const key = `${selectedRole}_${index}`;
+
                                                   setFeedbackState((prev) => ({
                                                     ...prev,
-                                                    [index]: {
-                                                      ...prev[index],
+                                                    [key]: {
+                                                      ...prev[key],
                                                       text: e.target.value
                                                     }
-                                                  }))
-                                                }
+                                                  }));
+                                                }}
                                                 style={{
                                                   width: "100%",
                                                   padding: "8px",
@@ -1573,7 +1577,7 @@ const HomePage = () => {
 
                                               <button
                                                 onClick={() => submitFeedback(index, msg.text, "down")}
-                                                disabled={feedbackState[index]?.submitting}
+                                                disabled={feedbackState[`${selectedRole}_${index}`]?.submitting}
                                                 style={{
                                                   padding: "6px 12px",
                                                   background: "#6C4CDC",
@@ -1583,17 +1587,15 @@ const HomePage = () => {
                                                   cursor: "pointer"
                                                 }}
                                               >
-                                                {feedbackState[index]?.submitting ? "Submitting..." : "Submit"}
+                                                {feedbackState[`${selectedRole}_${index}`]?.submitting ? "Submitting..." : "Submit"}
                                               </button>
                                             </div>
                                           )}
-
-                                          {/* ✅ SUCCESS MESSAGE */}
-                                          {feedbackState[index]?.submitted && (
+                                          {/* {feedbackState[`${selectedRole}_${index}`]?.submitted && (
                                             <div style={{ marginTop: "8px", fontSize: "12px", color: "#6C4CDC" }}>
                                               Thanks for your feedback 🙌
                                             </div>
-                                          )}
+                                          )} */}
 
                                         </div>
                                       )}
