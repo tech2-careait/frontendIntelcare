@@ -68,6 +68,7 @@ import chatBotKeyIcon from "../Images/chatBoyKeyIcon.svg"
 import apiTutorialsIcon from "../Images/apiTutorialKeyIcon.svg"
 import { startSpeechRecognition, stopSpeechRecognition } from "./AskAiSTT";
 import { LuSpeech } from "react-icons/lu";
+import { FaThumbsUp, FaThumbsDown } from "react-icons/fa";
 const HomePage = () => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [documentString, setDocumentString] = useState("");
@@ -137,6 +138,7 @@ const HomePage = () => {
   const [selectedSources, setSelectedSources] = useState([]);
   const [isStartingSession, setIsStartingSession] = useState(false);
   const [expandedSource, setExpandedSource] = useState(null);
+  const [feedbackState, setFeedbackState] = useState({});
   const recognizerRef = useRef(null);
   const handleModalOpen = () => setModalVisible(true);
   const handleModalClose = () => setModalVisible(false);
@@ -159,6 +161,62 @@ const HomePage = () => {
 
   const isTlcDomainUser = tlcDomains.includes(userDomain);
   const isDemoUser = userEmail === "kris@curki.ai";
+  const handleFeedbackClick = (index, type) => {
+    const key = `${selectedRole}_${index}`;
+
+    setFeedbackState((prev) => ({
+      ...prev,
+      [key]: {
+        ...prev[key],
+        type,
+        showInput: type === "down",
+      }
+    }));
+  };
+  const submitFeedback = async (index, message, type) => {
+    const key = `${selectedRole}_${index}`;
+    try {
+      const data = feedbackState[key] || {};
+      setFeedbackState((prev) => ({
+        ...prev,
+        [key]: { ...prev[key], submitting: true }
+      }));
+
+      await fetch("https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/askAiFeedback/shareFeedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          firebaseUid: user?.uid, 
+          userEmail: user?.email,
+          message,
+          feedbackType: type,
+          feedbackText: data.text || "" 
+        })
+      });
+
+      setFeedbackState((prev) => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          submitting: false,
+          submitted: true
+        }
+      }));
+
+    } catch (err) {
+      console.error("Feedback error:", err);
+
+      setFeedbackState((prev) => ({
+        ...prev,
+        [key]: {
+          ...prev[key],
+          submitting: false
+        }
+      }));
+    }
+  };
   useEffect(() => {
     const handleTabClose = () => {
       if (!careVoiceSessionId || !careVoiceUserId) return;
@@ -445,7 +503,7 @@ const HomePage = () => {
         return;
       }
       // console.log("careVoiceFiles", careVoiceFiles);
-      setIsStartingSession(true); 
+      setIsStartingSession(true);
 
       const formData = new FormData();
       formData.append("firebaseUid", user?.uid);
@@ -1452,15 +1510,96 @@ const HomePage = () => {
                                       <span></span>
                                     </div>
                                   ) : (
-                                    <ReactMarkdown
-                                      children={msg.text
-                                        .replace(/```(?:\w+)?\n?/, "")
-                                        .replace(/```$/, "")
-                                      }
-                                      remarkPlugins={[remarkGfm]}
-                                      rehypePlugins={[rehypeRaw, rehypeHighlight]}
-                                    />
+                                    <>
+                                      <ReactMarkdown
+                                        children={msg.text
+                                          .replace(/```(?:\w+)?\n?/, "")
+                                          .replace(/```$/, "")
+                                        }
+                                        remarkPlugins={[remarkGfm]}
+                                        rehypePlugins={[rehypeRaw, rehypeHighlight]}
+                                      />
+                                      {msg.sender === "bot" && !msg.temp && (
+                                        <div style={{ marginTop: "10px" }}>
 
+                                          {/* 👍 👎 BUTTONS */}
+                                          {!feedbackState[`${selectedRole}_${index}`]?.submitted && (
+                                            <div style={{ display: "flex", gap: "10px" }}>
+
+                                              <FaThumbsUp
+                                                size={16}
+                                                style={{
+                                                  cursor: "pointer",
+                                                  color: feedbackState[`${selectedRole}_${index}`]?.type === "up" ? "#6C4CDC" : "#999"
+                                                }}
+                                                onClick={() => {
+                                                  handleFeedbackClick(index, "up");
+                                                  submitFeedback(index, msg.text, "up");
+                                                }}
+                                              />
+
+                                              <FaThumbsDown
+                                                size={16}
+                                                style={{
+                                                  cursor: "pointer",
+                                                  color: feedbackState[`${selectedRole}_${index}`]?.type === "down" ? "#6C4CDC" : "#999"
+                                                }}
+                                                onClick={() => handleFeedbackClick(index, "down")}
+                                              />
+                                            </div>
+                                          )}
+
+                                          {/* 👎 INPUT BOX */}
+                                          {feedbackState[`${selectedRole}_${index}`]?.showInput && !feedbackState[`${selectedRole}_${index}`]?.submitted && (
+                                            <div style={{ marginTop: "10px" }}>
+                                              <textarea
+                                                placeholder="Please share your feedback..."
+                                                value={feedbackState[`${selectedRole}_${index}`]?.text || ""}
+                                                onChange={(e) => {
+                                                  const key = `${selectedRole}_${index}`;
+
+                                                  setFeedbackState((prev) => ({
+                                                    ...prev,
+                                                    [key]: {
+                                                      ...prev[key],
+                                                      text: e.target.value
+                                                    }
+                                                  }));
+                                                }}
+                                                style={{
+                                                  width: "100%",
+                                                  padding: "8px",
+                                                  borderRadius: "8px",
+                                                  border: "1px solid #ccc",
+                                                  marginBottom: "8px"
+                                                }}
+                                              />
+
+                                              <button
+                                                onClick={() => submitFeedback(index, msg.text, "down")}
+                                                disabled={feedbackState[`${selectedRole}_${index}`]?.submitting}
+                                                style={{
+                                                  padding: "6px 12px",
+                                                  background: "#6C4CDC",
+                                                  color: "#fff",
+                                                  border: "none",
+                                                  borderRadius: "6px",
+                                                  cursor: "pointer"
+                                                }}
+                                              >
+                                                {feedbackState[`${selectedRole}_${index}`]?.submitting ? "Submitting..." : "Submit"}
+                                              </button>
+                                            </div>
+                                          )}
+                                          {/* {feedbackState[`${selectedRole}_${index}`]?.submitted && (
+                                            <div style={{ marginTop: "8px", fontSize: "12px", color: "#6C4CDC" }}>
+                                              Thanks for your feedback 🙌
+                                            </div>
+                                          )} */}
+
+                                        </div>
+                                      )}
+                                    </>
                                   )}
                                   {msg.sender === "bot" && msg.sources?.length > 0 && (
                                     <div style={{ marginTop: "12px" }}>
@@ -1730,7 +1869,7 @@ const HomePage = () => {
 
                         </div>
                       }
-                      {!careVoiceStarted ? (
+                      {isCareVoicePage && !careVoiceStarted ? (
                         <button
                           onClick={startCareVoiceSession}
                           disabled={isStartingSession}
@@ -1759,7 +1898,7 @@ const HomePage = () => {
                             "Start Session"
                           )}
                         </button>
-                      ) : (
+                      ) : isCareVoicePage ? (
                         <div
                           style={{
                             fontSize: "12px",
@@ -1771,7 +1910,7 @@ const HomePage = () => {
                         >
                           Session Active
                         </div>
-                      )}
+                      ) : null}
                       <div style={{ position: "relative", marginTop: "10px", marginBottom: "18px", width: "100%", display: "flex", alignSelf: "center" }}>
                         <img
                           src={askAiSearchIcon}
