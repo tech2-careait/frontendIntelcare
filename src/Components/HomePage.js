@@ -68,7 +68,7 @@ import chatBotKeyIcon from "../Images/chatBoyKeyIcon.svg"
 import apiTutorialsIcon from "../Images/apiTutorialKeyIcon.svg"
 import { startSpeechRecognition, stopSpeechRecognition } from "./AskAiSTT";
 import { SlLike, SlDislike } from "react-icons/sl";
-import { LuSpeech } from "react-icons/lu";
+import { LuPower, LuSpeech } from "react-icons/lu";
 import { FaThumbsUp, FaThumbsDown } from "react-icons/fa";
 import { FiFileText } from "react-icons/fi";
 import { IoChevronForward, IoChevronDown } from "react-icons/io5";
@@ -141,7 +141,12 @@ const HomePage = () => {
   const [showSourceModal, setShowSourceModal] = useState(false);
   const [selectedSources, setSelectedSources] = useState([]);
   const [isStartingSession, setIsStartingSession] = useState(false);
-  const [expandedSource, setExpandedSource] = useState(null);
+  const [expandedSources, setExpandedSources] = useState({});
+  // Add near other useState declarations (around line 100)
+  const [isCareVoiceGeneratingDocs, setIsCareVoiceGeneratingDocs] = useState(false);
+  const [totalCareVoiceDocsToGenerate, setTotalCareVoiceDocsToGenerate] = useState(0);
+  const [generatedCareVoiceDocsCount, setGeneratedCareVoiceDocsCount] = useState(0);
+  // will store like: "messageIndex_sourceIndex"
   const [feedbackState, setFeedbackState] = useState({});
   const recognizerRef = useRef(null);
   const handleModalOpen = () => setModalVisible(true);
@@ -166,7 +171,7 @@ const HomePage = () => {
   const isDemoUser = userEmail === "kris@curki.ai";
   const handleFeedbackClick = (index, type) => {
     const key = `${selectedRole}_${index}`;
-
+    if (feedbackState[key]?.submitted) return;
     setFeedbackState((prev) => ({
       ...prev,
       [key]: {
@@ -178,6 +183,7 @@ const HomePage = () => {
   };
   const submitFeedback = async (index, message, type, feedbackText = "") => {
     const key = `${selectedRole}_${index}`;
+    if (feedbackState[key]?.submitted) return;
     try {
       const data = feedbackState[key] || {};
       setFeedbackState((prev) => ({
@@ -207,7 +213,20 @@ const HomePage = () => {
           submitted: true
         }
       }));
-
+      // 👇 ADD THIS BLOCK
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text:
+            type === "up"
+              ? "Thanks for submitting feedback 👍"
+              : feedbackText
+                ? `Thanks for submitting feedback 👍\n\nYour feedback: ${feedbackText}`
+                : "Thanks for submitting feedback 👍",
+          isFeedbackResponse: true
+        }
+      ]);
     } catch (err) {
       console.error("Feedback error:", err);
 
@@ -500,7 +519,14 @@ const HomePage = () => {
     });
   };
   const startCareVoiceSession = async () => {
+    console.log("isCareVoiceGeneratingDocs", isCareVoiceGeneratingDocs);
+    console.log("totalCareVoiceDocsToGenerate", totalCareVoiceDocsToGenerate);
+    console.log("generatedCareVoiceDocsCount", generatedCareVoiceDocsCount);
     try {
+      if (isCareVoiceGeneratingDocs || (totalCareVoiceDocsToGenerate > 0 && generatedCareVoiceDocsCount < totalCareVoiceDocsToGenerate)) {
+        alert("Please wait until all documents are downloaded before starting a session.");
+        return;
+      }
       if (!careVoiceFiles.length) {
         alert("No documents available");
         return;
@@ -1078,7 +1104,34 @@ const HomePage = () => {
   }, []);
   // SubscriptionStatus(user, setShowPricingModal);
   useSubscriptionStatus(user, setShowPricingModal, setSubscriptionInfo);
+  const resetCareVoiceSession = async () => {
+    try {
+      if (careVoiceSessionId && careVoiceUserId) {
+        await fetch(
+          "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/careVoiceAskAI/delete-session",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              session_id: careVoiceSessionId,
+              user_id: careVoiceUserId,
+            }),
+          }
+        );
+      }
+    } catch (err) {
+      console.error("Failed to delete session:", err);
+    }
 
+    // RESET ALL STATES
+    setCareVoiceSessionId(null);
+    setCareVoiceUserId(null);
+    setCareVoiceStarted(false);
+    setCareVoiceFiles([]);
+    setMessages([]);
+  };
 
   return (
     <>
@@ -1406,7 +1459,12 @@ const HomePage = () => {
                         <HRAnalysis handleClick={handleClick} selectedRole="Smart Onboarding (Staff)" setShowFeedbackPopup={setShowFeedbackPopup} user={user} setManualResumeZip={setManualResumeZip} />
                       </div>
                       <div style={{ display: selectedRole === "Care Voice" ? "block" : "none" }}>
-                        <VoiceModule user={user} isMobileOrTablet={isMobileOrTablet} setCareVoiceFiles={setCareVoiceFiles} />
+                        <VoiceModule user={user} isMobileOrTablet={isMobileOrTablet} setCareVoiceFiles={setCareVoiceFiles} setIsCareVoiceGeneratingDocs={setIsCareVoiceGeneratingDocs}
+                          setTotalCareVoiceDocsToGenerate={setTotalCareVoiceDocsToGenerate}
+                          setGeneratedCareVoiceDocsCount={setGeneratedCareVoiceDocsCount} setCareVoiceSessionId={setCareVoiceSessionId}
+                          setCareVoiceUserId={setCareVoiceUserId}
+                          setCareVoiceStarted={setCareVoiceStarted}
+                          setMessages={setMessages} careVoiceFiles={careVoiceFiles} onReset={resetCareVoiceSession} isCareVoiceGeneratingDocs={isCareVoiceGeneratingDocs} />
                       </div>
                       <div style={{ display: selectedRole === "Client Profitability & Service" ? "block" : "none" }}>
                         <CareServicesEligibility selectedRole="Client Profitability & Service" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} />
@@ -1448,7 +1506,11 @@ const HomePage = () => {
                     <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", borderTopRightRadius: "24px", borderTopLeftRadius: "24px", }}>
                       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "44px" }}>
                         {messages.length > 0 && <div
-                          onClick={() => setMessages([])}
+                          onClick={() => {
+                            setMessages([]);
+                            setFeedbackState({});
+                            setFeedbackMode(null);
+                          }}
                           style={{
                             display: "flex",
                             alignItems: "center",
@@ -1493,435 +1555,535 @@ const HomePage = () => {
                         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '20px', gap: isSoftwareConnectPage ? '14px' : '20px' }}>
                           <img src={isSoftwareConnectPage ? apiTutorialsIcon : purpleStar} alt='blue-star' style={{ width: isSoftwareConnectPage ? '32px' : '36px', height: 'auto' }} />
                           <div style={{ textAlign: 'center', fontSize: '24px', fontFamily: 'Inter', fontWeight: '500' }}>
-                            {isSoftwareConnectPage ? "API Connection Tutorials" : "Ask AI"}
+                            {isCareVoicePage
+                              ? (careVoiceStarted
+                                ? "Ask Any Question Related To Care Voice Document"
+                                : "Click Start Session to ask questions to AI")
+                              : isSoftwareConnectPage
+                                ? "API Connection Tutorials"
+                                : "Ask AI"}
                           </div>
                         </div>
+                        {isCareVoicePage && !careVoiceStarted && (
+                          <div style={{ display: "flex", justifyContent: "center", marginTop: "12px" }}>
+                            <button
+                              onClick={startCareVoiceSession}
+                              disabled={isStartingSession}
+                              style={{
+                                padding: "10px 20px 10px 20px",
+                                background: isStartingSession ? "#C9C4E3" : "#6C4CDC",
+                                color: "#fff",
+                                borderRadius: "30px",
+                                border: "none",
+                                cursor: isStartingSession ? "not-allowed" : "pointer",
+                                fontSize: "14px",
+                                fontFamily: "Inter",
+                                fontWeight: "500",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px"
+                              }}
+                            >
+                              <LuPower size={20} />
+                              {isStartingSession ? "Starting..." : "Start Session"}
+                            </button>
+                          </div>
+                        )}
                       </div>
                     }
 
                     <div style={{ flex: 1, marginTop: "10px", overflowY: "auto", padding: "10px" }}>
-                      {messages.map((msg, index) => (
-                        <div
-                          key={index}
-                          style={{
-                            display: "flex",
-                            justifyContent: msg.sender === "user" ? "flex-end" : "flex-start",
-                            marginBottom: "8px",
-                            position: "relative"
-                          }}
-                        >
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: msg.sender === "user" ? "flex-end" : "flex-start", position: "relative", maxWidth: '100%' }}>
-                            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', maxWidth: '100%' }}>
-                              <div
-                                style={{
-                                  display: msg.sender === "user" ? "none" : "flex",
-                                  flexDirection: "column",
-                                  alignItems: "flex-start",
-                                  gap: "6px"
-                                }}
-                              >
-                                {/* ⭐ STAR */}
-                                <img
-                                  src={aksAiPurpleStar}
-                                  alt="ai star"
-                                  style={{
-                                    width: "32px",
-                                    height: "32px"
-                                  }}
-                                />
-
-                                {/* 💬 ANSWER / GENERATING RESPONSE */}
+                      {messages.map((msg, index) => {
+                        const isThisMessageExpanded =
+                          Object.entries(expandedSources).some(
+                            ([k, v]) => k.startsWith(`${index}_`) && v === true
+                          );
+                        return (
+                          <div
+                            key={index}
+                            style={{
+                              display: "flex",
+                              justifyContent: msg.sender === "user" ? "flex-end" : "flex-start",
+                              marginBottom: "8px",
+                              position: "relative"
+                            }}
+                          >
+                            <div style={{ display: "flex", flexDirection: "column", alignItems: msg.sender === "user" ? "flex-end" : "flex-start", position: "relative", maxWidth: '100%' }}>
+                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '4px', maxWidth: '100%' }}>
                                 <div
                                   style={{
-                                    backgroundColor: "#F9F8FF",
-                                    padding: "16px 18px",
-                                    borderRadius: "26px",
-                                    width: "100%",        // ✅ full width
-                                    maxWidth: "100%",
-                                    fontSize: "14px",
-                                    lineHeight: "16px",
-                                    textAlign: "left",
-                                    color: "black",
-                                    fontFamily: "Inter",
-                                    border: "1px solid #6c4cdc",
-                                    overflowY: "auto",
-                                    scrollbarWidth: "none",
-                                    msOverflowStyle: "none"
+                                    display: msg.sender === "user" ? "none" : "flex",
+                                    flexDirection: "column",
+                                    alignItems: "flex-start",
+                                    gap: "6px"
                                   }}
-                                  className="ask-ai-res-div"
                                 >
-                                  {msg.temp ? (
-                                    <div className="askai-loader">
-                                      <span></span>
-                                      <span></span>
-                                      <span></span>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <ReactMarkdown
-                                        children={msg.text
-                                          .replace(/```(?:\w+)?\n?/, "")
-                                          .replace(/```$/, "")
-                                        }
-                                        remarkPlugins={[remarkGfm]}
-                                        rehypePlugins={[rehypeRaw, rehypeHighlight]}
-                                      />
+                                  {/* ⭐ STAR */}
+                                  <img
+                                    src={aksAiPurpleStar}
+                                    alt="ai star"
+                                    style={{
+                                      width: "32px",
+                                      height: "32px"
+                                    }}
+                                  />
 
-                                    </>
-                                  )}
-                                  {msg.sender === "bot" && msg.sources?.length > 0 && (
-                                    <div style={{ marginTop: "12px" }}>
-                                      <div
-                                        style={{
-                                          width: "100%",
-                                          height: "1px",
-                                          background: "#E5E7EB",
-                                          marginBottom: "10px"
-                                        }}
-                                      />
-                                      <div style={{
-                                        fontSize: "13px",
-                                        fontWeight: 600,
-                                        marginBottom: "8px",
-                                        color: "#555"
-                                      }}>
-                                        SOURCE DOCUMENTS({Math.min(msg.sources.length, 5)})
+                                  {/* 💬 ANSWER / GENERATING RESPONSE */}
+                                  <div
+                                    style={{
+                                      backgroundColor: "#F9F8FF",
+                                      padding: "24px 24px",
+                                      borderRadius: "26px",
+                                      width: "100%",        // ✅ full width
+                                      maxWidth: "100%",
+                                      fontSize: "14px",
+                                      lineHeight: "16px",
+                                      textAlign: "left",
+                                      color: "black",
+                                      fontFamily: "Inter",
+                                      border: "1px solid #6c4cdc",
+                                      overflowY: "auto",
+                                      scrollbarWidth: "none",
+                                      msOverflowStyle: "none"
+                                    }}
+                                    className="ask-ai-res-div"
+                                  >
+                                    {msg.temp ? (
+                                      <div className="askai-loader">
+                                        <span></span>
+                                        <span></span>
+                                        <span></span>
                                       </div>
-
-                                      <div
-                                        style={{
-                                          display: "flex",
-                                          flexDirection: expandedSource !== null ? "column" : "row",
-                                          gap: "10px",
-                                          overflowX: expandedSource !== null ? "hidden" : "auto"
-                                        }}
-                                      >
-                                        {msg.sources.slice(0, 5).map((src, i) => {
-                                          const isOpen = expandedSource === i;
-
-                                          return (
+                                    ) : (
+                                      <>
+                                        <ReactMarkdown
+                                          children={
+                                            msg.text.includes("Thanks for submitting feedback")
+                                              ? (() => {
+                                                const [firstLine, ...rest] = msg.text.split("\n");
+                                                return `**${firstLine}**\n${rest.join("\n")}`;
+                                              })()
+                                              : msg.text
+                                          }
+                                          remarkPlugins={[remarkGfm]}
+                                          rehypePlugins={[rehypeRaw, rehypeHighlight]}
+                                        />
+                                        {/* {feedbackState[`${selectedRole}_${index}`]?.submitted &&
+                                          feedbackState[`${selectedRole}_${index}`]?.text && (
                                             <div
-                                              key={`${src.document_name}-${i}`}
-                                              onClick={() => setExpandedSource(isOpen ? null : i)}
-
-
-                                              onMouseEnter={(e) => {
-                                                e.currentTarget.style.background = "#e4dff0";
-                                              }}
-                                              onMouseLeave={(e) => {
-                                                e.currentTarget.style.background = "transparent";
-                                              }}
-
                                               style={{
-                                                minWidth: expandedSource !== null ? "100%" : "200px",
-                                                maxWidth: expandedSource !== null ? "100%" : "200px",
-                                                flexShrink: 0,
-                                                border: isOpen ? "1px solid #6C4CDC" : "1px solid #E5E7EB",
-                                                borderRadius: "4px",
-                                                padding: "12px 14px",
-                                                cursor: "pointer",
-                                                background: "transparent",
-                                                transition: "all 0.2s ease",
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                justifyContent: "center",
-                                                alignItems: "flex-start",
-                                                height: expandedSource !== null ? "auto" : "48px",
+                                                marginTop: "12px",
+                                                padding: "10px 12px",
+                                                borderRadius: "10px",
+                                                background: "rgb(249, 248, 255);",
+                                                border: "1px solid rgb(108, 76, 220)"
                                               }}
                                             >
-
-                                              {/* HEADER */}
                                               <div
                                                 style={{
+                                                  fontSize: "12px",
+                                                  fontWeight: 600,
+                                                  color: "#6c4cdc",
+                                                  marginBottom: "4px"
+                                                }}
+                                              >
+                                                Your Feedback
+                                              </div>
+
+                                              <div
+                                                style={{
+                                                  fontSize: "13px",
+                                                  color: "#323232",
+                                                  lineHeight: "18px"
+                                                }}
+                                              >
+                                                {feedbackState[`${selectedRole}_${index}`]?.text}
+                                              </div>
+                                            </div>
+                                          )} */}
+                                      </>
+                                    )}
+                                    {msg.sender === "bot" && msg.sources?.length > 0 && (
+                                      <div style={{ marginTop: "12px" }}>
+                                        <div
+                                          style={{
+                                            width: "100%",
+                                            height: "1px",
+                                            background: "#E5E7EB",
+                                            marginBottom: "10px"
+                                          }}
+                                        />
+                                        <div style={{
+                                          fontSize: "13px",
+                                          fontWeight: 600,
+                                          marginBottom: "8px",
+                                          color: "#555"
+                                        }}>
+                                          SOURCE DOCUMENTS({Math.min(msg.sources.length, 5)})
+                                        </div>
+
+                                        <div
+                                          style={{
+                                            display: "flex",
+                                            flexDirection: isThisMessageExpanded ? "column" : "row",
+                                            gap: "10px",
+                                            overflowX: isThisMessageExpanded ? "hidden" : "auto"
+                                          }}
+                                        >
+                                          {msg.sources.slice(0, 5).map((src, i) => {
+                                            const isOpen = expandedSources[`${index}_${i}`];
+                                            return (
+                                              <div
+                                                key={`${src.document_name}-${i}`}
+                                                onClick={() => {
+                                                  const key = `${index}_${i}`;
+
+                                                  setExpandedSources(prev => {
+                                                    const updated = { ...prev };
+
+                                                    if (updated[key]) {
+                                                      delete updated[key];
+                                                    } else {
+                                                      updated[key] = true;
+                                                    }
+
+                                                    return updated;
+                                                  });
+                                                }}
+
+
+                                                onMouseEnter={(e) => {
+                                                  e.currentTarget.style.background = "#e4dff0";
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                  e.currentTarget.style.background = "transparent";
+                                                }}
+
+                                                style={{
+                                                  minWidth: isThisMessageExpanded ? "100%" : "200px",
+                                                  maxWidth: isThisMessageExpanded ? "100%" : "200px",
+                                                  flexShrink: 0,
+                                                  border: isOpen ? "1px solid #6C4CDC" : "1px solid #E5E7EB",
+                                                  borderRadius: isThisMessageExpanded ? "14px" : "8px",
+                                                  padding: "12px 14px",
+                                                  cursor: "pointer",
+                                                  background: "transparent",
+                                                  transition: "all 0.2s ease",
                                                   display: "flex",
-                                                  justifyContent: "space-between",
-                                                  alignItems: "center",
-                                                  width: "100%"
+                                                  flexDirection: "column",
+                                                  justifyContent: "center",
+                                                  alignItems: "flex-start",
+                                                  height: isThisMessageExpanded ? "auto" : "48px",
                                                 }}
                                               >
 
-                                                {/* LEFT SIDE */}
+                                                {/* HEADER */}
                                                 <div
                                                   style={{
                                                     display: "flex",
+                                                    justifyContent: "space-between",
                                                     alignItems: "center",
-                                                    gap: "6px",
-                                                    overflow: "hidden"
+                                                    width: "100%"
                                                   }}
                                                 >
-                                                  <FiFileText size={18} color="#6C4CDC" />
 
-                                                  <span
+                                                  {/* LEFT SIDE */}
+                                                  <div
                                                     style={{
-                                                      fontSize: "13px",
-                                                      fontWeight: 500,
-                                                      color: "#6C4CDC",
-                                                      overflow: "hidden",
-                                                      textOverflow: "ellipsis",
-                                                      whiteSpace: "nowrap",
-                                                      maxWidth: "120px"
+                                                      display: "flex",
+                                                      alignItems: "center",
+                                                      gap: "6px",
+                                                      overflow: "hidden"
                                                     }}
                                                   >
-                                                    {src.document_name.length > 20
-                                                      ? src.document_name.slice(0, 20) + "..."
-                                                      : src.document_name}
-                                                  </span>
+                                                    <FiFileText size={18} color="#6C4CDC" />
+
+                                                    <span
+                                                      style={{
+                                                        fontSize: "13px",
+                                                        fontWeight: 500,
+                                                        color: "#6C4CDC",
+                                                        overflow: "hidden",
+                                                        textOverflow: "ellipsis",
+                                                        whiteSpace: "nowrap",
+                                                        maxWidth: "120px"
+                                                      }}
+                                                    >
+                                                      {src.document_name.length > 20
+                                                        ? src.document_name.slice(0, 20) + "..."
+                                                        : src.document_name}
+                                                    </span>
+                                                  </div>
+
+                                                  {/* RIGHT SIDE */}
+                                                  <div
+                                                    style={{
+                                                      display: "flex",
+                                                      alignItems: "center",
+                                                      gap: "6px",
+                                                      color: "#6C4CDC",
+                                                      fontSize: "14px",
+                                                      fontWeight: 500
+                                                    }}
+                                                  >
+                                                    {i + 1}
+
+                                                    {isOpen ? (
+                                                      <IoChevronDown size={14} />
+                                                    ) : (
+                                                      <IoChevronForward size={14} />
+                                                    )}
+                                                  </div>
+
                                                 </div>
 
-                                                {/* RIGHT SIDE */}
-                                                <div
-                                                  style={{
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    gap: "6px",
-                                                    color: "#6C4CDC",
-                                                    fontSize: "11px",
-                                                    fontWeight: 500
-                                                  }}
-                                                >
-                                                  {i + 1}
-
-                                                  {isOpen ? (
-                                                    <IoChevronDown size={14} />
-                                                  ) : (
-                                                    <IoChevronForward size={14} />
-                                                  )}
-                                                </div>
-
+                                                {/* EXPANDED */}
+                                                {isOpen && (
+                                                  <div
+                                                    style={{
+                                                      marginTop: "10px",
+                                                      fontSize: "13px",
+                                                      color: "#555",
+                                                      lineHeight: "18px",
+                                                      whiteSpace: "pre-wrap"
+                                                    }}
+                                                  >
+                                                    {src.chunk_text || src.text || "No preview available"}
+                                                  </div>
+                                                )}
                                               </div>
-
-                                              {/* EXPANDED */}
-                                              {isOpen && (
-                                                <div
-                                                  style={{
-                                                    marginTop: "10px",
-                                                    fontSize: "13px",
-                                                    color: "#555",
-                                                    lineHeight: "18px",
-                                                    whiteSpace: "pre-wrap"
-                                                  }}
-                                                >
-                                                  {src.chunk_text || src.text || "No preview available"}
-                                                </div>
-                                              )}
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-                                    </div>
-                                  )}
-                                  {/* 👇 ADD THIS BLOCK RIGHT HERE */}
-                                  {msg.sender === "bot" && msg.richContent?.length > 0 && (
-                                    <div style={{ marginTop: "10px" }}>
-                                      {msg.richContent.map((item, i) => {
-
-                                        if (item.type === "info") {
-                                          return (
-                                            <div key={i} style={{ marginBottom: "10px" }}>
-                                              <div style={{ fontWeight: 600 }}>{item.title}</div>
-                                              <div style={{ fontSize: "13px", color: "#555" }}>
-                                                {item.subtitle}
-                                              </div>
-                                            </div>
-                                          );
-                                        }
-
-                                        if (item.type === "image") {
-                                          const fileIdMatch = item.rawUrl?.match(/id=([^&]+)/);
-                                          const fileId = fileIdMatch ? fileIdMatch[1] : null;
-
-                                          if (!fileId) return null;
-
-                                          const previewUrl = `https://drive.google.com/file/d/${fileId}/preview`;
-
-                                          return (
-                                            <iframe
-                                              key={i}
-                                              src={previewUrl}
-                                              width="100%"
-                                              height="220"
-                                              style={{
-                                                border: "none",
-                                                borderRadius: "10px",
-                                                marginBottom: "10px"
-                                              }}
-                                              allow="autoplay"
-                                              title="Drive Preview"
-                                            />
-                                          );
-                                        }
-
-                                        if (item.type === "button") {
-                                          return (
-                                            <button
-                                              key={i}
-                                              onClick={() => {
-                                                if (item.event?.name) {
-                                                  setMessages(prev => [
-                                                    ...prev,
-                                                    { sender: "user", text: item.text }
-                                                  ]);
-
-                                                  handleSend(null, item.event.name);
-                                                }
-
-                                                if (item.link) {
-                                                  window.open(item.link, "_blank");
-                                                }
-                                              }}
-                                              style={{
-                                                padding: "10px 14px",
-                                                margin: "5px",
-                                                borderRadius: "8px",
-                                                border: "1px solid #6C4CDC",
-                                                background: "#F9F8FF",
-                                                cursor: "pointer"
-                                              }}
-                                            >
-                                              {item.text}
-                                            </button>
-                                          );
-                                        }
-
-                                        return null;
-                                      })}
-                                    </div>
-                                  )}
-                                </div>
-                                {msg.sender === "bot" && !msg.temp && (
-                                  <div style={{ width: "100%" }}>
-
-                                    <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-
-                                      {
-                                        feedbackState[`${selectedRole}_${index}`]?.type === "up" ? (
-                                          <BiSolidLike
-                                            size={24}
-                                            style={{ cursor: "pointer", color: "#4FD46E" }}
-                                            onClick={() => {
-                                              handleFeedbackClick(index, "up");
-                                              submitFeedback(index, msg.text, "up");
-                                            }}
-                                          />
-                                        ) : (
-                                          <BiLike
-                                            size={24}
-                                            style={{ cursor: "pointer", color: "#999" }}
-                                            onClick={() => {
-                                              handleFeedbackClick(index, "up");
-                                              submitFeedback(index, msg.text, "up");
-                                            }}
-                                          />
-                                        )
-                                      }
-
-                                      {
-                                        feedbackState[`${selectedRole}_${index}`]?.type === "down" ? (
-                                          <BiSolidDislike
-                                            size={24}
-                                            style={{ cursor: "pointer", color: "#C6685F" }}
-                                            onClick={() => {
-                                              const key = `${selectedRole}_${index}`;
-
-                                              // toggle OFF
-                                              if (feedbackMode && feedbackMode.index === index) {
-                                                setFeedbackMode(null);
-                                                setFeedbackState((prev) => ({
-                                                  ...prev,
-                                                  [key]: { ...prev[key], type: null }
-                                                }));
-                                                return;
-                                              }
-
-                                              // toggle ON
-                                              setFeedbackState((prev) => ({
-                                                ...prev,
-                                                [key]: { ...prev[key], type: "down" }
-                                              }));
-
-                                              setFeedbackMode({
-                                                index,
-                                                message: msg.text
-                                              });
-
-                                              setTimeout(() => {
-                                                textareaRef.current?.focus();
-                                              }, 100);
-                                            }}
-                                          />
-                                        ) : (
-                                          <BiDislike
-                                            size={24}
-                                            style={{ cursor: "pointer", color: "#999" }}
-                                            onClick={() => {
-                                              const key = `${selectedRole}_${index}`;
-
-                                              setFeedbackState((prev) => ({
-                                                ...prev,
-                                                [key]: { ...prev[key], type: "down" }
-                                              }));
-
-                                              setFeedbackMode({
-                                                index,
-                                                message: msg.text
-                                              });
-
-                                              setTimeout(() => {
-                                                textareaRef.current?.focus();
-                                              }, 100);
-                                            }}
-                                          />
-                                        )
-                                      }
-                                    </div>
-
-                                    {/* 👇 MESSAGE BELOW THUMBS (ONLY ON DISLIKE) */}
-                                    {feedbackMode && feedbackMode.index === index && (
-                                      <div
-                                        style={{
-                                          marginTop: "6px",
-                                          fontSize: "13px",
-                                          fontWeight: 500,
-                                          color: "#3C3B42",
-                                          fontFamily: "Inter",
-                                          textAlign: "end"
-                                        }}
-                                      >
-                                        Please submit your feedback below 👇 Or press icon again to discard
+                                            );
+                                          })}
+                                        </div>
                                       </div>
                                     )}
+                                    {/* 👇 ADD THIS BLOCK RIGHT HERE */}
+                                    {msg.sender === "bot" && msg.richContent?.length > 0 && (
+                                      <div style={{ marginTop: "10px" }}>
+                                        {msg.richContent.map((item, i) => {
 
+                                          if (item.type === "info") {
+                                            return (
+                                              <div key={i} style={{ marginBottom: "10px" }}>
+                                                <div style={{ fontWeight: 600 }}>{item.title}</div>
+                                                <div style={{ fontSize: "13px", color: "#555" }}>
+                                                  {item.subtitle}
+                                                </div>
+                                              </div>
+                                            );
+                                          }
+
+                                          if (item.type === "image") {
+                                            const fileIdMatch = item.rawUrl?.match(/id=([^&]+)/);
+                                            const fileId = fileIdMatch ? fileIdMatch[1] : null;
+
+                                            if (!fileId) return null;
+
+                                            const previewUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+
+                                            return (
+                                              <iframe
+                                                key={i}
+                                                src={previewUrl}
+                                                width="100%"
+                                                height="220"
+                                                style={{
+                                                  border: "none",
+                                                  borderRadius: "10px",
+                                                  marginBottom: "10px"
+                                                }}
+                                                allow="autoplay"
+                                                title="Drive Preview"
+                                              />
+                                            );
+                                          }
+
+                                          if (item.type === "button") {
+                                            return (
+                                              <button
+                                                key={i}
+                                                onClick={() => {
+                                                  if (item.event?.name) {
+                                                    setMessages(prev => [
+                                                      ...prev,
+                                                      { sender: "user", text: item.text }
+                                                    ]);
+
+                                                    handleSend(null, item.event.name);
+                                                  }
+
+                                                  if (item.link) {
+                                                    window.open(item.link, "_blank");
+                                                  }
+                                                }}
+                                                style={{
+                                                  padding: "10px 14px",
+                                                  margin: "5px",
+                                                  borderRadius: "8px",
+                                                  border: "1px solid #6C4CDC",
+                                                  background: "#F9F8FF",
+                                                  cursor: "pointer"
+                                                }}
+                                              >
+                                                {item.text}
+                                              </button>
+                                            );
+                                          }
+
+                                          return null;
+                                        })}
+                                      </div>
+                                    )}
+                                  </div>
+                                  {msg.sender === "bot" && !msg.temp && !msg.isFeedbackResponse && (
+                                    <div style={{ width: "100%" }}>
+
+                                      <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end", marginRight: "10px" }}>
+
+                                        {
+                                          feedbackState[`${selectedRole}_${index}`]?.type === "up" ? (
+                                            <BiSolidLike
+                                              size={24}
+                                              style={{ cursor: "pointer", color: "#4FD46E" }}
+                                              onClick={() => {
+                                                const key = `${selectedRole}_${index}`;
+                                                if (feedbackState[key]?.submitted) return;
+                                                handleFeedbackClick(index, "up");
+                                                submitFeedback(index, msg.text, "up");
+                                              }}
+                                            />
+                                          ) : (
+                                            <BiLike
+                                              size={24}
+                                              style={{
+                                                cursor: feedbackState[`${selectedRole}_${index}`]?.submitted ? "not-allowed" : "pointer",
+                                                opacity: feedbackState[`${selectedRole}_${index}`]?.submitted ? 0.5 : 1,
+                                                color: "#999"
+                                              }}
+                                              onClick={() => {
+                                                const key = `${selectedRole}_${index}`;
+                                                if (feedbackState[key]?.submitted) return;
+                                                handleFeedbackClick(index, "up");
+                                                submitFeedback(index, msg.text, "up");
+                                              }}
+                                            />
+                                          )
+                                        }
+
+                                        {
+                                          feedbackState[`${selectedRole}_${index}`]?.type === "down" ? (
+                                            <BiSolidDislike
+                                              size={24}
+                                              style={{ cursor: "pointer", color: "#C6685F" }}
+                                              onClick={() => {
+                                                const key = `${selectedRole}_${index}`;
+                                                if (feedbackState[key]?.submitted) return;
+
+                                                // toggle OFF
+                                                if (feedbackMode && feedbackMode.index === index) {
+                                                  setFeedbackMode(null);
+                                                  setFeedbackState((prev) => ({
+                                                    ...prev,
+                                                    [key]: { ...prev[key], type: null }
+                                                  }));
+                                                  return;
+                                                }
+
+                                                // toggle ON
+                                                setFeedbackState((prev) => ({
+                                                  ...prev,
+                                                  [key]: { ...prev[key], type: "down" }
+                                                }));
+
+                                                setFeedbackMode({
+                                                  index,
+                                                  message: msg.text
+                                                });
+
+                                                setTimeout(() => {
+                                                  textareaRef.current?.focus();
+                                                }, 100);
+                                              }}
+                                            />
+                                          ) : (
+                                            <BiDislike
+                                              size={24}
+                                              style={{
+                                                cursor: feedbackState[`${selectedRole}_${index}`]?.submitted ? "not-allowed" : "pointer",
+                                                opacity: feedbackState[`${selectedRole}_${index}`]?.submitted ? 0.5 : 1,
+                                                color: "#999"
+                                              }}
+                                              onClick={() => {
+                                                const key = `${selectedRole}_${index}`;
+                                                if (feedbackState[key]?.submitted) return;
+
+                                                setFeedbackState((prev) => ({
+                                                  ...prev,
+                                                  [key]: { ...prev[key], type: "down" }
+                                                }));
+
+                                                setFeedbackMode({
+                                                  index,
+                                                  message: msg.text
+                                                });
+
+                                                setTimeout(() => {
+                                                  textareaRef.current?.focus();
+                                                }, 100);
+                                              }}
+                                            />
+                                          )
+                                        }
+                                      </div>
+
+                                      {/* 👇 MESSAGE BELOW THUMBS (ONLY ON DISLIKE) */}
+                                      {feedbackMode && feedbackMode.index === index && (
+                                        <div
+                                          style={{
+                                            marginTop: "6px",
+                                            fontSize: "13px",
+                                            fontWeight: 500,
+                                            color: "#3C3B42",
+                                            fontFamily: "Inter",
+                                            textAlign: "end"
+                                          }}
+                                        >
+                                          Please submit your feedback below 👇 Or press icon again to discard
+                                        </div>
+                                      )}
+
+                                    </div>
+                                  )}
+                                </div>
+                                {msg.sender === "user" && (
+                                  <div
+                                    style={{
+                                      backgroundColor: "#FFFFFF",
+                                      padding: "16px 18px",
+                                      borderRadius: "26px",
+                                      maxWidth: "90%",
+                                      fontSize: "14px",
+                                      lineHeight: "16px",
+                                      textAlign: "left",
+                                      color: "black",
+                                      fontFamily: "Inter",
+                                      border: "1px solid #6c4cdc"
+                                    }}
+                                  >
+                                    {msg.text}
                                   </div>
                                 )}
-                              </div>
-                              {msg.sender === "user" && (
-                                <div
-                                  style={{
-                                    backgroundColor: "#FFFFFF",
-                                    padding: "16px 18px",
-                                    borderRadius: "26px",
-                                    maxWidth: "90%",
-                                    fontSize: "14px",
-                                    lineHeight: "16px",
-                                    textAlign: "left",
-                                    color: "black",
-                                    fontFamily: "Inter",
-                                    border: "1px solid #6c4cdc"
-                                  }}
-                                >
-                                  {msg.text}
-                                </div>
-                              )}
 
-                              <img
-                                src={askAiPersonIcon}
-                                alt="user icon"
-                                style={{ width: "52px", height: "52px", display: msg.sender === 'user' ? 'block' : 'none' }}
-                              />
+                                <img
+                                  src={askAiPersonIcon}
+                                  alt="user icon"
+                                  style={{ width: "52px", height: "52px", display: msg.sender === 'user' ? 'block' : 'none' }}
+                                />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
 
                     </div>
                     <div>
@@ -1978,49 +2140,7 @@ const HomePage = () => {
 
                         </div>
                       }
-                      {isCareVoicePage && !careVoiceStarted ? (
-                        <button
-                          onClick={startCareVoiceSession}
-                          disabled={isStartingSession}
-                          style={{
-                            padding: "8px 14px",
-                            background: isStartingSession ? "#C9C4E3" : "#6C4CDC",
-                            color: "#fff",
-                            borderRadius: "8px",
-                            border: "none",
-                            cursor: isStartingSession ? "not-allowed" : "pointer",
-                            fontSize: "13px",
-                            fontFamily: "Inter",
-                            fontWeight: "500",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: "6px",
-                            marginLeft: "auto"
-                          }}
-                        >
-                          {isStartingSession ? (
-                            <>
-                              <div className="mini-loader"></div>
-                              Starting...
-                            </>
-                          ) : (
-                            "Start Session"
-                          )}
-                        </button>
-                      ) : isCareVoicePage ? (
-                        <div
-                          style={{
-                            fontSize: "12px",
-                            color: "#6C4CDC",
-                            fontWeight: 500,
-                            marginLeft: "auto",
-                            width: "120px"
-                          }}
-                        >
-                          Session Active
-                        </div>
-                      ) : null}
-                      <div style={{ position: "relative", marginTop: "10px", marginBottom: "18px", width: "100%", display: "flex", alignSelf: "center" }}>
+                      {(!isCareVoicePage || careVoiceStarted) && <div style={{ position: "relative", marginTop: "10px", marginBottom: "18px", width: "100%", display: "flex", alignSelf: "center" }}>
                         <img
                           src={askAiSearchIcon}
                           alt="search"
@@ -2130,7 +2250,7 @@ const HomePage = () => {
                           />
                         </div>
 
-                      </div>
+                      </div>}
                     </div>
                   </div>
                 )}
