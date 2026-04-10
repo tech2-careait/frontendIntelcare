@@ -149,10 +149,7 @@ const HomePage = () => {
   const handleLeftModalOpen = () => setLeftModalVisible(true);
   const handleLeftModalClose = () => setLeftModalVisible(false);
   const [feedbackMode, setFeedbackMode] = useState(null);
-  // { index, message }
-  // console.log("user?.email",user?.email)
   const userEmail = user?.email;
-  // const userEmail = "kris@curki.ai";
   const userDomain = userEmail?.split("@")[1]?.toLowerCase();
   const blockedAutoTopupDomains = [
     "curki.ai",
