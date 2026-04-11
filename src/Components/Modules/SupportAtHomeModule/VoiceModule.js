@@ -52,6 +52,7 @@ const VoiceModule = (props) => {
     const setIsCareVoiceGeneratingDocs = props?.setIsCareVoiceGeneratingDocs;
     const setTotalCareVoiceDocsToGenerate = props?.setTotalCareVoiceDocsToGenerate;
     const setGeneratedCareVoiceDocsCount = props?.setGeneratedCareVoiceDocsCount;
+    const setIsCareVoiceLocked = props?.setIsCareVoiceLocked;
     const domain = userEmail?.split("@")[1] || "";
     // console.log("props.careVoiceFiles", props.careVoiceFiles)
     // console.log("userEmail", userEmail)
@@ -1789,6 +1790,7 @@ const VoiceModule = (props) => {
 
     const submitMultipleTranscripts = async () => {
         setShowGeneratedFilesUI(true);
+        if (setIsCareVoiceLocked) setIsCareVoiceLocked(true);
         if (
             !selectedTemplate ||
             !selectedTemplate.isMulti ||
@@ -1997,7 +1999,7 @@ const VoiceModule = (props) => {
                 const progressPercent = Math.floor((completedOperations / totalOperations) * 100);
                 setFileProgress(progressPercent);
                 console.log(`Progress: ${completedOperations}/${totalOperations} (${progressPercent}%)`);
-
+                if (setIsCareVoiceLocked) setIsCareVoiceLocked(false);
                 // Add a small delay between file processing
                 if (completedOperations < totalOperations) {
                     await new Promise(resolve => setTimeout(resolve, 500));
@@ -2031,7 +2033,7 @@ const VoiceModule = (props) => {
         if (setTotalCareVoiceDocsToGenerate) setTotalCareVoiceDocsToGenerate(0);
         setDocsGeneratedCount(0);
         setTotalDocsToGenerate(0);
-
+        if (setIsCareVoiceLocked) setIsCareVoiceLocked(false);
 
         // resetStaffUI();
         setCurrentTask("");
@@ -3361,11 +3363,11 @@ const VoiceModule = (props) => {
                     >
                         <h3 style={{ margin: 0 }}>{!props?.isCareVoiceGeneratingDocs ? "Generated Documents" : "Generating Documents..."}</h3>
                     </div>
-                    
+
                     {/* FILE CARDS */}
                     {props?.careVoiceFiles?.length === 0 ||
                         props?.isCareVoiceGeneratingDocs ? (
-                         <div className="round-loader"></div>
+                        <div className="round-loader"></div>
                     ) : (
                         <div
                             style={{
