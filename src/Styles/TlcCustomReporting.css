@@ -240,7 +240,6 @@ body {
   font-size: 13px;
   text-align: justify;
 }
-
 .saved-label {
   color: #6C4CDC;
   font-weight: 500;
@@ -256,7 +255,7 @@ body {
 }
 
 .filter-item {
-  color: #333;
+  color: #57575c;
 }
 
 .filter-item strong {
@@ -693,10 +692,11 @@ body {
   flex-wrap: wrap;
   gap: 10px;
   font-size: 13px;
+  color: black;
 }
 
 .filter-item {
-  color: #333;
+  color: #57575c;
 }
 
 .filter-item strong {

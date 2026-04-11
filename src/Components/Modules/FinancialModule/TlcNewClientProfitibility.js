@@ -35,6 +35,8 @@ import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
 import { addSectionWithGraphsToWord, parseMarkdownToDocx } from "./TlcClientProfitibilityExport";
 import TlcGraphRenderer from "./TlcGraphRenderer";
+import { MdOutlineFileDownload } from "react-icons/md";
+import incrementAnalysisCount from "./TLcAnalysisCount";
 
 const TlcNewClientProfitability = (props) => {
     const onPrepareAiPayload = props.onPrepareAiPayload;
@@ -898,6 +900,7 @@ const TlcNewClientProfitability = (props) => {
                         onPrepareAiPayload({
                             table_data: statusData.result?.table,
                         });
+                        await incrementAnalysisCount(userEmail, "client-profitability");
                     }
 
                     if (statusData.status === "failed") {
@@ -1439,25 +1442,9 @@ const TlcNewClientProfitability = (props) => {
                     >
                         <button
                             onClick={handleDownloadReport}
-                            style={{
-                                background: "var(--Curki-2nd-Portal-1, #14C8A8)",
-                                color: "#fff",
-                                border: "none",
-                                padding: "8px 16px",
-                                borderRadius: "8px",
-                                fontSize: "14px",
-                                fontWeight: 400,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                            }}
+                            className="download-report-btn"
                         >
-                            <img
-                                src={TlcCompareAnalyseIcon}
-                                alt="download"
-                                style={{ width: "14px", height: "14px" }}
-                            />
+                            <MdOutlineFileDownload size={16} />
                             Download Report
                         </button>
                     </div>
@@ -1646,7 +1633,7 @@ const TlcNewClientProfitability = (props) => {
                                 {/* SAVED ON */}
                                 <div className="saved-on">
                                     <span className="saved-label">Saved on: </span>
-                                    <span style={{ color: "#000" }}>
+                                    <span style={{ color: "#57575c" }}>
                                         {formatSavedOnDate(item.createdAt)}
                                     </span>
                                 </div>
@@ -2049,7 +2036,7 @@ const TlcNewClientProfitability = (props) => {
                             />
                             Compare and Analyse
                         </button>
-                        {activeTabData?.responseData && !activeTabData?.isFromHistory &&(
+                        {activeTabData?.responseData && !activeTabData?.isFromHistory && (
                             <button
                                 onClick={handleSaveClientProfitability}
                                 disabled={

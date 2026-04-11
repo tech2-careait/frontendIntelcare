@@ -7,6 +7,7 @@ import UploaderZipBox from "../../UploaderZipBox";
 import star from '../../../Images/star.png';
 import '../../../Styles/UploaderPage.css';
 import NewReportIcon from '../../../Images/NewReportIcon.png';
+import incrementAnalysisCount from "./TLcAnalysisCount";
 
 const IncidentManagement = (props) => {
     const [zipFile1, setZipFile1] = useState(null);
@@ -95,6 +96,7 @@ const IncidentManagement = (props) => {
             setZipProgress(100);
 
             setReportZipdata(allResponses);
+            await incrementAnalysisCount(props?.user?.email?.trim(), "incident-management");
             setShowFinalZipReport(true);
         } catch (error) {
             console.error("Error processing ZIP:", error);

@@ -35,6 +35,7 @@ import { registerLocale } from "react-datepicker";
 import enGB from "date-fns/locale/en-GB";
 import TlcGraphRenderer from "./TlcGraphRenderer";
 import MultiSelectCustom from "./MultiSelectCustom";
+import { MdOutlineFileDownload } from "react-icons/md";
 
 const HtmlFigure = memo(function HtmlFigure({ htmlString }) {
     const parsed = useMemo(
@@ -1243,7 +1244,7 @@ export default function TlcNewCustomerReporting(props) {
                 aiReport: data?.report_md,
                 showReport: true,
                 aiLoading: false,
-                aiProgress: 100,   // ✅ COMPLETE
+                aiProgress: 100,   
             });
             try {
                 if (userEmail) {
@@ -1264,6 +1265,7 @@ export default function TlcNewCustomerReporting(props) {
 
     // -------------------- HISTORY CLICK --------------------
     const handleHistoryClick = async (item) => {
+        // console.log("Loading history item:", item);
         try {
             setHistoryLoading(true);
             await new Promise(resolve => setTimeout(resolve, 50));
@@ -1714,7 +1716,7 @@ export default function TlcNewCustomerReporting(props) {
         fileName: `AI_Summary_${formatDateRange()?.replace(/\s+/g, "_")}`,
     });
 
-    // console.log("Rendering TlcNewCustomReporting with activeTabData:", activeTabData);
+    console.log("Rendering TlcNewCustomReporting with activeTabData:", activeTabData);
     return (
         <div className="page-containersss" ref={pageRef}>
             {historyLoading && (
@@ -2459,28 +2461,13 @@ export default function TlcNewCustomerReporting(props) {
                     {activeTabData?.analysisData && (
                         <button
                             onClick={handleDownloadWordReport}
+                            className="download-report-btn"
                             style={{
-                                background: "var(--Curki-2nd-Portal-1, #14C8A8)",
-                                color: "#fff",
-                                border: "none",
-                                padding: "8px 16px",
-                                borderRadius: "8px",
-                                fontSize: "14px",
-                                fontWeight: 400,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                marginLeft: "auto",
-                                marginBottom: "7px",
-                                opacity: activeTabData.loading || activeTabData.uploading?.accounts ? 0.6 : 1,
+                                opacity:
+                                    activeTabData.loading || activeTabData.uploading?.accounts ? 0.6 : 1,
                             }}
                         >
-                            <img
-                                src={TlcCompareAnalyseIcon}
-                                alt="download"
-                                style={{ width: "14px", height: "14px" }}
-                            />
+                            <MdOutlineFileDownload size={16} />
                             Download Report
                         </button>
                     )}
@@ -2689,7 +2676,7 @@ export default function TlcNewCustomerReporting(props) {
 
                                             <div className="saved-on">
                                                 <span className="saved-label">Saved On:</span>{" "}
-                                                <span className="saved-value">{createdAt}</span>
+                                                <span className="saved-value" style={{ color: "#57575c" }}>{createdAt}</span>
                                             </div>
 
                                             <div className="history-filters">

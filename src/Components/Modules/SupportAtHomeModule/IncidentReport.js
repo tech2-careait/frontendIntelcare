@@ -7,6 +7,7 @@ import star from '../../../Images/star.png';
 import '../../../Styles/UploaderPage.css';
 import SummaryReport from "../../SummaryReportViewer";
 import '../../../Styles/UploaderPage.css'
+import incrementAnalysisCount from "../FinancialModule/TLcAnalysisCount";
 
 const IncidentReport = (props) => {
     const [incidentreportFiles, setIncidentReportFiles] = useState([]);
@@ -69,6 +70,7 @@ const IncidentReport = (props) => {
 
                         // ✅ First row: show UI and stop loading/progress
                         if (i === 0) {
+                            await incrementAnalysisCount(props?.user?.email?.trim(), "incident-report");
                             clearInterval(progressInterval);
                             setIsAnalysedIncidentReportProgress(100);
                             setIsAnalysingIncidentReportLoading(false);

@@ -6,6 +6,7 @@ import UploadFiles from "../../UploadFiles";
 import ScreeningTestCreation from "./ScreeningTestCreation";
 import AdminDocumentVerification from "./AdminDocumentVerification";
 import AdminCourseCreation from "./AdminCourseCreation";
+import incrementAnalysisCount from "../FinancialModule/TLcAnalysisCount";
 
 const HRAdminView = ({
   handleClick,
@@ -71,8 +72,7 @@ const HRAdminView = ({
       }));
 
       setCandidates(mappedCandidates);
-
-      // 🎯 API Completed → Instantly jump to 100%
+      await incrementAnalysisCount(user?.email?.trim(), "staff-onboarding-resume-screening");
       setProgress(100);
       clearInterval(interval);
 

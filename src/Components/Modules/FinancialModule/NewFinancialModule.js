@@ -39,6 +39,8 @@ import { GoArrowLeft } from "react-icons/go";
 import FinancialAnalysisReportViewer from "./FinancialAnalysisReportViewer.js"
 import TlcPayrollSyncTickIcon from "../../../Images/TlcPayrollSyncTick.png";
 import TlcGraphRenderer from "./TlcGraphRenderer.js";
+import { MdOutlineFileDownload } from "react-icons/md";
+import incrementAnalysisCount from "./TLcAnalysisCount.js";
 
 const NewFinancialHealth = (props) => {
 
@@ -797,7 +799,7 @@ const NewFinancialHealth = (props) => {
             if (!res.ok) {
                 throw new Error("Failed to save history");
             }
-            const data = await res.json(); 
+            const data = await res.json();
 
             setHistoryList(prev => [
                 {
@@ -1460,7 +1462,7 @@ const NewFinancialHealth = (props) => {
                     stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
-
+                await incrementAnalysisCount(userEmail, "financial-health-api-analysis");
             } else {
                 // 🔹 Old upload flow
                 // 🔹 Upload flow (FIXED – parse like API)
@@ -1505,6 +1507,7 @@ const NewFinancialHealth = (props) => {
                     stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
+                await incrementAnalysisCount(userEmail, "financial-health-upload-analysis");
             }
 
 
@@ -1573,25 +1576,9 @@ const NewFinancialHealth = (props) => {
                     >
                         <button
                             // onClick={handleDownloadReport}
-                            style={{
-                                background: "var(--Curki-2nd-Portal-1, #14C8A8)",
-                                color: "#fff",
-                                border: "none",
-                                padding: "8px 16px",
-                                borderRadius: "8px",
-                                fontSize: "14px",
-                                fontWeight: 400,
-                                cursor: "pointer",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                            }}
+                            className="download-report-btn"
                         >
-                            <img
-                                src={TlcCompareAnalyseIcon}
-                                alt="download"
-                                style={{ width: "14px", height: "14px" }}
-                            />
+                            <MdOutlineFileDownload size={16} />
                             Download Report
                         </button>
                     </div>
@@ -1772,8 +1759,12 @@ const NewFinancialHealth = (props) => {
                                 {/* SAVED ON */}
                                 <div className="saved-on">
                                     <span className="saved-label">Saved on: </span>
-                                    <span style={{ color: "#000" }}>
-                                        {new Date(item.createdAt).toLocaleString()}
+                                    <span style={{ color: "#57575c" }}>
+                                        {new Date(item.createdAt).toLocaleDateString("en-GB", {
+                                            day: "2-digit",
+                                            month: "short",
+                                            year: "2-digit",
+                                        })}
                                     </span>
                                 </div>
 
