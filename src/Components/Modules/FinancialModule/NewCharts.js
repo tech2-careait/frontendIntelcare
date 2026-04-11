@@ -561,6 +561,7 @@ const StackedBarChartWrapper = ({ data, meta }) => {
 /* ---------------- MAIN COMPONENT ---------------- */
 
 function ChartVisualiser({ plotData, plotName }) {
+    // console.log("plotData", plotData)
     if (!plotData) return null;
 
     const chartType = plotData.type;

@@ -15,6 +15,7 @@ import PulsatingLoader from "../../PulsatingLoader";
 import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { GoArrowLeft } from "react-icons/go";
+import incrementAnalysisCount from "../FinancialModule/TLcAnalysisCount";
 
 const TASK_QUEUE = [
     "Analysing data",
@@ -508,6 +509,7 @@ const IncidentAuditing = (props) => {
                             data.incidents !== undefined
                         ) {
                             setResponseData(data);
+                            await incrementAnalysisCount(props?.user?.email?.trim(), "incident-auditing");
                         }
                     } catch (err) {
                         console.warn("Non-JSON SSE", jsonStr);

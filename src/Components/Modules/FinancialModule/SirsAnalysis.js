@@ -5,6 +5,7 @@ import UploadFiles from "../../UploadFiles";
 import star from '../../../Images/star.png';
 import SummaryReport from "../../SummaryReportViewer";
 import '../../../Styles/UploaderPage.css'
+import incrementAnalysisCount from "./TLcAnalysisCount";
 
 const SirsAnalysis = (props) => {
     const [sirsReportFiles, setSirsReportFiles] = useState([]);
@@ -60,6 +61,7 @@ const SirsAnalysis = (props) => {
                     if (i === 0) {
                         // Show the first result immediately
                         setSirsReport([result]);
+                        await incrementAnalysisCount(props?.user?.email?.trim(), "sirs-analysis");
                         setSirsProgress(100);
                         setTimeout(() => {
                             setShowSirsReport(true);

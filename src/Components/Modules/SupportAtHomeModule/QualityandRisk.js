@@ -1,4 +1,4 @@
-import React, { useState,useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import axios from "axios";
 import { saveAs } from 'file-saver';
@@ -7,6 +7,7 @@ import star from '../../../Images/star.png';
 import '../../../Styles/UploaderPage.css';
 import SummaryReport from "../../SummaryReportViewer";
 import '../../../Styles/UploaderPage.css'
+import incrementAnalysisCount from "../FinancialModule/TLcAnalysisCount";
 
 const QualityandRisk = (props) => {
     const [qualityreportFiles, setQualityReportFiles] = useState([]);
@@ -53,8 +54,8 @@ const QualityandRisk = (props) => {
             if (response.status === 200 && response.data?.report) {
                 const allReports = response.data.report;
                 setAnalysedQualityReportdata(allReports);
-
-                // ✅ First response triggers UI change
+                await incrementAnalysisCount(props?.user?.email?.trim(), "quality-and-risk");
+                //First response triggers UI change
                 clearInterval(progressInterval);
                 setIsAnalysedQualityReportProgress(100);
                 setIsAnalysingQualityReportLoading(false);
@@ -70,11 +71,11 @@ const QualityandRisk = (props) => {
     };
 
     useEffect(() => {
-        if (analysedQualityReportdata.length!==0) {
+        if (analysedQualityReportdata.length !== 0) {
             const timer = setTimeout(() => {
                 props.setShowFeedbackPopup(true);
             }, 60000); // 1 minute
-    
+
             return () => clearTimeout(timer); // Clear on unmount or change
         }
     }, [analysedQualityReportdata]);
@@ -130,7 +131,7 @@ const QualityandRisk = (props) => {
             ) : (
                 <div className="reports-box" style={{ height: 'auto', marginTop: '30px', padding: '10px' }}>
                     <div style={{ backgroundColor: '#FFFFFF', padding: '10px 30px', borderRadius: '10px' }}>
-                        <SummaryReport summaryText={analysedQualityReportdata} selectedRole={props.selectedRole} resetQualityandRiskState={resetQualityandRiskState}/>
+                        <SummaryReport summaryText={analysedQualityReportdata} selectedRole={props.selectedRole} resetQualityandRiskState={resetQualityandRiskState} />
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', fontSize: '13px', color: 'grey' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
                                 <input type="checkbox" id="aiConsent" checked={isConsentChecked} readOnly style={{ width: '16px', height: '16px', marginRight: '8px', accentColor: 'green', cursor: 'pointer' }} />

@@ -682,7 +682,10 @@ const HomePage = () => {
                 : msg
             )
           );
-
+          await incrementAnalysisCount(
+            user?.email?.trim().toLowerCase(),
+            "care-voice-askai"
+          );
         } catch (err) {
           console.error("Care Voice AskAI Error:", err);
 
@@ -724,6 +727,10 @@ const HomePage = () => {
 
           // ✅ Update with the NEW conversation history from response
           setFinancialAiHistoryPayload(response.data?.conversation_history || []);
+          await incrementAnalysisCount(
+            user?.email?.trim().toLowerCase(),
+            "financial-health-askai"
+          );
 
         } catch (err) {
           console.error("Financial AskAI Error:", err);
@@ -798,7 +805,10 @@ const HomePage = () => {
           setMessages(prev =>
             prev.map(msg => (msg.temp ? { sender: "bot", text: botReply } : msg))
           );
-
+          await incrementAnalysisCount(
+            user?.email?.trim().toLowerCase(),
+            "smart-onboarding-askai"
+          );
           return;
         } catch (error) {
           console.error("Resume Ask-AI Error:", error);
@@ -829,7 +839,10 @@ const HomePage = () => {
           setMessages(prev =>
             prev.map(msg => (msg.temp ? { sender: "bot", text: botReply } : msg))
           );
-
+          await incrementAnalysisCount(
+            user?.email?.trim().toLowerCase(),
+            "manual-smart-rostering-askai"
+          );
           return; // Stop here
         }
         const payload = {
@@ -854,6 +867,10 @@ const HomePage = () => {
 
         setMessages((prev) =>
           prev.map((msg) => (msg.temp ? { sender: "bot", text: botReply } : msg))
+        );
+        await incrementAnalysisCount(
+          user?.email?.trim().toLowerCase(),
+          "smart-rostering-askai"
         );
         return;
       }

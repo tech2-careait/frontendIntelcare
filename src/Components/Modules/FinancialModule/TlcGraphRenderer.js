@@ -13,11 +13,11 @@ const TlcGraphRenderer = ({ plots }) => {
       {plotEntries.map(([plotName, plotObject], index) => {
 
         const plotData = plotObject?.plot_data;
-
+        // console.log("plotData",plotData) 
         if (!plotData) return null;
 
         // ❌ skip html based plots
-        if (plotData.type === "heatmap" || plotData.type === "table") {
+        if (plotData.type === "heatmap" || plotData.type === "table" || plotData.type === "combo") {
           return null;
         }
 

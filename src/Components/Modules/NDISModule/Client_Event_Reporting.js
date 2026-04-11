@@ -7,6 +7,7 @@ import Toggle from "react-toggle";
 import historyIcon from "../../../Images/TlcPayrollHistory.png"
 import { GoArrowLeft } from "react-icons/go";
 import { RiDeleteBin6Line } from "react-icons/ri";
+import incrementAnalysisCount from "../FinancialModule/TLcAnalysisCount";
 const BASE_URL =
   "https://curki-backend-api-container.yellowflower-c21bea82.australiaeast.azurecontainerapps.io";
 
@@ -262,6 +263,7 @@ const Client_Event_Reporting = (props) => {
             .map((key) => s3[key]);
 
         setStage3Data(eventsArray);
+        await incrementAnalysisCount(props?.user?.email?.trim(), "client-event-reporting");
       } else {
         alert("Stage 3 data not found in response");
       }
