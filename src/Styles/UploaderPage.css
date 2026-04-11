@@ -40,10 +40,10 @@ html,
   
   /* Standard Scrollbar Properties (Firefox) */
   scrollbar-color: white transparent !important;
-  scrollbar-width: auto !important;
+  scrollbar-width: auto
 }
 .sidebar-scroll-content::-webkit-scrollbar {
-  width: 16px;
+  width: 12px;
 }
 
 .sidebar-scroll-content::-webkit-scrollbar-track {
@@ -67,7 +67,7 @@ html,
 /* Firefox */
 .sidebar-scroll-content {
   scrollbar-width: thin;
-  scrollbar-color: #6b5b95 #f1f1f1;
+  scrollbar-color: #6c4cdc #f1f1f1;
 }
 
 .logo {
