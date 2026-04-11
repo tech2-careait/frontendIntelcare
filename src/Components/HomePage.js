@@ -154,6 +154,7 @@ const HomePage = () => {
   const handleLeftModalOpen = () => setLeftModalVisible(true);
   const handleLeftModalClose = () => setLeftModalVisible(false);
   const [feedbackMode, setFeedbackMode] = useState(null);
+  const [isCareVoiceLocked, setIsCareVoiceLocked] = useState(true);
   const userEmail = user?.email;
   const userDomain = userEmail?.split("@")[1]?.toLowerCase();
   const blockedAutoTopupDomains = [
@@ -523,6 +524,10 @@ const HomePage = () => {
     console.log("totalCareVoiceDocsToGenerate", totalCareVoiceDocsToGenerate);
     console.log("generatedCareVoiceDocsCount", generatedCareVoiceDocsCount);
     try {
+      if (isCareVoiceLocked) {
+        alert("Please wait until your documents are ready before starting Ask AI.");
+        return;
+      }
       if (isCareVoiceGeneratingDocs || (totalCareVoiceDocsToGenerate > 0 && generatedCareVoiceDocsCount < totalCareVoiceDocsToGenerate)) {
         alert("Please wait until all documents are downloaded before starting a session.");
         return;
@@ -1481,7 +1486,7 @@ const HomePage = () => {
                           setGeneratedCareVoiceDocsCount={setGeneratedCareVoiceDocsCount} setCareVoiceSessionId={setCareVoiceSessionId}
                           setCareVoiceUserId={setCareVoiceUserId}
                           setCareVoiceStarted={setCareVoiceStarted}
-                          setMessages={setMessages} careVoiceFiles={careVoiceFiles} onReset={resetCareVoiceSession} isCareVoiceGeneratingDocs={isCareVoiceGeneratingDocs} />
+                          setMessages={setMessages} careVoiceFiles={careVoiceFiles} onReset={resetCareVoiceSession} isCareVoiceGeneratingDocs={isCareVoiceGeneratingDocs} setIsCareVoiceLocked={setIsCareVoiceLocked} />
                       </div>
                       <div style={{ display: selectedRole === "Client Profitability & Service" ? "block" : "none" }}>
                         <CareServicesEligibility selectedRole="Client Profitability & Service" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} />
