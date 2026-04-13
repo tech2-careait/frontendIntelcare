@@ -41,8 +41,8 @@ import incrementAnalysisCount from "./TLcAnalysisCount";
 const TlcNewClientProfitability = (props) => {
     const onPrepareAiPayload = props.onPrepareAiPayload;
     const user = props.user
-    const setClientProfitabilityAiHistoryPayload = props.setClientProfitabilityAiHistoryPayload; // ✅ ADD THIS
-    const clientProfitabilityAiHistoryPayload = props.clientProfitabilityAiHistoryPayload; // ✅ ADD THIS
+    const setClientProfitabilityAiHistoryPayload = props.setClientProfitabilityAiHistoryPayload; 
+    const clientProfitabilityAiHistoryPayload = props.clientProfitabilityAiHistoryPayload; 
     // console.log("user in client profitibility", user)
     // console.log("useremail in profitibility",userEmail)
     const [startMonth, setStartMonth] = useState("");
@@ -78,6 +78,7 @@ const TlcNewClientProfitability = (props) => {
     const [searching, setSearching] = useState(false);
     const [filteredHistoryList, setFilteredHistoryList] = useState([]);
     const [searchMode, setSearchMode] = useState(false); // To track if we're in search mode
+    const displayedJsonTableArray = [];
     // Add this function after handleDeleteHistory or similar
     const handleSearch = async () => {
         if (!searchQuery.trim()) {
@@ -411,13 +412,13 @@ const TlcNewClientProfitability = (props) => {
             captureNode,
         });
 
-        await addSectionWithGraphsToWord({
-            title: "Participant Level Details",
-            sectionKey: "client-table",
-            children,
-            reportRoot: reportRef.current,
-            captureNode,
-        });
+        // await addSectionWithGraphsToWord({
+        //     title: "Participant Level Details",
+        //     sectionKey: "client-table",
+        //     children,
+        //     reportRoot: reportRef.current,
+        //     captureNode,
+        // });
 
         // CREATE WORD FILE
         const doc = new Document({
@@ -426,6 +427,49 @@ const TlcNewClientProfitability = (props) => {
 
         const blob = await Packer.toBlob(doc);
         saveAs(blob, `Client_Profitability_${formatMonthRange(startDate, endDate)}.docx`);
+        try {
+            console.log("Starting excel export request");
+
+            const excelResponse = await fetch(
+                `${BASE_URL}/api/export-json-table-excel`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        table: activeTabData?.responseData?.table || [],
+                        fileName: `Client_Profitability_${formatMonthRange(
+                            startDate,
+                            endDate
+                        )}.xlsx`,
+                    }),
+                }
+            );
+
+            const excelData = await excelResponse.json();
+
+            console.log("Excel API response:", excelData);
+
+            if (!excelResponse.ok || !excelData.success) {
+                throw new Error(excelData.message || "Excel export failed");
+            }
+
+            const excelLink = document.createElement("a");
+            excelLink.href = excelData.excelDownloadBlob;
+
+            excelLink.download =
+                excelData.fileName ||
+                `${formatMonthRange(startDate, endDate)}.xlsx`;
+
+            document.body.appendChild(excelLink);
+            excelLink.click();
+            document.body.removeChild(excelLink);
+
+            console.log("Excel file downloaded successfully");
+        } catch (error) {
+            console.error("Excel download failed:", error);
+        }
 
         updateTab({
             exporting: false,
@@ -1207,186 +1251,6 @@ const TlcNewClientProfitability = (props) => {
         return `${from} – ${to}`;
     };
 
-    // useEffect(() => {
-    //     if (!responseData?.direct_service) return;
-
-    //     const summary = responseData.direct_service.tables.by_reference;
-    //     const details = responseData.direct_service.tables.detail;
-
-    //     const summaryCols = summary.columns || [];
-    //     const summaryRows = summary.rows || [];
-    //     const detailCols = details.columns || [];
-    //     const detailRows = details.rows || [];
-
-    //     // Normalize keys
-    //     const normalizeObjKeys = (obj) => {
-    //         const normalized = {};
-    //         Object.keys(obj || {}).forEach(k => {
-    //             normalized[k.trim().toLowerCase()] = obj[k];
-    //         });
-    //         return normalized;
-    //     };
-
-    //     const findIndex = (cols, keywords) =>
-    //         cols.findIndex(c =>
-    //             keywords.some(k =>
-    //                 c?.toString?.().toLowerCase().includes(k.toLowerCase())
-    //             )
-    //         );
-
-    //     const sNdisIndex = findIndex(summaryCols, ["ndis", "reference"]);
-    //     const sPartIndex = findIndex(summaryCols, ["participant"]);
-
-    //     const dNdisIndex = findIndex(detailCols, ["ndis", "reference"]);
-    //     const dPartIndex = findIndex(detailCols, ["participant"]);
-
-    //     if (sNdisIndex < 0 || sPartIndex < 0 || dNdisIndex < 0 || dPartIndex < 0) {
-    //         console.error("🏳️ Required key columns missing.");
-    //         return;
-    //     }
-
-    //     // Convert row → array by column order
-    //     const toRowArray = (obj, cols) => {
-    //         const norm = normalizeObjKeys(obj);
-    //         return cols.map(c => norm[c.toLowerCase()] ?? "");
-    //     };
-
-    //     // Identify detail-only columns
-    //     const detailOnlyCols = detailCols.filter(c => !summaryCols.includes(c));
-
-    //     // ---------------------------
-    //     // BUILD DETAIL MAP
-    //     // ---------------------------
-    //     const detailMap = {};
-
-    //     detailRows.forEach(dr => {
-    //         const norm = normalizeObjKeys(dr);
-
-    //         // Skip if detail is actually same as summary (happens when no extra columns)
-    //         if (detailOnlyCols.length === 0) return;
-
-    //         const ndis =
-    //             dr[detailCols[dNdisIndex]] ??
-    //             dr[dNdisIndex] ??
-    //             norm[detailCols[dNdisIndex].toLowerCase()] ??
-    //             "";
-
-    //         const part =
-    //             dr[detailCols[dPartIndex]] ??
-    //             dr[dPartIndex] ??
-    //             norm[detailCols[dPartIndex].toLowerCase()] ??
-    //             "";
-
-    //         const key = `${ndis}___${part}`;
-
-    //         if (!detailMap[key]) detailMap[key] = [];
-    //         detailMap[key].push(toRowArray(dr, detailCols));
-    //     });
-
-    //     // ---------------------------
-    //     // REMOVE DUPLICATE SUMMARY ROWS
-    //     // ---------------------------
-    //     const seenParents = new Set();
-    //     const uniqueSummaryRows = [];
-
-    //     summaryRows.forEach(sr => {
-    //         const parent = toRowArray(sr, summaryCols);
-
-    //         const sNdis =
-    //             sr[summaryCols[sNdisIndex]] ??
-    //             sr[sNdisIndex] ??
-    //             parent[sNdisIndex] ??
-    //             "";
-
-    //         const sPart =
-    //             sr[summaryCols[sPartIndex]] ??
-    //             sr[sPartIndex] ??
-    //             parent[sPartIndex] ??
-    //             "";
-
-    //         const key = `${sNdis}___${sPart}`;
-
-    //         if (!seenParents.has(key)) {
-    //             seenParents.add(key);
-    //             uniqueSummaryRows.push(sr);
-    //         }
-    //     });
-
-    //     // ---------------------------
-    //     // MERGE SUMMARY + DETAIL
-    //     // ---------------------------
-    //     const finalRows = uniqueSummaryRows.map(sr => {
-    //         const parent = toRowArray(sr, summaryCols);
-
-    //         const sNdis =
-    //             sr[summaryCols[sNdisIndex]] ??
-    //             sr[sNdisIndex] ??
-    //             parent[sNdisIndex] ??
-    //             "";
-
-    //         const sPart =
-    //             sr[summaryCols[sPartIndex]] ??
-    //             sr[sPartIndex] ??
-    //             parent[sPartIndex] ??
-    //             "";
-
-    //         const key = `${sNdis}___${sPart}`;
-
-    //         return {
-    //             parent,
-    //             children: detailMap[key] || [],
-    //             participant: sPart,
-    //             ndis: sNdis
-    //         };
-    //     });
-
-    //     // ---------------------------
-    //     // FILTER VALUES
-    //     // ---------------------------
-    //     const regions = new Set();
-    //     const depts = new Set();
-
-    //     const regionIdx = findIndex(detailCols, ["region"]);
-    //     const deptIdx = findIndex(detailCols, ["department", "dept"]);
-
-    //     detailRows.forEach(dr => {
-    //         const n = normalizeObjKeys(dr);
-
-    //         if (regionIdx >= 0) {
-    //             const r = n[detailCols[regionIdx].toLowerCase()];
-    //             if (r) regions.add(r);
-    //         }
-    //         if (deptIdx >= 0) {
-    //             const d = n[detailCols[deptIdx].toLowerCase()];
-    //             if (d) depts.add(d);
-    //         }
-    //     });
-
-    //     // ---------------------------
-    //     // SET FINAL OUTPUT
-    //     // ---------------------------
-    //     setDirectFinalTable({
-    //         columns: summaryCols,
-    //         rows: finalRows,
-    //         detailCols,
-    //         regions: [...regions],
-    //         departments: [...depts]
-    //     });
-
-    // }, [responseData]);
-    // useEffect(() => {
-    //     if (!activeTabData?.responseData?.table || activeTabData?.responseData.table.length === 0) return;
-
-    //     updateTab({
-    //         directFinalTable: {
-    //             columns: Object.keys(activeTabData.responseData.table[0]),
-    //             rows: activeTabData.responseData.table,
-    //             regions: [],
-    //             departments: [],
-    //         }
-    //     });
-
-    // }, [activeTabData?.responseData]);
 
     useEffect(() => {
         if (!activeTabData?.responseData?.table || activeTabData.responseData.table.length === 0) return;
@@ -1425,7 +1289,8 @@ const TlcNewClientProfitability = (props) => {
     }, [activeTabData?.responseData]);
 
 
-    // console.log("activeTabData", activeTabData)
+    // console.log("activeTabData in client profitibility", activeTabData)
+    displayedJsonTableArray.push(activeTabData?.responseData?.table || []);
     const renderHistorySection = () => {
         const displayHistoryList = searchMode ? filteredHistoryList : historyList;
 
@@ -2398,7 +2263,7 @@ const TlcNewClientProfitability = (props) => {
                                 color: "#374151",
                             }}
                         >
-                            Generating Word report…
+                            Downloading…
                         </div>
                     </div>
                 </div>
