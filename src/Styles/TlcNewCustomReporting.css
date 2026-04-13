@@ -1217,7 +1217,7 @@ body {
 }
 
 .page-containersss::-webkit-scrollbar {
-    width: 12px;
+    width: 14px !important;
   }
   
   .page-containersss::-webkit-scrollbar-track {
@@ -1237,6 +1237,6 @@ body {
   
   /* Firefox */
   .page-containersss {
-    scrollbar-width: thin;
-    scrollbar-color: #6b5b95 #f1f1f1;
+    scrollbar-width: auto;
+    scrollbar-color: #6c4cdc #f1f1f1;
   }

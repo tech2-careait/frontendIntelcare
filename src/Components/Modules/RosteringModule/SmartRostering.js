@@ -797,7 +797,7 @@ const SmartRostering = (props) => {
                                         overflowX: "auto",
                                         overflowY: "hidden",
                                         scrollBehavior: "smooth",
-                                        scrollbarWidth: "thin",
+                                        scrollbarWidth: "auto",
                                         paddingBottom: "10px",
                                         paddingTop: "10px",
                                     }}
