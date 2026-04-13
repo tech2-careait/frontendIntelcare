@@ -257,7 +257,7 @@
 }
 
 .page-containersss::-webkit-scrollbar {
-  width: 12px;
+  width: 14px !important;
 }
 
 .page-containersss::-webkit-scrollbar-track {
@@ -272,11 +272,11 @@
 }
 
 .page-containersss::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(45deg, #6c4cdc, #6b5b95);
+  background: linear-gradient(45deg, #6c4cdc, #6c4cdc);
 }
 
 /* Firefox */
 .page-containersss {
-  /* scrollbar-width: thin; */
+  scrollbar-width: auto;
   scrollbar-color: #6c4cdc;
 }

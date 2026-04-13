@@ -428,7 +428,7 @@ const PreviewDataSection = forwardRef(
                         </div>
 
                         {/* Data Rows */}
-                        <div style={{ maxHeight: "400px", overflow: "auto",scrollbarWidth:'thin',scrollbarColor:'#6c4cdc transparent'}}>
+                        <div style={{ maxHeight: "400px", overflow: "auto",scrollbarWidth:'auto',scrollbarColor:'#6c4cdc transparent'}}>
                             {Array.from({ length: maxRows }, (_, rowIndex) => {
                                 const row = currentData[rowIndex] || [];
                                 const rowHeight = getRowHeight(rowIndex);
