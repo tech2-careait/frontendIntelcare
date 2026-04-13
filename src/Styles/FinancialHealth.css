@@ -247,7 +247,7 @@ body {
   -ms-overflow-style: none;    /* IE/Edge */
 }
 .financial-main-container::-webkit-scrollbar {
-  width: 12px;
+  width: 14px !important;
 }
 
 .financial-main-container::-webkit-scrollbar-track {
@@ -267,6 +267,6 @@ body {
 
 /* Firefox */
 .financial-main-container {
-  scrollbar-width: thin;
+  scrollbar-width: auto;
   scrollbar-color: #6c4cdc #f1f1f1;
 }
