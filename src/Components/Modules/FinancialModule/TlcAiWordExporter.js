@@ -3,15 +3,35 @@ import { saveAs } from "file-saver";
 import { marked } from "marked";
 
 import { ImageRun } from "docx";
+const shouldSkipExport = (element) => {
+    if (!element) return false;
 
+    // real html table
+    const hasRealTable =
+        element.querySelector("table") ||
+        element.querySelector("thead") ||
+        element.querySelector("tbody") ||
+        element.querySelector("tr") ||
+        element.querySelector("td");
+
+    // div/grid based tables
+    const hasGridTable =
+        element.querySelector('[role="table"]') ||
+        element.querySelector(".ag-root") ||
+        element.querySelector(".rdt_Table") ||
+        element.querySelector(".ReactTable");
+
+    return hasRealTable || hasGridTable;
+};
 export const addSectionWithGraphsToWord = async ({
     title,
     sectionKey,
     children,
     reportRoot,
     captureNode,
+    displayedHtmlArray
 }) => {
-    console.log("📄 WORD EXPORT → Section:", sectionKey);
+    // console.log("WORD EXPORT → Section:", sectionKey);
 
     children.push(
         new Paragraph({
@@ -36,7 +56,7 @@ export const addSectionWithGraphsToWord = async ({
         console.warn(`❌ No section found for ${sectionKey}`);
         return;
     }
-    // ✅ SCORE CARDS EXPORT
+    // SCORE CARDS EXPORT
     const scoreCards = sectionEl.querySelectorAll(".summary-card");
 
     scoreCards.forEach(card => {
@@ -65,12 +85,15 @@ export const addSectionWithGraphsToWord = async ({
     for (let i = 0; i < charts.length; i++) {
         const chart = charts[i];
 
-        // 🧠 browser ko breath do
         // await new Promise(r => requestAnimationFrame(r));
         await new Promise(r => setTimeout(r, 50));
 
 
         if (!chart.offsetWidth || !chart.offsetHeight) continue;
+        if (shouldSkipExport(chart)) {
+            console.log("Skipping chart block because it contains table");
+            continue;
+        }
 
         const { data, width, height } = await captureNode(chart);
 
@@ -89,7 +112,7 @@ export const addSectionWithGraphsToWord = async ({
             })
         );
     }
-    // ✅ TABLE EXPORT (Payroll Comparison ka last table)
+    //TABLE EXPORT (Payroll Comparison ka last table)
     const tables = sectionEl.querySelectorAll(".table-box");
 
     console.log(`📋 Tables found in ${sectionKey}:`, tables.length);
@@ -102,7 +125,10 @@ export const addSectionWithGraphsToWord = async ({
 
 
         if (!table.offsetWidth || !table.offsetHeight) continue;
-
+        if (shouldSkipExport(table)) {
+            console.log("Skipping table block because it contains table");
+            continue;
+        }
         const { data, width, height } = await captureNode(table);
 
         children.push(

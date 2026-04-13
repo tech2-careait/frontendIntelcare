@@ -117,7 +117,7 @@ export default function TlcNewCustomerReporting(props) {
     const [historyLoading, setHistoryLoading] = useState(false);
     const pageRef = useRef(null);
     const activeTabData = tabs.find((t) => t.id === activeTab);
-
+    const displayedHtmlArray = [];
     const updateTab = (updates) => {
         setTabs((prev) =>
             prev.map((t) => (t.id === activeTab ? { ...t, ...updates } : t))
@@ -572,13 +572,14 @@ export default function TlcNewCustomerReporting(props) {
             captureNode,
         });
 
-        await addSectionWithGraphsToWord({
-            title: `Payroll Comparison (${formatDateRange()})`,
-            sectionKey: "payroll-comparison",
-            children,
-            reportRoot: reportRef.current,
-            captureNode,
-        });
+        // await addSectionWithGraphsToWord({
+        //     title: `Payroll Comparison (${formatDateRange()})`,
+        //     sectionKey: "payroll-comparison",
+        //     children,
+        //     reportRoot: reportRef.current,
+        //     captureNode,
+        //     displayedHtmlArray
+        // });
 
 
         /* ================= CREATE ONE WORD FILE ================= */
@@ -588,6 +589,40 @@ export default function TlcNewCustomerReporting(props) {
 
         const blob = await Packer.toBlob(doc);
         saveAs(blob, `Payroll_Report_${formatDateRange()}.docx`);
+        try {
+            console.log("Starting excel export request");
+
+            const excelRes = await fetch("https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/export-html-excel", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    displayedHtmlArray,
+                }),
+            });
+
+            const excelData = await excelRes.json();
+
+            if (!excelRes.ok || !excelData.success) {
+                throw new Error(excelData.message || "Excel export failed");
+            }
+
+            console.log("Excel response received");
+
+            const link = document.createElement("a");
+            link.href = excelData.excelDownloadBlob;
+            link.download = `Payroll_Report_${formatDateRange()}.xlsx`;
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            console.log("Excel downloaded successfully");
+
+        } catch (error) {
+            console.error("Excel download failed:", error);
+        }
         updateTab({
             exporting: false,
             ...prevAccordionState,
@@ -1244,7 +1279,7 @@ export default function TlcNewCustomerReporting(props) {
                 aiReport: data?.report_md,
                 showReport: true,
                 aiLoading: false,
-                aiProgress: 100,   
+                aiProgress: 100,
             });
             try {
                 if (userEmail) {
@@ -1342,152 +1377,6 @@ export default function TlcNewCustomerReporting(props) {
 
         return `${format(activeTabData.startDate)} - ${format(activeTabData.endDate)}`;
     };
-
-
-
-    // ------------------- CUSTOM MULTISELECT -------------------
-    // const MultiSelectCustom = ({
-    //     options = [],
-    //     selected = [],
-    //     setSelected,
-    //     placeholder,
-    //     leftIcon,        // ✅ NEW
-    //     rightIcon,       // ✅ NEW
-    //     height = 38,     // optional
-    //     minWidth = 220,  // optional
-    // }) => {
-    //     const [open, setOpen] = useState(false);
-    //     const ref = useRef();
-
-    //     const toggleOption = (option) => {
-    //         if (selected.some((o) => o.value === option.value)) {
-    //             setSelected(selected.filter((o) => o.value !== option.value));
-    //         } else {
-    //             setSelected([...selected, option]);
-    //         }
-    //     };
-
-    //     useEffect(() => {
-    //         const handleClickOutside = (e) => {
-    //             if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    //         };
-    //         document.addEventListener("mousedown", handleClickOutside);
-    //         return () => document.removeEventListener("mousedown", handleClickOutside);
-    //     }, []);
-
-    //     return (
-    //         <div
-    //             className="custom-multiselect"
-    //             ref={ref}
-    //             style={{ position: "relative", minWidth }}
-    //         >
-    //             {/* INPUT */}
-    //             <div
-    //                 className="custom-input"
-    //                 onClick={() => setOpen(!open)}
-    //                 style={{
-    //                     height: placeholder === "Role" ? "31px" : height,
-    //                     display: "flex",
-    //                     alignItems: "center",
-    //                     border: "1px solid #D1D5DB",
-    //                     borderRadius: "8px",
-    //                     paddingLeft: leftIcon ? "36px" : "12px",
-    //                     paddingRight: rightIcon ? "36px" : "12px",
-    //                     cursor: "pointer",
-    //                     background: "#fff",
-    //                     fontFamily: "Inter",
-    //                 }}
-    //             >
-    //                 {/* LEFT ICON */}
-    //                 {leftIcon && (
-    //                     <img
-    //                         src={leftIcon}
-    //                         alt="icon"
-    //                         style={{
-    //                             position: "absolute",
-    //                             left: "10px",
-    //                             width: "16px",
-    //                             height: "16px",
-    //                             pointerEvents: "none",
-    //                         }}
-    //                     />
-    //                 )}
-
-    //                 {/* TEXT */}
-    //                 <span
-    //                     style={{
-    //                         color: selected.length === 0 ? "#9CA3AF" : "#111827",
-    //                         fontSize: "13px",
-    //                         whiteSpace: "nowrap",
-    //                         overflow: "hidden",
-    //                         textOverflow: "ellipsis",
-    //                     }}
-    //                 >
-    //                     {selected.length === 0
-    //                         ? placeholder
-    //                         : selected.length === 1
-    //                             ? selected[0].label
-    //                             : (
-    //                                 <>
-    //                                     {selected[0].label}{" "}
-    //                                     <span style={{ color: "#6C4CDC", fontSize: "12px" }}>
-    //                                         +{selected.length - 1}
-    //                                     </span>
-    //                                 </>
-    //                             )}
-    //                 </span>
-
-    //                 {/* RIGHT ICON */}
-    //                 {rightIcon && (
-    //                     <img
-    //                         src={rightIcon}
-    //                         alt="arrow"
-    //                         style={{
-    //                             position: "absolute",
-    //                             right: "10px",
-    //                             width: "12px",
-    //                             height: "7px",
-    //                             pointerEvents: "none",
-    //                             transform: open ? "rotate(180deg)" : "rotate(0deg)",
-    //                             transition: "transform 0.2s ease",
-    //                         }}
-    //                     />
-    //                 )}
-    //             </div>
-
-    //             {/* DROPDOWN */}
-    //             {open && (
-    //                 <div className="options-dropdown">
-    //                     {options.map((option) => {
-    //                         const isSelected = selected.some(
-    //                             (o) => o.value === option.value
-    //                         );
-    //                         return (
-    //                             <div
-    //                                 key={option.value}
-    //                                 className={`option-item ${isSelected ? "selected" : ""}`}
-    //                                 onClick={(e) => {
-    //                                     e.stopPropagation();
-    //                                     toggleOption(option);
-    //                                 }}
-    //                             >
-    //                                 <input
-    //                                     type="checkbox"
-    //                                     checked={isSelected}
-    //                                     readOnly
-    //                                     className="custom-checkbox"
-    //                                 />
-    //                                 {option.label}
-    //                             </div>
-    //                         );
-    //                     })}
-    //                 </div>
-    //             )}
-    //         </div>
-    //     );
-    // };
-
-
 
 
     // -------------------- TAB BAR --------------------
@@ -1610,22 +1499,6 @@ export default function TlcNewCustomerReporting(props) {
                     }}
                 />
             )}
-            {/* {showDownloadIcon && (
-                <img
-                    src={TlcPayrollDownloadIcon}
-                    alt="Download AI Summary"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onDownload?.();
-                    }}
-                    style={{
-                        width: "18px",
-                        height: "18px",
-                        marginLeft: "auto",
-                        cursor: "pointer",
-                    }}
-                />
-            )} */}
         </div>
     );
 
@@ -1716,7 +1589,37 @@ export default function TlcNewCustomerReporting(props) {
         fileName: `AI_Summary_${formatDateRange()?.replace(/\s+/g, "_")}`,
     });
 
-    console.log("Rendering TlcNewCustomReporting with activeTabData:", activeTabData);
+    // console.log("Rendering TlcNewCustomReporting with activeTabData:", activeTabData);
+
+
+    if (activeTabData?.analysisData?.pages) {
+        const pages = activeTabData.analysisData.pages;
+
+        // Page 1
+        if (pages["page 1"]?.table) {
+            displayedHtmlArray.push(pages["page 1"].table);
+        }
+
+        // Page 2
+        (pages["page 2"]?.figures || []).forEach((html, index) => {
+            if (index === 1) {
+                displayedHtmlArray.push(html);
+            }
+        });
+
+        // Page 3
+        (pages["page 3"]?.figures || []).forEach((html, index) => {
+            if (index === 2) {
+                displayedHtmlArray.push(html);
+            }
+        });
+
+        // Page 4
+        if (pages["page 4"]?.table) {
+            displayedHtmlArray.push(pages["page 4"].table);
+        }
+    }
+    // console.log("displayedHtmlArray:", displayedHtmlArray);
     return (
         <div className="page-containersss" ref={pageRef}>
             {historyLoading && (
@@ -2817,7 +2720,7 @@ export default function TlcNewCustomerReporting(props) {
                                 color: "#374151",
                             }}
                         >
-                            Generating Word report…
+                            Downloading…
                         </div>
                     </div>
                 </div>
