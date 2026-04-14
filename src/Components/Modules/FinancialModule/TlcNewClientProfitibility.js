@@ -41,8 +41,8 @@ import incrementAnalysisCount from "./TLcAnalysisCount";
 const TlcNewClientProfitability = (props) => {
     const onPrepareAiPayload = props.onPrepareAiPayload;
     const user = props.user
-    const setClientProfitabilityAiHistoryPayload = props.setClientProfitabilityAiHistoryPayload; 
-    const clientProfitabilityAiHistoryPayload = props.clientProfitabilityAiHistoryPayload; 
+    const setClientProfitabilityAiHistoryPayload = props.setClientProfitabilityAiHistoryPayload;
+    const clientProfitabilityAiHistoryPayload = props.clientProfitabilityAiHistoryPayload;
     // console.log("user in client profitibility", user)
     // console.log("useremail in profitibility",userEmail)
     const [startMonth, setStartMonth] = useState("");
@@ -187,23 +187,24 @@ const TlcNewClientProfitability = (props) => {
     }, [searchQuery]);
     const reportRef = useRef(null);
     const EMAIL_STATE_MAP = {
-        "molley@tenderlovingcaredisability.com.au": "South Australia",
-        "laurente@tenderlovingcaredisability.com.au": "Victoria",
-        "kbrennen@tenderlovingcaredisability.com.au": "New South Wales",
+        "molley@tenderlovingcaredisability.com.au": [
+            "South Australia",
+            "Queensland",
+        ],
+
+        "ilaurente@tenderlovingcaredisability.com.au": [
+            "Victoria",
+            "Queensland",
+        ],
+
+        "kbrennen@tenderlovingcaredisability.com.au": [
+            "New South Wales",
+        ],
     };
     // Sync history when loading from history
 
     const userEmail = user?.email;
-    // const userEmail = "SGonzales@tenderlovingcaredisability.com.au";
-    // const userEmail = "molley@tenderlovingcaredisability.com.au";
-    // const userEmail = "gjavier@tenderlovingcaredisability.com.au"
-    // const userEmail = "mtalukder@tenderlovingcaredisability.com.au"
-    // const userEmail = "bastruc@tenderlovingcaredisability.com.au"
-    // const userEmail = "amera@tenderlovingcare.com.au";
-    // const userEmail = "lcowell@tenderlovingcare.com.au"
-    // const userEmail = "mfarag@tenderlovingcare.com.au"
-    // const userEmail = "yzaki@tenderlovingcare.com.au"
-    const userState = EMAIL_STATE_MAP[userEmail];
+    const userStates = EMAIL_STATE_MAP[userEmail] || [];
     const [tabs, setTabs] = useState([
         {
             id: 1,
@@ -804,15 +805,19 @@ const TlcNewClientProfitability = (props) => {
                 alert("Please select date range");
                 return;
             }
-            if (userState && activeTabData.selectedState.length > 0) {
-                const selectedStates = activeTabData.selectedState.map(s => s.value);
+            if (userStates.length > 0 && activeTabData.selectedState.length > 0) {
+                const selectedStates = activeTabData.selectedState.map((s) => s.value);
 
                 const isInvalid = selectedStates.some(
-                    state => state.toLowerCase() !== userState.toLowerCase()
+                    (state) =>
+                        !userStates.some(
+                            (allowed) =>
+                                allowed.toLowerCase() === state.toLowerCase()
+                        )
                 );
 
                 if (isInvalid) {
-                    alert(`You are allowed to analyse only ${userState} data.`);
+                    alert(`You are allowed to analyse only: ${userStates.join(", ")}`);
                     return;
                 }
             }
@@ -844,10 +849,14 @@ const TlcNewClientProfitability = (props) => {
 
             if (activeTabData.selectedState.length > 0) {
                 finalStates = activeTabData.selectedState.map(s => s.value);
-            } else if (userState) {
-                finalStates = [userState];
+            } else if (userStates.length > 0) {
+                finalStates = userStates;
+
                 updateTab({
-                    selectedState: [{ label: userState, value: userState }]
+                    selectedState: userStates.map((state) => ({
+                        label: state,
+                        value: state,
+                    })),
                 });
             }
             // 🔹 Step 2: Now call analyze-by-date
@@ -1631,9 +1640,12 @@ const TlcNewClientProfitability = (props) => {
                 if (!res.ok) throw new Error(data.error || "Failed to fetch history");
 
                 // setHistoryList(data.data);
-                const filteredHistory = userState
+                const filteredHistory = userStates.length
                     ? data.data.filter(item =>
-                        item.filters?.state?.toLowerCase() === userState.toLowerCase()
+                        userStates.some(
+                            state =>
+                                item.filters?.state?.toLowerCase() === state.toLowerCase()
+                        )
                     )
                     : data.data;
 

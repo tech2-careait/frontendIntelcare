@@ -134,22 +134,24 @@ export default function TlcNewCustomerReporting(props) {
         }
     }, [activeTab, tabs]);
     const EMAIL_STATE_MAP = {
-        "molley@tenderlovingcaredisability.com.au": "South Australia",
-        "laurente@tenderlovingcaredisability.com.au": "Victoria",
-        "kbrennen@tenderlovingcaredisability.com.au": "New South Wales",
+        "molley@tenderlovingcaredisability.com.au": [
+            "South Australia",
+            "Queensland",
+        ],
+
+        "ilaurente@tenderlovingcaredisability.com.au": [
+            "Victoria",
+            "Queensland",
+        ],
+
+        "kbrennen@tenderlovingcaredisability.com.au": [
+            "New South Wales",
+        ],
     };
     const userEmail = props?.user?.email?.trim();
-    // const userEmail = "SGonzales@tenderlovingcaredisability.com.au";
-    // const userEmail = "laurente@tenderlovingcaredisability.com.au";
-    // const userEmail = "gjavier@tenderlovingcaredisability.com.au"
-    // const userEmail = "bastruc@tenderlovingcaredisability.com.au"
-    // const userEmail = "amera@tenderlovingcare.com.au"
-    // const userEmail = "lcowell@tenderlovingcare.com.au"
-    // const userEmail = "mfarag@tenderlovingcare.com.au"
-    // const userEmail = "yzaki@tenderlovingcare.com.au"
     const setTlcPayrollAskAiConversationHistory = props.setTlcPayrollAskAiConversationHistory; // ✅ NEW
     const tlcPayrollAskAiConversationHistory = props.tlcPayrollAskAiConversationHistory; // ✅ NEW
-    const userState = EMAIL_STATE_MAP[userEmail];
+    const userStates = EMAIL_STATE_MAP[userEmail] || [];
     const handleNewTab = () => {
         const newId = tabs.length ? Math.max(...tabs.map((t) => t.id)) + 1 : 1;
         const newTab = {
@@ -692,15 +694,19 @@ export default function TlcNewCustomerReporting(props) {
             alert("Please select a date range first!");
             return;
         }
-        if (userState && selectedState.length > 0) {
-            const selectedStates = selectedState.map(s => s.value);
+        if (userStates.length > 0 && selectedState.length > 0) {
+            const selectedStates = selectedState.map((s) => s.value);
 
             const isInvalid = selectedStates.some(
-                state => state.toLowerCase() !== userState.toLowerCase()
+                (state) =>
+                    !userStates.some(
+                        (allowed) =>
+                            allowed.toLowerCase() === state.toLowerCase()
+                    )
             );
 
             if (isInvalid) {
-                alert(`You are allowed to analyse only ${userState} data.`);
+                alert(`You are allowed to analyse only: ${userStates.join(", ")}`);
                 return;
             }
         }
@@ -832,12 +838,14 @@ export default function TlcNewCustomerReporting(props) {
 
             if (selectedState.length > 0) {
                 finalStates = selectedState.map((s) => s.value);
-            } else if (userState) {
-                finalStates = [userState];
+            } else if (userStates.length > 0) {
+                finalStates = userStates;
 
-                // 👇 Optional (UI auto-fill)
                 updateTab({
-                    selectedState: [{ label: userState, value: userState }]
+                    selectedState: userStates.map((state) => ({
+                        label: state,
+                        value: state,
+                    })),
                 });
             }
 
@@ -1184,9 +1192,12 @@ export default function TlcNewCustomerReporting(props) {
                 const res = await fetch(`https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/payroll/history?email=${userEmail}`);
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "Failed to fetch history");
-                const filteredHistory = userState
+                const filteredHistory = userStates.length
                     ? data.data.filter(item =>
-                        item.filters?.state?.toLowerCase() === userState.toLowerCase()
+                        userStates.some(
+                            state =>
+                                item.filters?.state?.toLowerCase() === state.toLowerCase()
+                        )
                     )
                     : data.data;
 

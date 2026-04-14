@@ -100,7 +100,7 @@ const NewFinancialHealth = (props) => {
             }
 
             const parsedRanges = result.data;
-            console.log("Parsed search ranges:", parsedRanges);
+            // console.log("Parsed search ranges:", parsedRanges);
 
             if (!parsedRanges || parsedRanges.length === 0) {
                 setFilteredHistoryList([]);
@@ -238,16 +238,23 @@ const NewFinancialHealth = (props) => {
 
     const previewRef = useRef(null);
     const userEmail = props.user?.email;
-    // const userEmail = "SGonzales@tenderlovingcaredisability.com.au";
-    // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
-    // const userEmail = "laurente@tenderlovingcaredisability.com.au"
-    // const userEmail = "mtalukder@tenderlovingcaredisability.com.au";
     const EMAIL_STATE_MAP = {
-        "molley@tenderlovingcaredisability.com.au": "South Australia",
-        "laurente@tenderlovingcaredisability.com.au": "Victoria",
-        "kbrennen@tenderlovingcaredisability.com.au": "New South Wales",
+        "molley@tenderlovingcaredisability.com.au": [
+            "South Australia",
+            "Queensland",
+        ],
+
+        "ilaurente@tenderlovingcaredisability.com.au": [
+            "Victoria",
+            "Queensland",
+        ],
+
+        "kbrennen@tenderlovingcaredisability.com.au": [
+            "New South Wales",
+        ],
     };
-    const userState = EMAIL_STATE_MAP[userEmail];
+
+    const userStates = EMAIL_STATE_MAP[userEmail] || [];
     const handleNewTab = () => {
         const newId = tabs.length
             ? Math.max(...tabs.map(t => t.id)) + 1
@@ -733,10 +740,13 @@ const NewFinancialHealth = (props) => {
                 }
 
                 const json = await res.json();
-                const filteredHistory = userState
+                const filteredHistory = userStates.length
                     ? (json.data || []).filter(item =>
-                        item.filters?.selectedState?.some(
-                            s => s.value?.toLowerCase() === userState.toLowerCase()
+                        item.filters?.selectedState?.some(selected =>
+                            userStates.some(
+                                allowed =>
+                                    selected.value?.toLowerCase() === allowed.toLowerCase()
+                            )
                         )
                     )
                     : json.data;
@@ -963,15 +973,19 @@ const NewFinancialHealth = (props) => {
             isFromHistory: false,
         });
         // Validation checks
-        if (userState && activeTabData.selectedState.length > 0) {
+        if (userStates.length > 0 && activeTabData.selectedState.length > 0) {
             const selectedStates = activeTabData.selectedState.map(s => s.value);
 
             const isInvalid = selectedStates.some(
-                state => state.toLowerCase() !== userState.toLowerCase()
+                state =>
+                    !userStates.some(
+                        allowed =>
+                            allowed.toLowerCase() === state.toLowerCase()
+                    )
             );
 
             if (isInvalid) {
-                alert(`You are allowed to analyse only ${userState} data.`);
+                alert(`You are allowed to analyse only: ${userStates.join(", ")}`);
                 return;
             }
         }
@@ -1096,9 +1110,12 @@ const NewFinancialHealth = (props) => {
                     uploading: false,
                     progressStage: "analysing",
                 });
-                if (userState && activeTabData.selectedState.length === 0) {
+                if (userStates.length > 0 && activeTabData.selectedState.length === 0) {
                     updateTab({
-                        selectedState: [{ label: userState, value: userState }]
+                        selectedState: userStates.map(state => ({
+                            label: state,
+                            value: state,
+                        })),
                     });
                 }
                 const analysisRes = await axios.post(
@@ -1131,9 +1148,12 @@ const NewFinancialHealth = (props) => {
                     uploading: false,
                     progressStage: "analysing",
                 });
-                if (userState && activeTabData.selectedState.length === 0) {
+                if (userStates.length > 0 && activeTabData.selectedState.length === 0) {
                     updateTab({
-                        selectedState: [{ label: userState, value: userState }]
+                        selectedState: userStates.map(state => ({
+                            label: state,
+                            value: state,
+                        })),
                     });
                 }
                 const analysisRes = await axios.post(
@@ -1343,6 +1363,7 @@ const NewFinancialHealth = (props) => {
                         metricName: plot.filename || `Plot ${index + 1}`,
                     }));
                 }
+                console.log("analysisData", analysisData)
                 const apiPlots = analysisData?.plots || [];
                 // Process CSV data for Excel export
                 // Process CSV data for Excel export
@@ -1884,7 +1905,7 @@ const NewFinancialHealth = (props) => {
             </section>
         );
     };
-    // console.log("activeTabData", activeTabData)
+    // console.log("activeTabData in financial health", activeTabData)
     return (
 
         <div
