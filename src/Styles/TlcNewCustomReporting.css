@@ -1199,10 +1199,6 @@ body {
   margin-left: auto;
   margin-bottom: 7px;
 }
-
-.download-report-btn:hover {
-  background-color: #EAE8F2;
-}
 @keyframes spin {
     to {
         transform: rotate(360deg);
