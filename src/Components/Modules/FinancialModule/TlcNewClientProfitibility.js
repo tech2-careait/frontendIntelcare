@@ -204,21 +204,22 @@ const TlcNewClientProfitability = (props) => {
     // Sync history when loading from history
 
     const userEmail = user?.email;
+    // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
     const userStates = EMAIL_STATE_MAP[userEmail] || [];
     const [tabs, setTabs] = useState([
         {
             id: 1,
             name: "Tab 1",
 
-            // ⬇️ CLIENT PROFITABILITY STATE
+            //CLIENT PROFITABILITY STATE
             responseData: null,
             selectedFiles: [],
             files: [],
-            // ⬇️ DATE (Custom Reporting style)
+            //DATE (Custom Reporting style)
             startDate: null,
             endDate: null,
 
-            // ⬇️ FILTERS (PER TAB)
+            //FILTERS (PER TAB)
             selectedState: [],
             selectedDepartment: [],
             selectedType: [],
