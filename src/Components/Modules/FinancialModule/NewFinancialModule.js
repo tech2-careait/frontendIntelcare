@@ -238,6 +238,7 @@ const NewFinancialHealth = (props) => {
 
     const previewRef = useRef(null);
     const userEmail = props.user?.email;
+    // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
     const EMAIL_STATE_MAP = {
         "molley@tenderlovingcaredisability.com.au": [
             "South Australia",
@@ -989,12 +990,22 @@ const NewFinancialHealth = (props) => {
                 return;
             }
         }
-        if (activeTabData.selectedFiles.length === 0 && !syncEnabled) {
-            alert("Please upload the report files or enable sync.");
+        const hasFiles = activeTabData.selectedFiles.length > 0;
+        const hasDateRange = startDate && endDate;
+
+        if (!syncEnabled && !hasFiles) {
+            console.log("Please turn on sync or select file.")
+            alert("Please turn on sync or select file.");
             return;
         }
-        if (syncEnabled && (!startDate || !endDate)) {
-            alert("Please select a valid date range when sync is enabled.");
+
+        if (hasFiles && !hasDateRange) {
+            alert("Please select a date range.");
+            return;
+        }
+
+        if (syncEnabled && !hasDateRange) {
+            alert("Please select a date range.");
             return;
         }
 
@@ -1129,7 +1140,7 @@ const NewFinancialHealth = (props) => {
 
                 // console.log("Analysis API response:", analysisRes);
                 analysisData = analysisRes.data;
-                // console.log("Analysis API response data of type api:", analysisData);
+                console.log("Analysis API response data of type api:", analysisData);
                 const askAiFrames = analysisData?.csv_data
                 updateTab({
                     progressStage: "preparing",
@@ -1170,7 +1181,7 @@ const NewFinancialHealth = (props) => {
                 });
                 analysisData = analysisRes.data;
 
-                // console.log("Analysis API response of type upload:", analysisData);
+                console.log("Analysis API response of type upload:", analysisData);
                 // const dataframes = tablesToAskAiDataframes(analysisData?.normalized_files?.tables);
                 updateTab({
                     askAiDataframes: analysisData?.csv_data
@@ -2195,7 +2206,7 @@ const NewFinancialHealth = (props) => {
                         <div className="search-section">
                             <button
                                 className="analyse-btn"
-                                disabled={isButtonDisabled || activeTabData.loading}
+                                // disabled={isButtonDisabled || activeTabData.loading}
                                 style={{
                                     backgroundColor:
                                         isButtonDisabled || activeTabData.loading ? "#A1A1AA" : "#000",
