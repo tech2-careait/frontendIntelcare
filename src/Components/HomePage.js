@@ -543,7 +543,7 @@ const HomePage = () => {
       const formData = new FormData();
       formData.append("firebaseUid", user?.uid);
       const session_id = `session_${crypto.randomUUID()}`;
-      console.log("session id",session_id)
+      console.log("session id", session_id)
       formData.append("session_id", session_id);
 
       const filteredFiles = careVoiceFiles.filter(file =>
@@ -564,7 +564,7 @@ const HomePage = () => {
       );
 
       const data = await res.json();
-      console.log("data in care voice ask ai start",data) 
+      console.log("data in care voice ask ai start", data)
       if (!data.success) throw new Error("Start failed");
 
       setCareVoiceSessionId(data.data.session_id);
@@ -689,10 +689,10 @@ const HomePage = () => {
                 : msg
             )
           );
-          // await incrementCareVoiceAnalysisCount(
-          //   user?.email?.trim().toLowerCase(),
-          //   "care-voice-askai"
-          // );
+          await incrementCareVoiceAnalysisCount(
+            user?.email?.trim().toLowerCase(),
+            "care-voice-askai"
+          );
         } catch (err) {
           console.error("Care Voice AskAI Error:", err);
 
