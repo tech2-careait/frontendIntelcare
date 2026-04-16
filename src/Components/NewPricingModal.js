@@ -75,8 +75,6 @@ const PricingPlansModal = ({ onClose, email: userEmail, firstName: firstName, se
                     <div className="saving-badge">
                         Indicative provider saving $1.2M+/Year
                     </div>
-
-
                 </div>
 
                 <div className="command-right">

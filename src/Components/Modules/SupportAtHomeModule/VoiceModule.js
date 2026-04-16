@@ -45,6 +45,7 @@ import incrementAnalysisCount from "../FinancialModule/TLcAnalysisCount";
 import { FiMic } from "react-icons/fi";
 import { extractAudioFromVideo, getTranscriptTextFromAudioBlob } from "./CareVoiceAudioVideoExtract";
 import { Document, Packer, Paragraph, TextRun } from "docx";
+import incrementCareVoiceAnalysisCount from "./careVoiceCostAnalysis";
 
 const VoiceModule = (props) => {
     const userEmail = props?.user?.email;
@@ -1223,8 +1224,9 @@ const VoiceModule = (props) => {
 
                     // ✅ ONLY mapper.mapper flatten
                     setMapperRows(mapperToRows(data?.mapper));
+                    console.log("data?.llm_cost?.total_usd", data?.llm_cost?.total_usd)
                     if (userEmail) {
-                        await incrementAnalysisCount(
+                        await incrementCareVoiceAnalysisCount(
                             userEmail,
                             "care-voice-onboarding",
                             data?.llm_cost?.total_usd
@@ -1463,7 +1465,7 @@ const VoiceModule = (props) => {
         }
 
         if (userEmail) {
-            await incrementAnalysisCount(
+            await incrementCareVoiceAnalysisCount(
                 userEmail,
                 "care-voice-document-generation",
                 data?.llm_cost?.total_usd
@@ -1636,7 +1638,7 @@ const VoiceModule = (props) => {
 
             const data = await res.json();
             if (userEmail) {
-                await incrementAnalysisCount(
+                await incrementCareVoiceAnalysisCount(
                     userEmail,
                     "care-voice-document-generation",
                     data?.llm_cost?.total_usd
@@ -1777,24 +1779,22 @@ const VoiceModule = (props) => {
         });
 
         const data = await res.json();
-
+        console.log("data in processSingleTranscriptWithTemplate", data)
         if (data.success && data.filled_document) {
             const filename = `${tpl.templateName}_${file.name}.docx`;
 
             const doc = { filename, base64: data.filled_document };
-
+            if (userEmail) {
+                await incrementCareVoiceAnalysisCount(
+                    userEmail,
+                    "care-voice-document-generation",
+                    data?.llm_cost?.total_usd
+                )
+            }
             downloadBase64File(data.filled_document, filename);
 
             return doc;
         }
-        if (userEmail) {
-            await incrementAnalysisCount(
-                userEmail,
-                "care-voice-document-generation",
-                data?.llm_cost?.total_usd
-            )
-        }
-
     };
 
 

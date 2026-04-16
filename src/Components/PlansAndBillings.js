@@ -22,7 +22,9 @@ const PlansAndBillings = ({ onClose, email: userEmail, firstName: firstName, set
                 console.error("User email missing");
                 return;
             }
-
+            console.log("userEmail", userEmail)
+            console.log("planKey", planKey)
+            console.log("billingInterval", billing)
             const payload = {
                 email: userEmail,
                 planKey,
@@ -187,6 +189,7 @@ const PlansAndBillings = ({ onClose, email: userEmail, firstName: firstName, set
                         userEmail={userEmail}
                         onClose={onClose}
                         firstName={firstName}
+                        subscriptionInfo={subscriptionInfo}
                         setSubscriptionInfo={setSubscriptionInfo}
                         currentPlan={currentPlan}
                         currentBilling={currentBilling}
@@ -215,6 +218,7 @@ const PlansAndBillings = ({ onClose, email: userEmail, firstName: firstName, set
                         userEmail={userEmail}
                         onClose={onClose}
                         firstName={firstName}
+                        subscriptionInfo={subscriptionInfo}
                         setSubscriptionInfo={setSubscriptionInfo}
                         currentPlan={currentPlan}
                         currentBilling={currentBilling}
@@ -245,6 +249,7 @@ const PlansAndBillings = ({ onClose, email: userEmail, firstName: firstName, set
                         userEmail={userEmail}
                         onClose={onClose}
                         firstName={firstName}
+                        subscriptionInfo={subscriptionInfo}
                         setSubscriptionInfo={setSubscriptionInfo}
                         currentPlan={currentPlan}
                         currentBilling={currentBilling}
@@ -355,17 +360,23 @@ const Plan = ({ title,
     userEmail,
     onClose,
     firstName,
+    subscriptionInfo,
     setSubscriptionInfo, highlighted, badge, currentPlan, currentBilling, isAdmin, adminDetails }) => {
     const PLAN_ORDER = {
-        trial: 0,
         start: 1,
         grow: 2,
         thrive: 3,
         command: 4
     };
-    // console.log("PLAN_ORDER[planKey]", PLAN_ORDER[planKey])
-    // console.log("PLAN_ORDER[currentPlan]", PLAN_ORDER[currentPlan])
-    const isSamePlan = PLAN_ORDER[planKey] === PLAN_ORDER[currentPlan];
+
+    const isTrialUser =
+        !subscriptionInfo ||
+        subscriptionInfo?.subscription_type === "trial";
+
+    const isSamePlan =
+        !isTrialUser &&
+        PLAN_ORDER[planKey] === PLAN_ORDER[currentPlan];
+
     const isSameBilling = billing === currentBilling;
 
     const isCurrentPlan = isSamePlan && isSameBilling;
@@ -373,21 +384,20 @@ const Plan = ({ title,
     let isUpgrade = false;
     let isDowngrade = false;
 
-    if (PLAN_ORDER[planKey] > PLAN_ORDER[currentPlan]) {
-        isUpgrade = true;
-    }
-    else if (PLAN_ORDER[planKey] < PLAN_ORDER[currentPlan]) {
-        isDowngrade = true;
-    }
-    else if (isSamePlan && !isSameBilling) {
-
-        // billing change
-        if (currentBilling === "monthly" && billing === "yearly") {
+    // Only paid users can upgrade/downgrade
+    if (!isTrialUser) {
+        if (PLAN_ORDER[planKey] > PLAN_ORDER[currentPlan]) {
             isUpgrade = true;
-        }
-
-        if (currentBilling === "yearly" && billing === "monthly") {
+        } else if (PLAN_ORDER[planKey] < PLAN_ORDER[currentPlan]) {
             isDowngrade = true;
+        } else if (isSamePlan && !isSameBilling) {
+            if (currentBilling === "monthly" && billing === "yearly") {
+                isUpgrade = true;
+            }
+
+            if (currentBilling === "yearly" && billing === "monthly") {
+                isDowngrade = true;
+            }
         }
     }
     // console.log("isUpgrade", isUpgrade);
