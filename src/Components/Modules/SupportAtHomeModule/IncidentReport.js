@@ -1,4 +1,4 @@
-import React, { useState,useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import * as XLSX from "xlsx";
 import axios from "axios";
 import { saveAs } from 'file-saver';
@@ -17,7 +17,15 @@ const IncidentReport = (props) => {
     const [incidentdatatoDownload, setIncidentDatatoDownload] = useState([]);
     const [isConsentChecked, setIsConsentChecked] = useState(false);
     const [showDownloadButton, setShowDownloadButton] = useState(false);
+    const RESTRICTED_USERS = [
+        "iaquino@tenderlovingcaredisability.com.au",
+        "jballares@tenderlovingcaredisability.com.au",
+        "kperu@tenderlovingcaredisability.com.au",
+    ];
 
+    const isRestrictedUser = RESTRICTED_USERS.includes(
+        (props?.user?.email || "").toLowerCase()
+    );
     const handleButtonClick = () => {
         setIsConsentChecked(true);
     };
@@ -107,11 +115,11 @@ const IncidentReport = (props) => {
     };
 
     useEffect(() => {
-        if (analysedIncidentReportdata.length!==0) {
+        if (analysedIncidentReportdata.length !== 0) {
             const timer = setTimeout(() => {
                 props.setShowFeedbackPopup(true);
             }, 60000); // 1 minute
-    
+
             return () => clearTimeout(timer); // Clear on unmount or change
         }
     }, [analysedIncidentReportdata]);
@@ -125,7 +133,31 @@ const IncidentReport = (props) => {
         setIsConsentChecked(false);
         setShowDownloadButton(false);
     };
+    if (isRestrictedUser) {
+        return (
+            <div style={{
+                textAlign: "center",
+                padding: "120px 20px",
+                fontFamily: "Inter, sans-serif",
+                color: "#1f2937"
+            }}>
+                {/* <img
+                    src={TlcLogo}
+                    alt="Access Denied"
+                    style={{ width: "80px", opacity: 0.8, marginBottom: "20px" }}
+                /> */}
 
+                <h2 style={{ fontSize: "24px", marginBottom: "12px", color: "#6C4CDC" }}>
+                    Access Restricted 🚫
+                </h2>
+
+                <p style={{ fontSize: "16px", color: "#555" }}>
+                    Sorry, your account (<strong>{props?.user?.email}</strong>)
+                    is not authorized to view this page.
+                </p>
+            </div>
+        )
+    }
     return (
         <>
             {analysedIncidentReportdata.length === 0 ? (
@@ -167,7 +199,7 @@ const IncidentReport = (props) => {
             ) : (
                 <div className="reports-box" style={{ height: 'auto', marginTop: '30px', padding: '10px' }}>
                     <div style={{ backgroundColor: '#FFFFFF', padding: '10px 30px', borderRadius: '10px' }}>
-                        <SummaryReport summaryText={analysedIncidentReportdata} selectedRole={props.selectedRole} showDownloadButton={showDownloadButton} handleDownloadIncidentReportCSV={handleDownloadIncidentReportCSV} resetIncidentReportState={resetIncidentReportState}/>
+                        <SummaryReport summaryText={analysedIncidentReportdata} selectedRole={props.selectedRole} showDownloadButton={showDownloadButton} handleDownloadIncidentReportCSV={handleDownloadIncidentReportCSV} resetIncidentReportState={resetIncidentReportState} />
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px', fontSize: '13px', color: 'grey' }}>
                             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '10px' }}>
                                 <input type="checkbox" id="aiConsent" checked={isConsentChecked} readOnly style={{ width: '16px', height: '16px', marginRight: '8px', accentColor: 'green', cursor: 'pointer' }} />

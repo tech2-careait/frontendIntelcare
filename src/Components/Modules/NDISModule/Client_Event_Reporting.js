@@ -35,6 +35,15 @@ const Client_Event_Reporting = (props) => {
   const [deleting, setDeleting] = useState(false);
 
   const [isFromHistory, setIsFromHistory] = useState(false);
+  const RESTRICTED_USERS = [
+    "iaquino@tenderlovingcaredisability.com.au",
+    "jballares@tenderlovingcaredisability.com.au",
+    "kperu@tenderlovingcaredisability.com.au",
+  ];
+
+  const isRestrictedUser = RESTRICTED_USERS.includes(
+    (props?.user?.email || "").toLowerCase()
+  );
   const formatClientEventDateRange = (dateRange) => {
     if (!dateRange?.startDate || !dateRange?.endDate) return "–";
 
@@ -491,14 +500,38 @@ const Client_Event_Reporting = (props) => {
 
     </section>
   );
+  if (isRestrictedUser) {
+    return (
+      <div style={{
+        textAlign: "center",
+        padding: "120px 20px",
+        fontFamily: "Inter, sans-serif",
+        color: "#1f2937"
+      }}>
+        {/* <img
+                    src={TlcLogo}
+                    alt="Access Denied"
+                    style={{ width: "80px", opacity: 0.8, marginBottom: "20px" }}
+                /> */}
 
+        <h2 style={{ fontSize: "24px", marginBottom: "12px", color: "#6C4CDC" }}>
+          Access Restricted 🚫
+        </h2>
+
+        <p style={{ fontSize: "16px", color: "#555" }}>
+          Sorry, your account (<strong>{props?.user?.email}</strong>)
+          is not authorized to view this page.
+        </p>
+      </div>
+    )
+  }
   return (
     <div className="upload-page">
       {/* Toggle */}
       <div className="financial-header">
 
         {!stage3Data && <h1 className="titless">PARTICIPANT EVENTS & INCIDENT MANAGEMENT</h1>}
-        <div className="sync-toggle" style={{ marginLeft: stage3Data ? "auto" : "0px"}}>
+        <div className="sync-toggle" style={{ marginLeft: stage3Data ? "auto" : "0px" }}>
           <div
             style={{
               fontSize: "14px",

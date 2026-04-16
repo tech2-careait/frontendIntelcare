@@ -58,6 +58,15 @@ const IncidentAuditing = (props) => {
     const [deleting, setDeleting] = useState(false);
 
     const [isFromHistory, setIsFromHistory] = useState(false);
+    const RESTRICTED_USERS = [
+        "iaquino@tenderlovingcaredisability.com.au",
+        "jballares@tenderlovingcaredisability.com.au",
+        "kperu@tenderlovingcaredisability.com.au",
+    ];
+
+    const isRestrictedUser = RESTRICTED_USERS.includes(
+        (props?.user?.email || "").toLowerCase()
+    );
     const formatIncidentHistoryDateRange = (filters) => {
         const from = filters?.fromDate;
         const to = filters?.toDate;
@@ -564,7 +573,31 @@ const IncidentAuditing = (props) => {
         });
     }
 
+    if (isRestrictedUser) {
+        return (
+            <div style={{
+                textAlign: "center",
+                padding: "120px 20px",
+                fontFamily: "Inter, sans-serif",
+                color: "#1f2937"
+            }}>
+                {/* <img
+                    src={TlcLogo}
+                    alt="Access Denied"
+                    style={{ width: "80px", opacity: 0.8, marginBottom: "20px" }}
+                /> */}
 
+                <h2 style={{ fontSize: "24px", marginBottom: "12px", color: "#6C4CDC" }}>
+                    Access Restricted 🚫
+                </h2>
+
+                <p style={{ fontSize: "16px", color: "#555" }}>
+                    Sorry, your account (<strong>{props?.user?.email}</strong>)
+                    is not authorized to view this page.
+                </p>
+            </div>
+        )
+    }
     return (
         <>
             {/* 🌀 Show loader while processing */}
@@ -575,7 +608,7 @@ const IncidentAuditing = (props) => {
                 </div>
             ) : responseData ? (
                 /* ✅ Show response reports after processing finishes */
-                <div style={{padding:'24px 4%'}}>
+                <div style={{ padding: '24px 4%' }}>
                     {isFromHistory && (
                         <div
                             className="financial-health-history-back-btn"
@@ -787,7 +820,7 @@ const IncidentAuditing = (props) => {
                 </div>
             ) : (
                 /* 📁 Default: show upload + info UI */
-                <div style={{padding:'24px 4%'}}>
+                <div style={{ padding: '24px 4%' }}>
                     <div className="financial-header">
                         <div></div>
                         <div

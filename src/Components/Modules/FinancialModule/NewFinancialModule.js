@@ -238,7 +238,17 @@ const NewFinancialHealth = (props) => {
 
     const previewRef = useRef(null);
     const userEmail = props.user?.email;
+    // const userEmail = "iaquino@tenderlovingcaredisability.com.au";
     // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
+    const RESTRICTED_USERS = [
+        "iaquino@tenderlovingcaredisability.com.au",
+        "jballares@tenderlovingcaredisability.com.au",
+        "kperu@tenderlovingcaredisability.com.au",
+    ];
+
+    const isRestrictedUser = RESTRICTED_USERS.includes(
+        (userEmail || "").toLowerCase()
+    );
     const EMAIL_STATE_MAP = {
         "molley@tenderlovingcaredisability.com.au": [
             "South Australia",
@@ -1917,6 +1927,31 @@ const NewFinancialHealth = (props) => {
         );
     };
     // console.log("activeTabData in financial health", activeTabData)
+    if (isRestrictedUser) {
+        return (
+            <div style={{
+                textAlign: "center",
+                padding: "120px 20px",
+                fontFamily: "Inter, sans-serif",
+                color: "#1f2937"
+            }}>
+                {/* <img
+                    src={TlcLogo}
+                    alt="Access Denied"
+                    style={{ width: "80px", opacity: 0.8, marginBottom: "20px" }}
+                /> */}
+
+                <h2 style={{ fontSize: "24px", marginBottom: "12px", color: "#6C4CDC" }}>
+                    Access Restricted 🚫
+                </h2>
+
+                <p style={{ fontSize: "16px", color: "#555" }}>
+                    Sorry, your account (<strong>{userEmail}</strong>)
+                    is not authorized to view this page.
+                </p>
+            </div>
+        );
+    }
     return (
 
         <div

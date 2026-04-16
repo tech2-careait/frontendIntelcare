@@ -17,7 +17,15 @@ const QualityandRisk = (props) => {
     const [qualitydatatoDownload, setQualityDatatoDownload] = useState([]);
     const [isConsentChecked, setIsConsentChecked] = useState(false);
     const [showDownloadButton, setShowDownloadButton] = useState(false);
+    const RESTRICTED_USERS = [
+        "iaquino@tenderlovingcaredisability.com.au",
+        "jballares@tenderlovingcaredisability.com.au",
+        "kperu@tenderlovingcaredisability.com.au",
+    ];
 
+    const isRestrictedUser = RESTRICTED_USERS.includes(
+        (props?.user?.email || "").toLowerCase()
+    );
     const handleButtonClick = () => {
         setIsConsentChecked(true);
     };
@@ -89,7 +97,31 @@ const QualityandRisk = (props) => {
         setIsConsentChecked(false);
         setShowDownloadButton(false);
     };
+    if (isRestrictedUser) {
+        return (
+            <div style={{
+                textAlign: "center",
+                padding: "120px 20px",
+                fontFamily: "Inter, sans-serif",
+                color: "#1f2937"
+            }}>
+                {/* <img
+                    src={TlcLogo}
+                    alt="Access Denied"
+                    style={{ width: "80px", opacity: 0.8, marginBottom: "20px" }}
+                /> */}
 
+                <h2 style={{ fontSize: "24px", marginBottom: "12px", color: "#6C4CDC" }}>
+                    Access Restricted 🚫
+                </h2>
+
+                <p style={{ fontSize: "16px", color: "#555" }}>
+                    Sorry, your account (<strong>{props?.user?.email}</strong>)
+                    is not authorized to view this page.
+                </p>
+            </div>
+        )
+    }
     return (
         <>
             {analysedQualityReportdata.length === 0 ? (

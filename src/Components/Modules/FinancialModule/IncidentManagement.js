@@ -1,4 +1,4 @@
-import React, { useState,useEffect} from "react";
+import React, { useState, useEffect } from "react";
 import JSZip from "jszip";
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -19,7 +19,16 @@ const IncidentManagement = (props) => {
     const [reportZipData, setReportZipdata] = useState([]);
     const [showFinalZipReport, setShowFinalZipReport] = useState(false);
     const [isConsentChecked, setIsConsentChecked] = useState(false);
+    const userEmail = props?.user?.email
+    const RESTRICTED_USERS = [
+        "iaquino@tenderlovingcaredisability.com.au",
+        "jballares@tenderlovingcaredisability.com.au",
+        "kperu@tenderlovingcaredisability.com.au",
+    ];
 
+    const isRestrictedUser = RESTRICTED_USERS.includes(
+        (userEmail || "").toLowerCase()
+    );
     const handleButtonClick = () => {
         setIsConsentChecked(true);
     };
@@ -96,7 +105,7 @@ const IncidentManagement = (props) => {
             setZipProgress(100);
 
             setReportZipdata(allResponses);
-            await incrementAnalysisCount(props?.user?.email?.trim(), "incident-management");
+            await incrementAnalysisCount(userEmail?.trim(), "incident-management");
             setShowFinalZipReport(true);
         } catch (error) {
             console.error("Error processing ZIP:", error);
@@ -123,7 +132,7 @@ const IncidentManagement = (props) => {
             const timer = setTimeout(() => {
                 props.setShowFeedbackPopup(true);
             }, 60000); // 1 minute
-    
+
             return () => clearTimeout(timer); // Clear on unmount or change
         }
     }, [showFinalZipReport]);
@@ -139,7 +148,31 @@ const IncidentManagement = (props) => {
         setShowFinalZipReport(false);
         setIsConsentChecked(false);
     };
+    if (isRestrictedUser) {
+        return (
+            <div style={{
+                textAlign: "center",
+                padding: "120px 20px",
+                fontFamily: "Inter, sans-serif",
+                color: "#1f2937"
+            }}>
+                {/* <img
+                    src={TlcLogo}
+                    alt="Access Denied"
+                    style={{ width: "80px", opacity: 0.8, marginBottom: "20px" }}
+                /> */}
 
+                <h2 style={{ fontSize: "24px", marginBottom: "12px", color: "#6C4CDC" }}>
+                    Access Restricted 🚫
+                </h2>
+
+                <p style={{ fontSize: "16px", color: "#555" }}>
+                    Sorry, your account (<strong>{userEmail}</strong>)
+                    is not authorized to view this page.
+                </p>
+            </div>
+        )
+    }
     return (
         <>
             {(!showFinalZipReport) ? (
@@ -197,11 +230,11 @@ const IncidentManagement = (props) => {
             ) : (
                 <>
                     <div className="reports-box" style={{ height: 'auto' }}>
-                    <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-start', marginBottom: '24px',marginTop:'14px' }}>
-                        <button className="new-report-btn" onClick={resetIncidentManagementState}>
-                            <img src={NewReportIcon} alt='newReporticon' style={{ width: '24px' }} /><div>New Report</div>
-                        </button>
-                    </div>
+                        <div style={{ width: '100%', display: 'flex', justifyContent: 'flex-start', marginBottom: '24px', marginTop: '14px' }}>
+                            <button className="new-report-btn" onClick={resetIncidentManagementState}>
+                                <img src={NewReportIcon} alt='newReporticon' style={{ width: '24px' }} /><div>New Report</div>
+                            </button>
+                        </div>
                         <h2 style={{ marginBottom: '14px' }}>Summary Report</h2>
 
                         {Array.isArray(reportZipData) && reportZipData?.length > 0 && (

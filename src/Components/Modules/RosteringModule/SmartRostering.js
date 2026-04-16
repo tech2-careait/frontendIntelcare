@@ -20,6 +20,15 @@ const API_BASE = "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azur
 const SmartRostering = (props) => {
     const userEmail = props?.user?.email;
     // const userEmail = "kris@curki.ai";
+    const RESTRICTED_USERS = [
+        "iaquino@tenderlovingcaredisability.com.au",
+        "jballares@tenderlovingcaredisability.com.au",
+        "kperu@tenderlovingcaredisability.com.au",
+    ];
+
+    const isRestrictedUser = RESTRICTED_USERS.includes(
+        (userEmail || "").toLowerCase()
+    );
     const [screen, setScreen] = useState(1);
     const [query, setQuery] = useState("");
     const [selectedFile, setSelectedFile] = useState([]);
@@ -555,7 +564,31 @@ const SmartRostering = (props) => {
     //         </div>
     //     );
     // }
+    if (isRestrictedUser) {
+        return (
+            <div style={{
+                textAlign: "center",
+                padding: "120px 20px",
+                fontFamily: "Inter, sans-serif",
+                color: "#1f2937"
+            }}>
+                {/* <img
+                    src={TlcLogo}
+                    alt="Access Denied"
+                    style={{ width: "80px", opacity: 0.8, marginBottom: "20px" }}
+                /> */}
 
+                <h2 style={{ fontSize: "24px", marginBottom: "12px", color: "#6C4CDC" }}>
+                    Access Restricted 🚫
+                </h2>
+
+                <p style={{ fontSize: "16px", color: "#555" }}>
+                    Sorry, your account (<strong>{userEmail}</strong>)
+                    is not authorized to view this page.
+                </p>
+            </div>
+        )
+    }
     return (
         <>
             {screen === 1 && (
@@ -941,7 +974,7 @@ const SmartRostering = (props) => {
                                             className="bulk-shortlist-btn"
                                             onClick={startBulkProcessing}
                                         >
-                                            <span style={{fontSize:"14px",fontWeight:"500"}}>Bulk Shortlist</span>
+                                            <span style={{ fontSize: "14px", fontWeight: "500" }}>Bulk Shortlist</span>
                                             <span className="bulk-count">
                                                 {selectedShiftIds.length}
                                             </span>

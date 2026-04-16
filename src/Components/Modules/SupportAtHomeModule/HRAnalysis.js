@@ -4,7 +4,41 @@ import HRStaffView from "./HRStaffView";
 
 const HRAnalysis = (props) => {
     const [role, setRole] = useState("Admin");
-    console.log('HRAnalysis props',props);
+    // console.log('HRAnalysis props', props);
+    const userEmail = props?.user?.email
+    const ALLOWED_USERS = [
+        "iaquino@tenderlovingcaredisability.com.au",
+        "jballares@tenderlovingcaredisability.com.au",
+        "kperu@tenderlovingcaredisability.com.au",
+    ];
+    const isAllowedUsers = ALLOWED_USERS.includes(
+        (userEmail || "").toLowerCase()
+    );
+    if (!isAllowedUsers) {
+        return (
+            <div style={{
+                textAlign: "center",
+                padding: "120px 20px",
+                fontFamily: "Inter, sans-serif",
+                color: "#1f2937"
+            }}>
+                {/* <img
+                    src={TlcLogo}
+                    alt="Access Denied"
+                    style={{ width: "80px", opacity: 0.8, marginBottom: "20px" }}
+                /> */}
+
+                <h2 style={{ fontSize: "24px", marginBottom: "12px", color: "#6C4CDC" }}>
+                    Access Restricted 🚫
+                </h2>
+
+                <p style={{ fontSize: "16px", color: "#555" }}>
+                    Sorry, your account (<strong>{props?.user?.email}</strong>)
+                    is not authorized to view this page.
+                </p>
+            </div>
+        )
+    }
     return (
         <div style={{ padding: "20px" }}>
             <div style={{ display: 'flex', justifyContent: 'end' }}>
@@ -51,7 +85,7 @@ const HRAnalysis = (props) => {
                 <div className="table-rowss">
                     <div>Candidates Resumes (PDF/ZIP file).</div>
                     <ul>
-                        <div style={{ padding:'0px 0px 8px 0px' }}>
+                        <div style={{ padding: '0px 0px 8px 0px' }}>
                             <li>Screens top candidates based on role suitability.</li>
                             <li>Sends tailored screening questions instantly.</li>
                         </div>
@@ -68,7 +102,7 @@ const HRAnalysis = (props) => {
             </div>
 
             <div>
-                {role === "Admin" ? <HRAdminView role={role} selectedRole={props.selectedRole} user={props?.user} setManualResumeZip={props?.setManualResumeZip}/> : <HRStaffView role={role} user={props?.user}/>}
+                {role === "Admin" ? <HRAdminView role={role} selectedRole={props.selectedRole} user={props?.user} setManualResumeZip={props?.setManualResumeZip} /> : <HRStaffView role={role} user={props?.user} />}
             </div>
         </div>
     );

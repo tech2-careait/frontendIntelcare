@@ -150,6 +150,15 @@ export default function TlcNewCustomerReporting(props) {
     };
     const userEmail = props?.user?.email?.trim();
     // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
+    const RESTRICTED_USERS = [
+        "iaquino@tenderlovingcaredisability.com.au",
+        "jballares@tenderlovingcaredisability.com.au",
+        "kperu@tenderlovingcaredisability.com.au",
+    ];
+
+    const isRestrictedUser = RESTRICTED_USERS.includes(
+        (userEmail || "").toLowerCase()
+    );
     const setTlcPayrollAskAiConversationHistory = props.setTlcPayrollAskAiConversationHistory; // ✅ NEW
     const tlcPayrollAskAiConversationHistory = props.tlcPayrollAskAiConversationHistory; // ✅ NEW
     const userStates = EMAIL_STATE_MAP[userEmail] || [];
@@ -1632,6 +1641,31 @@ export default function TlcNewCustomerReporting(props) {
         }
     }
     // console.log("displayedHtmlArray:", displayedHtmlArray);
+    if (isRestrictedUser) {
+        return (
+            <div style={{
+                textAlign: "center",
+                padding: "120px 20px",
+                fontFamily: "Inter, sans-serif",
+                color: "#1f2937"
+            }}>
+                {/* <img
+                    src={TlcLogo}
+                    alt="Access Denied"
+                    style={{ width: "80px", opacity: 0.8, marginBottom: "20px" }}
+                /> */}
+
+                <h2 style={{ fontSize: "24px", marginBottom: "12px", color: "#6C4CDC" }}>
+                    Access Restricted 🚫
+                </h2>
+
+                <p style={{ fontSize: "16px", color: "#555" }}>
+                    Sorry, your account (<strong>{userEmail}</strong>)
+                    is not authorized to view this page.
+                </p>
+            </div>
+        );
+    }
     return (
         <div className="page-containersss" ref={pageRef}>
             {historyLoading && (
