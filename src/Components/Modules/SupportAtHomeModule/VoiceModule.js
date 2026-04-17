@@ -46,18 +46,25 @@ import { FiMic } from "react-icons/fi";
 import { extractAudioFromVideo, getTranscriptTextFromAudioBlob } from "./CareVoiceAudioVideoExtract";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import incrementCareVoiceAnalysisCount from "./careVoiceCostAnalysis";
+import FilePreviewModal from "./FilePreviewModal";
 
 const VoiceModule = (props) => {
     const userEmail = props?.user?.email;
-    const RESTRICTED_USERS = [
-        "iaquino@tenderlovingcaredisability.com.au",
-        "jballares@tenderlovingcaredisability.com.au",
-        "kperu@tenderlovingcaredisability.com.au",
+    // const userEmail = "mboutros@tenderlovingcaredisability.com.au";
+    const ALLOWED_USERS = [
+        "mboutros@tenderlovingcaredisability.com.au",
+        "rjodeh@tenderlovingcaredisability.com.au",
+        "ryounes@tenderlovingcaredisability.com.au",
+        "stickner@tenderlovingcaredisability.com.au",
+        "bastruc@tenderlovingcaredisability.com.au",
+        "yzaki@tenderlovingcare.com.au"
     ];
-
-    const isRestrictedUser = RESTRICTED_USERS.includes(
+    const isAllowedUsers = ALLOWED_USERS.includes(
         (userEmail || "").toLowerCase()
     );
+    const tlcDomainArray = ["tenderlovingcaredisability.com.au", "tenderlovingcare.com.au"]
+    const notAllowedDomain = tlcDomainArray.includes(userEmail?.split("@")[1]);
+
     const setCareVoiceFiles = props?.setCareVoiceFiles;
     const setIsCareVoiceGeneratingDocs = props?.setIsCareVoiceGeneratingDocs;
     const setTotalCareVoiceDocsToGenerate = props?.setTotalCareVoiceDocsToGenerate;
@@ -160,6 +167,15 @@ const VoiceModule = (props) => {
     const [docsGeneratedCount, setDocsGeneratedCount] = useState(0);
     const [totalDocsToGenerate, setTotalDocsToGenerate] = useState(0);
     const [showGeneratedFilesUI, setShowGeneratedFilesUI] = useState(false);
+    // Add these state variables (around line 100-150)
+    const [previewDoc, setPreviewDoc] = useState(null);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [generatedDocsSasUrls, setGeneratedDocsSasUrls] = useState([])
+    // Add this function to handle file preview
+    const handleFilePreview = (doc) => {
+        setPreviewDoc(doc);
+        setIsPreviewOpen(true);
+    };
     useEffect(() => {
         if (!generatedDocs?.length) return;
 
@@ -306,7 +322,11 @@ const VoiceModule = (props) => {
             animateProgress(30, setAudioProgress, 70, 800);
 
             const data = await res.json();
-            // console.log("ANDROID voice response", data);
+            console.log("ANDROID voice response", data);
+            if (data?.generatedDocsSasUrls && Array.isArray(data?.generatedDocsSasUrls)) {
+                setGeneratedDocsSasUrls(prev => [...prev, ...data?.generatedDocsSasUrls]);
+                console.log("SAS URLs collected in Android flow:", data?.generatedDocsSasUrls);
+            }
 
             let documentsGenerated = 0;
 
@@ -1783,7 +1803,7 @@ const VoiceModule = (props) => {
         if (data.success && data.filled_document) {
             const filename = `${tpl.templateName}_${file.name}.docx`;
 
-            const doc = { filename, base64: data.filled_document };
+            const doc = { filename, base64: data.filled_document, sasUrl: data?.sasUrl };
             if (userEmail) {
                 await incrementCareVoiceAnalysisCount(
                     userEmail,
@@ -1831,7 +1851,7 @@ const VoiceModule = (props) => {
         let completedOperations = 0;
         let hasError = false;
         const docsToSend = [];
-
+        let generatedDocsSasUrls = [];
         // console.log(`Starting processing of ${totalOperations} total operations`);
         // console.log(`Templates: ${selectedTemplate.templates.length}, Files: ${uploadedTranscriptFiles.length}`);
 
@@ -1864,8 +1884,13 @@ const VoiceModule = (props) => {
 
                     // console.log(`Response received for ${file.name}, status: ${res.status}`);
                     const data = await res.json();
-                    // console.log(`Processing response for ${file.name}:`, data);
-
+                    console.log(`Processing response for ${file.name}:`, data?.generatedDocsSasUrls);
+                    if (data?.generatedDocsSasUrls) {
+                        data?.generatedDocsSasUrls.map(sasUrl => {
+                            console.log("data.generatedDocsSasUrl of media", sasUrl);
+                            generatedDocsSasUrls.push(sasUrl);
+                        });
+                    }
                     // HANDLE TRANSCRIPTS
                     if (data.transcripts?.length) {
                         const transcriptFiles = await Promise.all(
@@ -1960,8 +1985,19 @@ const VoiceModule = (props) => {
                     for (const tpl of selectedTemplate.templates) {
                         try {
                             const doc = await processSingleTranscriptWithTemplate(tpl, file);
+                            console.log("doc", doc)
 
                             if (doc) {
+                                if (doc?.sasUrl) {
+                                    if (Array.isArray(doc.sasUrl)) {
+                                        // If it's an array, spread it
+                                        generatedDocsSasUrls.push(...doc.sasUrl);
+                                    } else {
+                                        console.log("non media generatedDocsSasUrls.push", doc.sasUrl)
+                                        // If it's a single object, push it directly
+                                        generatedDocsSasUrls.push(doc.sasUrl);
+                                    }
+                                }
                                 docsToSend.push(doc);
 
                                 //CONVERT BASE64 → FILE (IMPORTANT)
@@ -2018,7 +2054,9 @@ const VoiceModule = (props) => {
         }
 
         console.log(`All files processed. Total documents generated: ${docsToSend.length}`);
-
+        console.log("docsToSend", docsToSend)
+        setGeneratedDocsSasUrls(generatedDocsSasUrls);
+        console.log("All SAS URLs collected:", generatedDocsSasUrls);
         if (docsToSend.length > 0) {
             setFileStage("emailing");
             setFileProgress(90);
@@ -2048,7 +2086,7 @@ const VoiceModule = (props) => {
         // resetStaffUI();
         setCurrentTask("");
     };
-
+    console.log("generatedDocsSasUrls", generatedDocsSasUrls)
 
 
     const handleDownloadBlob = async ({
@@ -2127,6 +2165,7 @@ const VoiceModule = (props) => {
         setIsCareVoiceGeneratingDocs(false);
         setTotalCareVoiceDocsToGenerate(0);
         setGeneratedCareVoiceDocsCount(0);
+        setGeneratedDocsSasUrls([]);
 
         // 4. Reset Ask AI session (VERY IMPORTANT)
         if (props?.setCareVoiceSessionId) props.setCareVoiceSessionId(null);
@@ -2138,7 +2177,7 @@ const VoiceModule = (props) => {
 
         console.log("Full reset done");
     };
-    if (isRestrictedUser) {
+    if (!isAllowedUsers && notAllowedDomain) {
         return (
             <div style={{
                 textAlign: "center",
@@ -3384,8 +3423,6 @@ const VoiceModule = (props) => {
 
             {showGeneratedFilesUI && (
                 <div style={{ padding: "20px", maxWidth: "1100px", margin: "0 auto" }}>
-
-                    {/* HEADER */}
                     <div
                         style={{
                             display: "flex",
@@ -3396,109 +3433,122 @@ const VoiceModule = (props) => {
                             fontSize: "24px"
                         }}
                     >
-                        <h3 style={{ margin: 0 }}>{!props?.isCareVoiceGeneratingDocs ? "Generated Documents" : "Generating Documents..."}</h3>
+                        <h3 style={{ margin: 0 }}>
+                            {!props?.isCareVoiceGeneratingDocs ? "Generated Documents" : "Generating Documents..."}
+                        </h3>
                     </div>
 
-                    {/* FILE CARDS */}
-                    {props?.careVoiceFiles?.length === 0 ||
-                        props?.isCareVoiceGeneratingDocs ? (
+                    {generatedDocsSasUrls?.length === 0 || props?.isCareVoiceGeneratingDocs ? (
                         <div className="round-loader"></div>
                     ) : (
-                        <div
-                            style={{
-                                display: "grid",
-                                gridTemplateColumns: "repeat(3, 1fr)", // ✅ 3 per row
-                                gap: "15px",
-                                marginBottom: "36px"
-                            }}
-                        >
-                            {(props.careVoiceFiles || []).map((file, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        width: "100%",
-                                        height: "75px",
-                                        background: "#F5F5F7",
-                                        borderRadius: "10px",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        padding: "12px 15px",
-                                        gap: "12px",
-                                        cursor: "pointer"
-                                    }}
-                                >
-                                    {/* FILE ICON */}
+                        <>
+                            <div
+                                style={{
+                                    display: "grid",
+                                    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                                    gap: "15px",
+                                    marginBottom: "36px"
+                                }}
+                            >
+                                {(generatedDocsSasUrls || []).map((doc, index) => (
                                     <div
+                                        key={index}
                                         style={{
-                                            width: "36px",
-                                            height: "36px",
-                                            background: "#4F46E5",
-                                            borderRadius: "8px",
+                                            width: "100%",
+                                            height: "75px",
+                                            background: "#F5F5F7",
+                                            borderRadius: "10px",
                                             display: "flex",
                                             alignItems: "center",
-                                            justifyContent: "center",
-                                            flexShrink: 0
+                                            padding: "12px 15px",
+                                            gap: "12px",
+                                            cursor: "pointer",
+                                            transition: "all 0.2s ease",
+                                            border: "1px solid transparent"
+                                        }}
+                                        onClick={() => handleFilePreview(doc)}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.background = "#EEEEF0";
+                                            e.currentTarget.style.borderColor = "#4F46E5";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.background = "#F5F5F7";
+                                            e.currentTarget.style.borderColor = "transparent";
                                         }}
                                     >
-                                        <FiFileText color="#fff" size={18} />
-                                    </div>
-
-                                    {/* FILE TEXT */}
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            width: "100%",
-                                            textAlign: "left"
-                                        }}
-                                    >
-                                        {/* MAIN NAME (TRUNCATED) */}
-                                        <span
+                                        <div
                                             style={{
-                                                fontWeight: 500,
-                                                fontSize: "14px",
-                                                whiteSpace: "nowrap",
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                maxWidth: "220px"
+                                                width: "36px",
+                                                height: "36px",
+                                                background: "#4F46E5",
+                                                borderRadius: "8px",
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                flexShrink: 0
                                             }}
-                                            title={file.name}
                                         >
-                                            {file.name?.split(".")[0]}
-                                        </span>
+                                            <FiFileText color="#fff" size={18} />
+                                        </div>
 
-                                        {/* FULL NAME SMALL (TRUNCATED) */}
-                                        <span
+                                        <div
                                             style={{
-                                                fontSize: "12px",
-                                                color: "#777",
-                                                whiteSpace: "nowrap",
-                                                overflow: "hidden",
-                                                textOverflow: "ellipsis",
-                                                maxWidth: "220px"
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                width: "100%",
+                                                textAlign: "left"
                                             }}
-                                            title={file.name}
                                         >
-                                            {file.name}
-                                        </span>
+                                            <span
+                                                style={{
+                                                    fontWeight: 500,
+                                                    fontSize: "14px",
+                                                    whiteSpace: "nowrap",
+                                                    overflow: "hidden",
+                                                    textOverflow: "ellipsis",
+                                                    maxWidth: "220px"
+                                                }}
+                                                title={doc.fileName}
+                                            >
+                                                {doc.fileName?.split(".")[0]}
+                                            </span>
+                                            <span
+                                                style={{
+                                                    fontSize: "12px",
+                                                    color: "#777",
+                                                    whiteSpace: "nowrap",
+                                                    overflow: "hidden",
+                                                    textOverflow: "ellipsis",
+                                                    maxWidth: "220px"
+                                                }}
+                                                title={doc.fileName}
+                                            >
+                                                {doc.fileName}
+                                            </span>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
+                                ))}
+                            </div>
+
+                            <div style={{ display: "flex", justifyContent: "center" }}>
+                                <button className="staff-primary" onClick={handleResetAll}>
+                                    Start With New Templates
+                                </button>
+                            </div>
+                        </>
                     )}
-
-                    {/* RESET BUTTON */}
-                    {!props?.isCareVoiceGeneratingDocs && <div style={{ display: "flex", justifyContent: "center" }}>
-                        <button
-                            className="staff-primary"
-                            onClick={handleResetAll}
-                        >
-                            Start With New Templates
-                        </button>
-                    </div>}
-
                 </div>
             )}
+
+            {/* Preview Modal */}
+            <FilePreviewModal
+                doc={previewDoc}
+                isOpen={isPreviewOpen}
+                onClose={() => {
+                    setIsPreviewOpen(false);
+                    setPreviewDoc(null);
+                }}
+            />
         </div>
     );
 };

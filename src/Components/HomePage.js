@@ -681,7 +681,7 @@ const HomePage = () => {
           console.log("Care Voice Query Response:", data);
           const botReply = data?.data?.answer || "No response";
           const sources = data?.data?.sources || [];
-
+          
           setMessages(prev =>
             prev.map(msg =>
               msg.temp
@@ -691,7 +691,8 @@ const HomePage = () => {
           );
           await incrementCareVoiceAnalysisCount(
             user?.email?.trim().toLowerCase(),
-            "care-voice-askai"
+            "care-voice-askai",
+            data?.data?.llm_cost?.total_usd
           );
         } catch (err) {
           console.error("Care Voice AskAI Error:", err);
@@ -733,10 +734,12 @@ const HomePage = () => {
           );
 
           // ✅ Update with the NEW conversation history from response
+          console.log("response.data in financial health ask ai",response.data)
           setFinancialAiHistoryPayload(response.data?.conversation_history || []);
-          await incrementAnalysisCount(
+          await incrementCareVoiceAnalysisCount(
             user?.email?.trim().toLowerCase(),
-            "financial-health-askai"
+            "financial-health-askai",
+            response?.data?.llm_cost?.total_usd
           );
 
         } catch (err) {
@@ -808,7 +811,7 @@ const HomePage = () => {
             response.data?.results?.answer ||
             response.data?.answer ||
             JSON.stringify(response.data, null, 2);
-
+ 
           setMessages(prev =>
             prev.map(msg => (msg.temp ? { sender: "bot", text: botReply } : msg))
           );
@@ -838,6 +841,7 @@ const HomePage = () => {
             form,
             { headers: { "Content-Type": "multipart/form-data" } }
           );
+          console.log("response.data in manual rostering",response.data)
           const botReply =
             response.data?.answer ||
             response.data?.response ||
@@ -848,7 +852,8 @@ const HomePage = () => {
           );
           await incrementAnalysisCount(
             user?.email?.trim().toLowerCase(),
-            "manual-smart-rostering-askai"
+            "manual-smart-rostering-askai",
+            response?.data?.llm_cost?.total_usd
           );
           return; // Stop here
         }
@@ -868,16 +873,17 @@ const HomePage = () => {
           payload
         );
 
-        // console.log("Smart Rostering response:", response);
+        console.log("Smart Rostering response ask ai response:", response);
 
         const botReply = response.data?.answer || "No response";
 
         setMessages((prev) =>
           prev.map((msg) => (msg.temp ? { sender: "bot", text: botReply } : msg))
         );
-        await incrementAnalysisCount(
+        await incrementCareVoiceAnalysisCount(
           user?.email?.trim().toLowerCase(),
-          "smart-rostering-askai"
+          "smart-rostering-askai",
+          response?.data?.llm_cost?.total_usd
         );
         return;
       }
@@ -928,10 +934,11 @@ const HomePage = () => {
           setClientProfitabilityAiHistoryPayload(updatedHistory);
 
           // Count usage for Client Profitability
+          console.log("response?.data",response?.data)
           if (user?.email) {
             try {
               const email = user.email.trim().toLowerCase();
-              await incrementAnalysisCount(email, "tlc-client-profitability-askai", response?.data?.ai_analysis_cost);
+              await incrementCareVoiceAnalysisCount(email, "tlc-client-profitability-askai", response?.data?.llm_cost?.total_usd);
             } catch (err) {
               console.error("❌ Failed to increment Client Profitability AskAI count:", err.message);
             }

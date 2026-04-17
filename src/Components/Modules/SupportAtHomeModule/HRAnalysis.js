@@ -6,15 +6,20 @@ const HRAnalysis = (props) => {
     const [role, setRole] = useState("Admin");
     // console.log('HRAnalysis props', props);
     const userEmail = props?.user?.email
+    // const userEmail = "mboutros@tenderlovingcaredisability.com.au"
     const ALLOWED_USERS = [
         "iaquino@tenderlovingcaredisability.com.au",
         "jballares@tenderlovingcaredisability.com.au",
         "kperu@tenderlovingcaredisability.com.au",
+        "bastruc@tenderlovingcaredisability.com.au",
+        "yzaki@tenderlovingcare.com.au"
     ];
     const isAllowedUsers = ALLOWED_USERS.includes(
         (userEmail || "").toLowerCase()
     );
-    if (!isAllowedUsers) {
+    const tlcDomainArray = ["tenderlovingcaredisability.com.au","tenderlovingcare.com.au"]
+    const notAllowedDomain = tlcDomainArray.includes(userEmail?.split("@")[1]);
+    if (!isAllowedUsers && notAllowedDomain) {
         return (
             <div style={{
                 textAlign: "center",
@@ -33,7 +38,7 @@ const HRAnalysis = (props) => {
                 </h2>
 
                 <p style={{ fontSize: "16px", color: "#555" }}>
-                    Sorry, your account (<strong>{props?.user?.email}</strong>)
+                    Sorry, your account (<strong>{userEmail}</strong>)
                     is not authorized to view this page.
                 </p>
             </div>

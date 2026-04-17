@@ -20,10 +20,23 @@ const IncidentManagement = (props) => {
     const [showFinalZipReport, setShowFinalZipReport] = useState(false);
     const [isConsentChecked, setIsConsentChecked] = useState(false);
     const userEmail = props?.user?.email
+    // const userEmail = "gjavier@tenderlovingcaredisability.com.au"
     const RESTRICTED_USERS = [
         "iaquino@tenderlovingcaredisability.com.au",
         "jballares@tenderlovingcaredisability.com.au",
         "kperu@tenderlovingcaredisability.com.au",
+        "q.benico@tenderlovingcaredisability.com.au",
+        "mboutros@tenderlovingcaredisability.com.au",
+        "rjodeh@tenderlovingcaredisability.com.au",
+        "ryounes@tenderlovingcaredisability.com.au",
+        "stickner@tenderlovingcaredisability.com.au",
+        "mtalukder@tenderlovingcaredisability.com.au",
+        "kbrennen@tenderlovingcaredisability.com.au",
+        "ilaurente@tenderlovingcaredisability.com.au",
+        "gjavier@tenderlovingcaredisability.com.au",
+        "molley@tenderlovingcaredisability.com.au",
+        "SGonzales@tenderlovingcaredisability.com.au",
+        "mfarag@tenderlovingcare.com.au"
     ];
 
     const isRestrictedUser = RESTRICTED_USERS.includes(
