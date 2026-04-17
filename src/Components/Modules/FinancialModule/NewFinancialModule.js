@@ -41,6 +41,7 @@ import TlcPayrollSyncTickIcon from "../../../Images/TlcPayrollSyncTick.png";
 import TlcGraphRenderer from "./TlcGraphRenderer.js";
 import { MdOutlineFileDownload } from "react-icons/md";
 import incrementAnalysisCount from "./TLcAnalysisCount.js";
+import incrementCareVoiceAnalysisCount from "../SupportAtHomeModule/careVoiceCostAnalysis.js";
 
 const NewFinancialHealth = (props) => {
 
@@ -238,12 +239,25 @@ const NewFinancialHealth = (props) => {
 
     const previewRef = useRef(null);
     const userEmail = props.user?.email;
+    // const userEmail = "q.benico@tenderlovingcaredisability.com.au";
     // const userEmail = "iaquino@tenderlovingcaredisability.com.au";
     // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
     const RESTRICTED_USERS = [
         "iaquino@tenderlovingcaredisability.com.au",
         "jballares@tenderlovingcaredisability.com.au",
         "kperu@tenderlovingcaredisability.com.au",
+        "q.benico@tenderlovingcaredisability.com.au",
+        "mboutros@tenderlovingcaredisability.com.au",
+        "rjodeh@tenderlovingcaredisability.com.au",
+        "ryounes@tenderlovingcaredisability.com.au",
+        "stickner@tenderlovingcaredisability.com.au",
+        "mtalukder@tenderlovingcaredisability.com.au",
+        "kbrennen@tenderlovingcaredisability.com.au",
+        "ilaurente@tenderlovingcaredisability.com.au",
+        "gjavier@tenderlovingcaredisability.com.au",
+        "molley@tenderlovingcaredisability.com.au",
+        "SGonzales@tenderlovingcaredisability.com.au",
+        "mfarag@tenderlovingcare.com.au"
     ];
 
     const isRestrictedUser = RESTRICTED_USERS.includes(
@@ -1150,7 +1164,7 @@ const NewFinancialHealth = (props) => {
 
                 // console.log("Analysis API response:", analysisRes);
                 analysisData = analysisRes.data;
-                // console.log("Analysis API response data of type api:", analysisData);
+                console.log("Analysis API response data of type api:", analysisData);
                 const askAiFrames = analysisData?.csv_data
                 updateTab({
                     progressStage: "preparing",
@@ -1191,7 +1205,7 @@ const NewFinancialHealth = (props) => {
                 });
                 analysisData = analysisRes.data;
 
-                // console.log("Analysis API response of type upload:", analysisData);
+                console.log("Analysis API response of type upload:", analysisData);
                 // const dataframes = tablesToAskAiDataframes(analysisData?.normalized_files?.tables);
                 updateTab({
                     askAiDataframes: analysisData?.csv_data
@@ -1504,7 +1518,7 @@ const NewFinancialHealth = (props) => {
                     stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
-                await incrementAnalysisCount(userEmail, "financial-health-api-analysis");
+                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-api-analysis",analysisData?.llm_cost?.total_usd);
             } else {
                 // 🔹 Old upload flow
                 // 🔹 Upload flow (FIXED – parse like API)
@@ -1549,7 +1563,7 @@ const NewFinancialHealth = (props) => {
                     stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
-                await incrementAnalysisCount(userEmail, "financial-health-upload-analysis");
+                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-upload-analysis",analysisData?.llm_cost?.total_usd);
             }
 
 

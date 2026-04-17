@@ -37,6 +37,7 @@ import { addSectionWithGraphsToWord, parseMarkdownToDocx } from "./TlcClientProf
 import TlcGraphRenderer from "./TlcGraphRenderer";
 import { MdOutlineFileDownload } from "react-icons/md";
 import incrementAnalysisCount from "./TLcAnalysisCount";
+import incrementCareVoiceAnalysisCount from "../SupportAtHomeModule/careVoiceCostAnalysis";
 
 const TlcNewClientProfitability = (props) => {
     const onPrepareAiPayload = props.onPrepareAiPayload;
@@ -204,11 +205,23 @@ const TlcNewClientProfitability = (props) => {
     // Sync history when loading from history
 
     const userEmail = user?.email;
-    // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
+    // const userEmail = "ilaurente@tenderlovingcaredisability.com.au";
     const RESTRICTED_USERS = [
         "iaquino@tenderlovingcaredisability.com.au",
         "jballares@tenderlovingcaredisability.com.au",
         "kperu@tenderlovingcaredisability.com.au",
+        "q.benico@tenderlovingcaredisability.com.au",
+        "mboutros@tenderlovingcaredisability.com.au",
+        "rjodeh@tenderlovingcaredisability.com.au",
+        "ryounes@tenderlovingcaredisability.com.au",
+        "stickner@tenderlovingcaredisability.com.au",
+        "mtalukder@tenderlovingcaredisability.com.au",
+        "kbrennen@tenderlovingcaredisability.com.au",
+        "ilaurente@tenderlovingcaredisability.com.au",
+        "gjavier@tenderlovingcaredisability.com.au",
+        "molley@tenderlovingcaredisability.com.au",
+        "SGonzales@tenderlovingcaredisability.com.au",
+        "mfarag@tenderlovingcare.com.au"
     ];
 
     const isRestrictedUser = RESTRICTED_USERS.includes(
@@ -963,7 +976,7 @@ const TlcNewClientProfitability = (props) => {
                         onPrepareAiPayload({
                             table_data: statusData.result?.table,
                         });
-                        await incrementAnalysisCount(userEmail, "client-profitability");
+                        await incrementCareVoiceAnalysisCount(userEmail, "client-profitability", statusData?.result?.llm_cost?.total_usd);
                     }
 
                     if (statusData.status === "failed") {
@@ -1033,6 +1046,10 @@ const TlcNewClientProfitability = (props) => {
             );
 
             const data = await res.json();
+            console.log("data",data)
+            if(data){
+                await incrementCareVoiceAnalysisCount(userEmail,"tlc-client-profitibility-aiSummary",data?.llm_cost?.total_usd)
+            }
             clearInterval(aiProgressInterval);
             updateTab({
                 aiSummary: data.summary_md || data.report_md || "",
