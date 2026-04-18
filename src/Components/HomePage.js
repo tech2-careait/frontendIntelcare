@@ -1444,7 +1444,7 @@ const HomePage = () => {
                       </div>
 
                       <div style={{ display: selectedRole === "SIRS Analysis" ? "block" : "none" }}>
-                        <SirsAnalysis selectedRole="SIRS Analysis" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} />
+                        <SirsAnalysis selectedRole="SIRS Analysis" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} user={user}/>
                       </div>
 
                       <div style={{ display: selectedRole === "Participant Events & Incident Management" ? "block" : "none" }}>
@@ -1463,7 +1463,7 @@ const HomePage = () => {
                       </div>
 
                       <div style={{ display: selectedRole === "Custom Incident Management" ? "block" : "none", padding: '24px 4%' }}>
-                        <IncidentManagement selectedRole="Custom Incident Management" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} />
+                        <IncidentManagement selectedRole="Custom Incident Management" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} user={user}/>
                       </div>
 
                       <div style={{ display: selectedRole === "Payroll Analysis" ? "block" : "none" }}>
@@ -1502,11 +1502,11 @@ const HomePage = () => {
                       </div>
 
                       <div style={{ display: selectedRole === "Incident Report" ? "block" : "none" }}>
-                        <IncidentReport selectedRole="Incident Report" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} />
+                        <IncidentReport selectedRole="Incident Report" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} user={user}/>
                       </div>
 
                       <div style={{ display: selectedRole === "Quality and Risk Reporting" ? "block" : "none" }}>
-                        <QualityandRisk selectedRole="Quality and Risk Reporting" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} />
+                        <QualityandRisk selectedRole="Quality and Risk Reporting" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} user={user}/>
                       </div>
 
                       <div style={{ display: selectedRole === "Smart Rostering" ? "block" : "none" }}>
