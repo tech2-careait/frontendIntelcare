@@ -1,124 +1,217 @@
-import React, { useState, useEffect } from "react";
-import { FiX, FiDownload, FiFileText, FiEye } from "react-icons/fi";
+import React, { useEffect, useMemo, useState } from "react";
+import { FiX, FiDownload, FiEdit2, FiSave, FiRefreshCw } from "react-icons/fi";
+import mammoth from "mammoth";
+import ReactQuill from "react-quill";
+import htmlDocx from "html-docx-js/dist/html-docx";
+import "react-quill/dist/quill.snow.css";
+import { Document, Packer, Paragraph, TextRun } from "docx";
+const FilePreviewModal = ({
+  doc,
+  fileIndex,
+  isOpen,
+  onClose,
+  careVoiceFiles,
+  setCareVoiceFiles
+}) => {
+  const [html, setHtml] = useState("");
+  const [originalHtml, setOriginalHtml] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-const FilePreviewModal = ({ doc, onClose, isOpen }) => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [preferPdf, setPreferPdf] = useState(true); // Prefer PDF by default for better preview
+  const fileName = doc?.name || "Document.docx";
+  const ext = fileName.split(".").pop()?.toLowerCase();
+
+  const fileUrl = useMemo(() => {
+    if (!doc) return "";
+    return URL.createObjectURL(doc);
+  }, [doc]);
 
   useEffect(() => {
-    if (doc && isOpen) {
-      setLoading(false);
-      setError(null);
-    }
-  }, [doc, isOpen]);
+    if (!doc || !isOpen) return;
 
+    const loadFile = async () => {
+      try {
+        setLoading(true);
+
+        // ✅ If already edited before, use saved HTML directly
+        if (doc.__editedHtml) {
+          setHtml(doc.__editedHtml);
+          setOriginalHtml(doc.__editedHtml);
+          setLoading(false);
+          return;
+        }
+
+        if (ext === "docx") {
+          const buffer = await doc.arrayBuffer();
+
+          const result = await mammoth.convertToHtml({
+            arrayBuffer: buffer
+          });
+
+          const safeHtml = result.value || "<p></p>";
+
+          setHtml(safeHtml);
+          setOriginalHtml(safeHtml);
+        }
+
+        setLoading(false);
+      } catch (error) {
+        console.error(error);
+        setHtml("<p></p>");
+        setOriginalHtml("<p></p>");
+        setLoading(false);
+      }
+    };
+
+    loadFile();
+
+    return () => {
+      if (fileUrl) URL.revokeObjectURL(fileUrl);
+    };
+  }, [doc, isOpen, ext, fileUrl]);
+  useEffect(() => {
+    const style = document.createElement("style");
+
+    style.innerHTML = `
+    .doc-preview-content img {
+      max-width: 78% !important;
+      max-height: 520px !important;
+      width: auto !important;
+      height: auto !important;
+      display: block !important;
+      margin: 22px auto !important;
+      object-fit: contain !important;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      background: #fff;
+      padding: 6px;
+    }
+
+    .doc-preview-content table {
+      width: 100% !important;
+      border-collapse: collapse;
+      display: block;
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+
+    .doc-preview-content td,
+    .doc-preview-content th {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+
+    .doc-preview-content p,
+    .doc-preview-content span,
+    .doc-preview-content div {
+      max-width: 100%;
+      word-break: break-word;
+    }
+  `;
+
+    document.head.appendChild(style);
+    return () => document.head.removeChild(style);
+  }, []);
+  
   if (!isOpen || !doc) return null;
 
-  const getFileIcon = () => {
-    return '📘';
-  };
 
-  const getFileTypeLabel = () => {
-    return 'Word Document';
-  };
-
-  const formatFileSize = () => {
-    return 'Unknown size';
-  };
-
-  const handleDownload = async (url, fileName) => {
+  const saveToCareVoiceFiles = async () => {
     try {
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = downloadUrl;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(downloadUrl);
-    } catch (error) {
-      console.error("Download failed:", error);
-      setError("Failed to download file");
+      setSaving(true);
+
+      // convert html to plain text
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = html;
+      const text = tempDiv.innerText || tempDiv.textContent || "";
+
+      const docxFile = new Document({
+        sections: [
+          {
+            children: text.split("\n").map(
+              line =>
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: line || " ",
+                      size: 24
+                    })
+                  ]
+                })
+            )
+          }
+        ]
+      });
+
+      const blob = await Packer.toBlob(docxFile);
+
+      const updatedFile = new File(
+        [blob],
+        fileName,
+        {
+          type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        }
+      );
+
+      updatedFile.__editedHtml = html;
+
+      const updated = [...careVoiceFiles];
+      updated[fileIndex] = updatedFile;
+
+      setCareVoiceFiles(updated);
+
+      setOriginalHtml(html);
+      setEditMode(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
     }
   };
 
-  const renderPreviewContent = () => {
-    if (loading) {
-      return (
-        <div style={styles.loadingContainer}>
-          <div className="round-loader" style={{ margin: "0 auto" }}></div>
-          <p style={styles.loadingText}>Loading preview...</p>
-        </div>
-      );
+  const downloadCurrent = async () => {
+    let fileToDownload = doc;
+
+    if (ext === "docx") {
+      const blob = htmlDocx.asBlob(`
+                <html>
+                  <head><meta charset="utf-8"></head>
+                  <body>${html}</body>
+                </html>
+            `);
+
+      fileToDownload = new File([blob], fileName, {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      });
     }
 
-    if (error) {
-      return (
-        <div style={styles.errorContainer}>
-          <span style={styles.errorIcon}>⚠️</span>
-          <p style={styles.errorText}>{error}</p>
-          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-            <button onClick={() => handleDownload(doc.docxUrl, doc.fileName)} style={styles.primaryButton}>
-              <FiDownload size={16} /> Download DOCX
-            </button>
-            {doc.pdfUrl && (
-              <button onClick={() => handleDownload(doc.pdfUrl, doc.fileName.replace('.docx', '.pdf'))} style={styles.primaryButton}>
-                <FiDownload size={16} /> Download PDF
-              </button>
-            )}
-          </div>
-        </div>
-      );
+    const url = URL.createObjectURL(fileToDownload);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const replaceWord = () => {
+    const from = prompt("Find word:");
+    if (!from) return;
+
+    const to = prompt("Replace with:");
+    setHtml((prev) => prev.split(from).join(to || ""));
+  };
+
+  const aiRewrite = () => {
+    const selected = window.getSelection()?.toString();
+
+    if (!selected) {
+      alert("Select text first");
+      return;
     }
 
-    // Use docxViewerUrl for preview (Google Docs viewer works for both DOCX and PDF)
-    const viewerUrl = preferPdf && doc.pdfViewerUrl ? doc.pdfViewerUrl : doc.docxViewerUrl;
-    
-    return (
-      <div style={styles.previewContainer}>
-        <div style={styles.viewerToggle}>
-          {doc.pdfUrl && (
-            <div style={styles.toggleButtons}>
-              <button
-                onClick={() => setPreferPdf(true)}
-                style={{
-                  ...styles.toggleButton,
-                  background: preferPdf ? "#4F46E5" : "#e5e7eb",
-                  color: preferPdf ? "#fff" : "#374151"
-                }}
-              >
-                Preview PDF
-              </button>
-              <button
-                onClick={() => setPreferPdf(false)}
-                style={{
-                  ...styles.toggleButton,
-                  background: !preferPdf ? "#4F46E5" : "#e5e7eb",
-                  color: !preferPdf ? "#fff" : "#374151"
-                }}
-              >
-                Preview DOCX
-              </button>
-            </div>
-          )}
-          {!doc.pdfUrl && (
-            <div style={styles.infoBadge}>
-              <span>📄 Previewing DOCX format (PDF not available)</span>
-            </div>
-          )}
-        </div>
-        
-        <iframe
-          src={viewerUrl}
-          style={styles.iframePreview}
-          title="Document Preview"
-          onError={() => setError("Unable to preview this document. Please download it instead.")}
-        />
-      </div>
-    );
+    const rewritten = selected + " (AI Rewritten)";
+    setHtml((prev) => prev.replace(selected, rewritten));
   };
 
   return (
@@ -126,44 +219,69 @@ const FilePreviewModal = ({ doc, onClose, isOpen }) => {
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div style={styles.header}>
-          <div style={styles.headerLeft}>
-            <span style={styles.fileIcon}>{getFileIcon()}</span>
-            <div>
-              <h3 style={styles.fileName}>
-                {doc.fileName?.split(".")[0]?.length > 50
-                  ? doc.fileName?.split(".")[0]?.slice(0, 50) + "..."
-                  : doc.fileName?.split(".")[0]}
-              </h3>
-              <p style={styles.fileInfo}>
-                {getFileTypeLabel()} • {doc.pdfUrl ? "PDF + DOCX" : "DOCX Only"}
-              </p>
-            </div>
+          <div style={styles.title}>{fileName}</div>
+
+          <div style={styles.actions}>
+            <button style={styles.iconBtn} onClick={() => setEditMode(!editMode)}>
+              <FiEdit2 />
+            </button>
+
+            <button style={styles.iconBtn} onClick={replaceWord}>
+              Replace
+            </button>
+
+            <button style={styles.iconBtn} onClick={aiRewrite}>
+              AI
+            </button>
+
+            <button style={styles.iconBtn} onClick={() => setHtml(originalHtml)}>
+              <FiRefreshCw />
+            </button>
+
+            <button style={styles.iconBtn} onClick={downloadCurrent}>
+              <FiDownload />
+            </button>
+
+            <button style={styles.iconBtn} onClick={onClose}>
+              <FiX />
+            </button>
           </div>
-          <button onClick={onClose} style={styles.closeButton}>
-            <FiX size={20} />
-          </button>
         </div>
 
-        {/* Content */}
-        <div style={styles.content}>
-          {renderPreviewContent()}
+        {/* Body */}
+        <div style={styles.body}>
+          {loading ? (
+            <div style={styles.center}>Loading...</div>
+          ) : editMode ? (
+            <ReactQuill
+              theme="snow"
+              value={html}
+              onChange={setHtml}
+              style={{ height: "100%" }}
+            />
+          ) : (
+            <div
+              style={styles.preview}
+              className="doc-preview-content"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+          )}
         </div>
 
         {/* Footer */}
         <div style={styles.footer}>
-          <button onClick={onClose} style={styles.secondaryButton}>
+          <button style={styles.closeBtn} onClick={onClose}>
             Close
           </button>
-          <div style={{ display: "flex", gap: "8px" }}>
-            <button onClick={() => handleDownload(doc.docxUrl, doc.fileName)} style={styles.primaryButton}>
-              <FiDownload size={16} /> Download DOCX
-            </button>
-            {doc.pdfUrl && (
-              <button onClick={() => handleDownload(doc.pdfUrl, doc.fileName.replace('.docx', '.pdf'))} style={styles.primaryButton}>
-                <FiDownload size={16} /> Download PDF
-              </button>
-            )}
-          </div>
+
+          <button
+            style={styles.saveBtn}
+            onClick={saveToCareVoiceFiles}
+            disabled={saving}
+          >
+            <FiSave />
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
         </div>
       </div>
     </div>
@@ -173,197 +291,145 @@ const FilePreviewModal = ({ doc, onClose, isOpen }) => {
 const styles = {
   overlay: {
     position: "fixed",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
-    backdropFilter: "blur(5px)",
+    inset: 0,
+    background: "rgba(15,23,42,0.72)",
+    backdropFilter: "blur(10px)",
+    WebkitBackdropFilter: "blur(10px)",
     zIndex: 999999,
     display: "flex",
-    alignItems: "center",
     justifyContent: "center",
-    animation: "fadeIn 0.2s ease"
+    alignItems: "center",
+    padding: "20px"
   },
+
   modal: {
-    width: "90vw",
-    maxWidth: "1200px",
-    height: "85vh",
-    backgroundColor: "#fff",
-    borderRadius: "20px",
-    boxShadow: "0 20px 60px rgba(0, 0, 0, 0.3)",
+    width: "96vw",
+    height: "94vh",
+    background: "#ffffff",
+    borderRadius: "22px",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
-    animation: "slideUp 0.3s ease"
+    boxShadow: "0 25px 60px rgba(0,0,0,0.28)",
+    border: "1px solid rgba(255,255,255,0.15)"
   },
+
   header: {
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "20px 24px",
-    borderBottom: "1px solid #e5e7eb",
-    background: "#6C4CDC"
-  },
-  headerLeft: {
-    display: "flex",
-    alignItems: "center",
-    gap: "12px"
-  },
-  fileIcon: {
-    fontSize: "32px"
-  },
-  fileName: {
-    margin: 0,
+    minHeight: "70px",
+    background: "linear-gradient(135deg, #6D4CFF, #5B34E6)",
     color: "#fff",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "0 22px",
+    borderBottom: "1px solid rgba(255,255,255,0.08)"
+  },
+
+  title: {
     fontSize: "18px",
-    fontWeight: 600
+    fontWeight: "700",
+    maxWidth: "60%",
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
+    letterSpacing: "0.2px"
   },
-  fileInfo: {
-    margin: "4px 0 0 0",
-    color: "rgba(255,255,255,0.85)",
-    fontSize: "12px"
+
+  actions: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px"
   },
-  closeButton: {
-    background: "rgba(255,255,255,0.2)",
+
+  iconBtn: {
     border: "none",
-    borderRadius: "50%",
-    width: "36px",
-    height: "36px",
+    background: "rgba(255,255,255,0.14)",
+    color: "#fff",
+    borderRadius: "10px",
+    padding: "10px 14px",
     cursor: "pointer",
+    fontSize: "14px",
+    fontWeight: "600",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    transition: "all 0.2s",
-    color: "#fff",
-    ':hover': {
-      background: "rgba(255,255,255,0.3)"
-    }
+    transition: "all 0.25s ease"
   },
-  content: {
+
+  body: {
     flex: 1,
-    overflow: "auto",
-    backgroundColor: "#f9fafb"
+    overflowY: "auto",
+    padding: "34px",
+    background:
+      "linear-gradient(to bottom right, #eef2ff, #f8fafc, #eef2ff)"
   },
-  previewContainer: {
-    height: "100%",
-    display: "flex",
-    flexDirection: "column"
-  },
-  viewerToggle: {
-    padding: "12px 20px",
-    backgroundColor: "#fff",
-    borderBottom: "1px solid #e5e7eb",
-    display: "flex",
-    justifyContent: "center"
-  },
-  toggleButtons: {
-    display: "flex",
-    gap: "10px",
-    borderRadius: "8px",
-    overflow: "hidden",
-    border: "1px solid #e5e7eb"
-  },
-  toggleButton: {
-    padding: "8px 20px",
-    border: "none",
-    cursor: "pointer",
-    fontSize: "14px",
-    fontWeight: 500,
-    transition: "all 0.2s"
-  },
-  infoBadge: {
-    padding: "8px 16px",
-    backgroundColor: "#fef3c7",
-    borderRadius: "8px",
-    fontSize: "13px",
-    color: "#92400e"
-  },
-  iframePreview: {
+
+  preview: {
     width: "100%",
-    height: "100%",
-    border: "none",
-    flex: 1
+    maxWidth: "960px",
+    minHeight: "calc(100vh - 240px)",
+    margin: "0 auto",
+    background: "#fff",
+    padding: "55px 65px",
+    borderRadius: "16px",
+    boxShadow:
+      "0 20px 50px rgba(15,23,42,0.12), 0 2px 8px rgba(15,23,42,0.08)",
+    border: "1px solid #e5e7eb",
+    color: "#111827",
+    fontSize: "16px",
+    lineHeight: "1.7",
+    overflowWrap: "break-word",
+    overflowX: "auto"
   },
-  loadingContainer: {
-    textAlign: "center",
-    padding: "60px 20px"
-  },
-  loadingText: {
-    marginTop: "16px",
-    color: "#6b7280"
-  },
-  errorContainer: {
-    textAlign: "center",
-    padding: "60px 20px"
-  },
-  errorIcon: {
-    fontSize: "48px",
-    display: "block",
-    marginBottom: "16px"
-  },
-  errorText: {
-    color: "#ef4444",
-    fontSize: "14px",
-    marginBottom: "20px"
-  },
+
   footer: {
-    padding: "16px 24px",
-    borderTop: "1px solid #e5e7eb",
+    minHeight: "76px",
+    borderTop: "1px solid #eef2f7",
+    background: "#ffffff",
+    padding: "0 24px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "#fff"
+    boxShadow: "0 -4px 16px rgba(0,0,0,0.04)"
   },
-  secondaryButton: {
-    padding: "8px 20px",
-    background: "#f3f4f6",
-    border: "none",
-    borderRadius: "8px",
+
+  closeBtn: {
+    border: "1px solid #d1d5db",
+    background: "#f9fafb",
+    color: "#111827",
+    padding: "11px 20px",
+    borderRadius: "12px",
     cursor: "pointer",
-    fontWeight: 500,
-    color: "#374151",
-    transition: "all 0.2s"
+    fontSize: "15px",
+    fontWeight: "600",
+    transition: "all 0.25s ease"
   },
-  primaryButton: {
-    padding: "8px 20px",
-    background: "#4F46E5",
+
+  saveBtn: {
     border: "none",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontWeight: 500,
+    background: "linear-gradient(135deg, #6D4CFF, #4F46E5)",
     color: "#fff",
+    padding: "12px 22px",
+    borderRadius: "12px",
+    cursor: "pointer",
     display: "flex",
     alignItems: "center",
     gap: "8px",
-    transition: "all 0.2s",
-    ':hover': {
-      background: "#4338ca"
-    }
+    fontSize: "15px",
+    fontWeight: "700",
+    boxShadow: "0 10px 25px rgba(79,70,229,0.25)",
+    transition: "all 0.25s ease"
+  },
+
+  center: {
+    height: "100%",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    color: "#475569",
+    fontSize: "18px",
+    fontWeight: "600"
   }
 };
-
-// Add CSS animations
-const styleSheet = document.createElement("style");
-styleSheet.textContent = `
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-`;
-if (!document.head.querySelector('#file-preview-styles')) {
-  styleSheet.id = 'file-preview-styles';
-  document.head.appendChild(styleSheet);
-}
 
 export default FilePreviewModal;

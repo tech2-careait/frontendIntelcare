@@ -851,7 +851,7 @@ const FinancialHealth = (props) => {
           </div>
           <div
             className="reports-box"
-            style={{ height: "auto", marginTop: "30px", padding: "10px" }}
+            style={{ height: "auto", marginTop: "30px", padding: "10px" ,marginBottom:'20px'}}
           >
             <div
               style={{

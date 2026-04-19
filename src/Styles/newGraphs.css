@@ -10,10 +10,15 @@
   background: white;
   border-radius: 18px;
   padding: 28px;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   box-shadow: 0px 40px 80px rgb(142 156 188 / 8%), 0px 10px 20px rgba(15, 23, 42, 0.06);
 }
-
+.chart-visualizer-card:hover{
+  border: 0.6px solid #6C4CDC;
+  box-shadow: 0 0 30px rgba(86, 21, 208, 0.4);
+  transform: scale(1);
+  
+}
 .chart-area {
   /* min-height: 350px; */
   /* background: linear-gradient(

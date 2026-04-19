@@ -207,21 +207,13 @@ const TlcNewClientProfitability = (props) => {
     const userEmail = user?.email;
     // const userEmail = "ilaurente@tenderlovingcaredisability.com.au";
     const RESTRICTED_USERS = [
-        "iaquino@tenderlovingcaredisability.com.au",
         "jballares@tenderlovingcaredisability.com.au",
+        "iaquino@tenderlovingcaredisability.com.au",
         "kperu@tenderlovingcaredisability.com.au",
-        "q.benico@tenderlovingcaredisability.com.au",
         "mboutros@tenderlovingcaredisability.com.au",
         "rjodeh@tenderlovingcaredisability.com.au",
         "ryounes@tenderlovingcaredisability.com.au",
-        "stickner@tenderlovingcaredisability.com.au",
-        "mtalukder@tenderlovingcaredisability.com.au",
-        "kbrennen@tenderlovingcaredisability.com.au",
-        "ilaurente@tenderlovingcaredisability.com.au",
-        "gjavier@tenderlovingcaredisability.com.au",
-        "molley@tenderlovingcaredisability.com.au",
-        "SGonzales@tenderlovingcaredisability.com.au",
-        "mfarag@tenderlovingcare.com.au"
+        "stickner@tenderlovingcaredisability.com.au"
     ];
 
     const isRestrictedUser = RESTRICTED_USERS.includes(
@@ -1046,9 +1038,9 @@ const TlcNewClientProfitability = (props) => {
             );
 
             const data = await res.json();
-            console.log("data",data)
-            if(data){
-                await incrementCareVoiceAnalysisCount(userEmail,"tlc-client-profitibility-aiSummary",data?.llm_cost?.total_usd)
+            console.log("data", data)
+            if (data) {
+                await incrementCareVoiceAnalysisCount(userEmail, "tlc-client-profitibility-aiSummary", data?.llm_cost?.total_usd)
             }
             clearInterval(aiProgressInterval);
             updateTab({
