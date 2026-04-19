@@ -243,21 +243,13 @@ const NewFinancialHealth = (props) => {
     // const userEmail = "iaquino@tenderlovingcaredisability.com.au";
     // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
     const RESTRICTED_USERS = [
-        "iaquino@tenderlovingcaredisability.com.au",
         "jballares@tenderlovingcaredisability.com.au",
+        "iaquino@tenderlovingcaredisability.com.au",
         "kperu@tenderlovingcaredisability.com.au",
-        "q.benico@tenderlovingcaredisability.com.au",
         "mboutros@tenderlovingcaredisability.com.au",
         "rjodeh@tenderlovingcaredisability.com.au",
         "ryounes@tenderlovingcaredisability.com.au",
-        "stickner@tenderlovingcaredisability.com.au",
-        "mtalukder@tenderlovingcaredisability.com.au",
-        "kbrennen@tenderlovingcaredisability.com.au",
-        "ilaurente@tenderlovingcaredisability.com.au",
-        "gjavier@tenderlovingcaredisability.com.au",
-        "molley@tenderlovingcaredisability.com.au",
-        "SGonzales@tenderlovingcaredisability.com.au",
-        "mfarag@tenderlovingcare.com.au"
+        "stickner@tenderlovingcaredisability.com.au"
     ];
 
     const isRestrictedUser = RESTRICTED_USERS.includes(
@@ -1518,7 +1510,7 @@ const NewFinancialHealth = (props) => {
                     stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
-                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-api-analysis",analysisData?.llm_cost?.total_usd);
+                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-api-analysis", analysisData?.llm_cost?.total_usd);
             } else {
                 // 🔹 Old upload flow
                 // 🔹 Upload flow (FIXED – parse like API)
@@ -1563,7 +1555,7 @@ const NewFinancialHealth = (props) => {
                     stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
-                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-upload-analysis",analysisData?.llm_cost?.total_usd);
+                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-upload-analysis", analysisData?.llm_cost?.total_usd);
             }
 
 

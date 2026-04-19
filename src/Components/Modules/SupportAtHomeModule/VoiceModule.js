@@ -171,9 +171,11 @@ const VoiceModule = (props) => {
     const [previewDoc, setPreviewDoc] = useState(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [generatedDocsSasUrls, setGeneratedDocsSasUrls] = useState([])
+    const [previewIndex, setPreviewIndex] = useState(null);
     // Add this function to handle file preview
-    const handleFilePreview = (doc) => {
+    const handleFilePreview = (doc, index) => {
         setPreviewDoc(doc);
+        setPreviewIndex(index);
         setIsPreviewOpen(true);
     };
     useEffect(() => {
@@ -3438,7 +3440,7 @@ const VoiceModule = (props) => {
                         </h3>
                     </div>
 
-                    {generatedDocsSasUrls?.length === 0 || props?.isCareVoiceGeneratingDocs ? (
+                    {props?.careVoiceFiles?.length === 0 || props?.isCareVoiceGeneratingDocs ? (
                         <div className="round-loader"></div>
                     ) : (
                         <>
@@ -3450,9 +3452,10 @@ const VoiceModule = (props) => {
                                     marginBottom: "36px"
                                 }}
                             >
-                                {(generatedDocsSasUrls || []).map((doc, index) => (
+                                {(props.careVoiceFiles || []).map((file, index) => (
                                     <div
                                         key={index}
+                                        onClick={() => handleFilePreview(file, index)}
                                         style={{
                                             width: "100%",
                                             height: "75px",
@@ -3462,20 +3465,10 @@ const VoiceModule = (props) => {
                                             alignItems: "center",
                                             padding: "12px 15px",
                                             gap: "12px",
-                                            cursor: "pointer",
-                                            transition: "all 0.2s ease",
-                                            border: "1px solid transparent"
-                                        }}
-                                        onClick={() => handleFilePreview(doc)}
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.background = "#EEEEF0";
-                                            e.currentTarget.style.borderColor = "#4F46E5";
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.background = "#F5F5F7";
-                                            e.currentTarget.style.borderColor = "transparent";
+                                            cursor: "pointer"
                                         }}
                                     >
+                                        {/* FILE ICON */}
                                         <div
                                             style={{
                                                 width: "36px",
@@ -3491,6 +3484,7 @@ const VoiceModule = (props) => {
                                             <FiFileText color="#fff" size={18} />
                                         </div>
 
+                                        {/* FILE TEXT */}
                                         <div
                                             style={{
                                                 display: "flex",
@@ -3508,10 +3502,11 @@ const VoiceModule = (props) => {
                                                     textOverflow: "ellipsis",
                                                     maxWidth: "220px"
                                                 }}
-                                                title={doc.fileName}
+                                                title={file.name}
                                             >
-                                                {doc.fileName?.split(".")[0]}
+                                                {file.name?.split(".")[0]}
                                             </span>
+
                                             <span
                                                 style={{
                                                     fontSize: "12px",
@@ -3521,9 +3516,9 @@ const VoiceModule = (props) => {
                                                     textOverflow: "ellipsis",
                                                     maxWidth: "220px"
                                                 }}
-                                                title={doc.fileName}
+                                                title={file.name}
                                             >
-                                                {doc.fileName}
+                                                {file.name}
                                             </span>
                                         </div>
                                     </div>
@@ -3543,11 +3538,11 @@ const VoiceModule = (props) => {
             {/* Preview Modal */}
             <FilePreviewModal
                 doc={previewDoc}
+                fileIndex={previewIndex}
                 isOpen={isPreviewOpen}
-                onClose={() => {
-                    setIsPreviewOpen(false);
-                    setPreviewDoc(null);
-                }}
+                onClose={() => setIsPreviewOpen(false)}
+                careVoiceFiles={props.careVoiceFiles}
+                setCareVoiceFiles={props.setCareVoiceFiles}
             />
         </div>
     );
