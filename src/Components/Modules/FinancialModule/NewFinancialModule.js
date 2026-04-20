@@ -239,9 +239,9 @@ const NewFinancialHealth = (props) => {
 
     const previewRef = useRef(null);
     const userEmail = props.user?.email;
+    // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
     // const userEmail = "q.benico@tenderlovingcaredisability.com.au";
     // const userEmail = "iaquino@tenderlovingcaredisability.com.au";
-    // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
     const RESTRICTED_USERS = [
         "jballares@tenderlovingcaredisability.com.au",
         "iaquino@tenderlovingcaredisability.com.au",
@@ -758,6 +758,7 @@ const NewFinancialHealth = (props) => {
                 }
 
                 const json = await res.json();
+                console.log("json",json)
                 const filteredHistory = userStates.length
                     ? (json.data || []).filter(item =>
                         item.filters?.selectedState?.some(selected =>

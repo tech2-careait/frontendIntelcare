@@ -205,6 +205,9 @@ const TlcNewClientProfitability = (props) => {
     // Sync history when loading from history
 
     const userEmail = user?.email;
+    // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
+    // const userEmail = "molley@tenderlovingcaredisability.com.au";
+    // const userEmail = "bastruc@tenderlovingcaredisability.com.au";
     // const userEmail = "ilaurente@tenderlovingcaredisability.com.au";
     const RESTRICTED_USERS = [
         "jballares@tenderlovingcaredisability.com.au",

@@ -373,7 +373,7 @@ const VoiceModule = (props) => {
                         link.href = blobUrl;
                         link.download = doc.filename || "document.docx";
                         document.body.appendChild(link);
-                        link.click();
+                        // link.click();
                         document.body.removeChild(link);
                         window.URL.revokeObjectURL(blobUrl);
 
@@ -1481,7 +1481,7 @@ const VoiceModule = (props) => {
 
             const doc = { filename, base64: data.filled_document };
 
-            downloadBase64File(data.filled_document, filename);
+            // downloadBase64File(data.filled_document, filename);
 
             return doc;
         }
@@ -1518,7 +1518,7 @@ const VoiceModule = (props) => {
         await Promise.all(tasks);
         animateProgress(audioProgress, setAudioProgress, 80, 600);
         setGenerationStage("emailing");
-        await sendGeneratedDocsEmail(docsToSend);
+        // await sendGeneratedDocsEmail(docsToSend);
         animateProgress(audioProgress, setAudioProgress, 100, 400);
 
         setGeneratedDocs([]);
@@ -1672,9 +1672,9 @@ const VoiceModule = (props) => {
                 const docs = [{ filename, base64: data.filled_document }];
 
                 setGeneratedDocs(docs);
-                downloadBase64File(data.filled_document, filename);
+                // downloadBase64File(data.filled_document, filename);
 
-                await sendGeneratedDocsEmail(docs);
+                // await sendGeneratedDocsEmail(docs);
                 // resetStaffUI();
             }
 
@@ -1813,7 +1813,7 @@ const VoiceModule = (props) => {
                     data?.llm_cost?.total_usd
                 )
             }
-            downloadBase64File(data.filled_document, filename);
+            // downloadBase64File(data.filled_document, filename);
 
             return doc;
         }
@@ -1937,7 +1937,7 @@ const VoiceModule = (props) => {
                                 link.href = blobUrl;
                                 link.download = doc.filename || `${file.name}_document.docx`;
                                 document.body.appendChild(link);
-                                link.click();
+                                // link.click();
                                 document.body.removeChild(link);
                                 window.URL.revokeObjectURL(blobUrl);
 
@@ -2062,7 +2062,7 @@ const VoiceModule = (props) => {
         if (docsToSend.length > 0) {
             setFileStage("emailing");
             setFileProgress(90);
-            await sendGeneratedDocsEmail(docsToSend);
+            // await sendGeneratedDocsEmail(docsToSend);
             alert(`Successfully generated ${docsToSend.length} document(s)!`);
         } else {
             console.log("No documents were generated");
@@ -2204,6 +2204,7 @@ const VoiceModule = (props) => {
             </div>
         )
     }
+    console.log("props.careVoice files", props?.careVoiceFiles)
     return (
         <div className="voice-container">
             {/* ================= TOP ROW ================= */}
@@ -3436,97 +3437,158 @@ const VoiceModule = (props) => {
                         }}
                     >
                         <h3 style={{ margin: 0 }}>
-                            {!props?.isCareVoiceGeneratingDocs ? "Generated Documents" : "Generating Documents..."}
+                            {!props?.isCareVoiceGeneratingDocs
+                                ? "Generated Documents"
+                                : "Generating Documents..."}
                         </h3>
                     </div>
 
-                    {props?.careVoiceFiles?.length === 0 || props?.isCareVoiceGeneratingDocs ? (
+                    {props?.careVoiceFiles?.length === 0 ||
+                        props?.isCareVoiceGeneratingDocs ? (
                         <div className="round-loader"></div>
                     ) : (
                         <>
                             <div
                                 style={{
                                     display: "grid",
-                                    gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+                                    gridTemplateColumns:
+                                        "repeat(auto-fill, minmax(300px, 1fr))",
                                     gap: "15px",
                                     marginBottom: "36px"
                                 }}
                             >
-                                {(props.careVoiceFiles || []).map((file, index) => (
-                                    <div
-                                        key={index}
-                                        onClick={() => handleFilePreview(file, index)}
-                                        style={{
-                                            width: "100%",
-                                            height: "75px",
-                                            background: "#F5F5F7",
-                                            borderRadius: "10px",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            padding: "12px 15px",
-                                            gap: "12px",
-                                            cursor: "pointer"
-                                        }}
-                                    >
-                                        {/* FILE ICON */}
-                                        <div
-                                            style={{
-                                                width: "36px",
-                                                height: "36px",
-                                                background: "#4F46E5",
-                                                borderRadius: "8px",
-                                                display: "flex",
-                                                alignItems: "center",
-                                                justifyContent: "center",
-                                                flexShrink: 0
-                                            }}
-                                        >
-                                            <FiFileText color="#fff" size={18} />
-                                        </div>
+                                {(() => {
+                                    const filteredFiles = (props.careVoiceFiles || [])
+                                        .map((file, originalIndex) => ({
+                                            file,
+                                            originalIndex
+                                        }))
+                                        .filter(({ file }) => {
+                                            const fileName = file?.name || "";
 
-                                        {/* FILE TEXT */}
-                                        <div
-                                            style={{
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                width: "100%",
-                                                textAlign: "left"
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    fontWeight: 500,
-                                                    fontSize: "14px",
-                                                    whiteSpace: "nowrap",
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    maxWidth: "220px"
-                                                }}
-                                                title={file.name}
-                                            >
-                                                {file.name?.split(".")[0]}
-                                            </span>
+                                            // hide selected transcript upload files
+                                            const isUploadedTranscript =
+                                                uploadedTranscriptFiles?.some(
+                                                    (tFile) =>
+                                                        tFile?.name === fileName
+                                                );
 
-                                            <span
+                                            // hide generated transcript docs
+                                            const lowerName = fileName.toLowerCase();
+
+                                            const isTranscriptDoc =
+                                                /(_\d+\.docx)$/i.test(fileName) &&
+                                                (
+                                                    lowerName.includes("transcript") ||
+                                                    lowerName.includes(".webm_") ||
+                                                    lowerName.includes(".mp3_") ||
+                                                    lowerName.includes(".wav_") ||
+                                                    lowerName.includes(".mp4_") ||
+                                                    lowerName.includes(".m4a_")
+                                                );
+
+                                            return (
+                                                !isUploadedTranscript &&
+                                                !isTranscriptDoc
+                                            );
+                                        });
+
+                                    return filteredFiles.map(
+                                        ({ file, originalIndex }) => (
+                                            <div
+                                                key={originalIndex}
+                                                onClick={() =>
+                                                    handleFilePreview(
+                                                        file,
+                                                        originalIndex
+                                                    )
+                                                }
                                                 style={{
-                                                    fontSize: "12px",
-                                                    color: "#777",
-                                                    whiteSpace: "nowrap",
-                                                    overflow: "hidden",
-                                                    textOverflow: "ellipsis",
-                                                    maxWidth: "220px"
+                                                    width: "100%",
+                                                    height: "75px",
+                                                    background: "#F5F5F7",
+                                                    borderRadius: "10px",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    padding: "12px 15px",
+                                                    gap: "12px",
+                                                    cursor: "pointer"
                                                 }}
-                                                title={file.name}
                                             >
-                                                {file.name}
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
+                                                <div
+                                                    style={{
+                                                        width: "36px",
+                                                        height: "36px",
+                                                        background: "#4F46E5",
+                                                        borderRadius: "8px",
+                                                        display: "flex",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        flexShrink: 0
+                                                    }}
+                                                >
+                                                    <FiFileText
+                                                        color="#fff"
+                                                        size={18}
+                                                    />
+                                                </div>
+
+                                                <div
+                                                    style={{
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        width: "100%",
+                                                        textAlign: "left"
+                                                    }}
+                                                >
+                                                    <span
+                                                        style={{
+                                                            fontWeight: 500,
+                                                            fontSize: "14px",
+                                                            whiteSpace: "nowrap",
+                                                            overflow: "hidden",
+                                                            textOverflow:
+                                                                "ellipsis",
+                                                            maxWidth: "220px"
+                                                        }}
+                                                        title={file.name}
+                                                    >
+                                                        {file.name?.split(
+                                                            "."
+                                                        )[0]}
+                                                    </span>
+
+                                                    <span
+                                                        style={{
+                                                            fontSize: "12px",
+                                                            color: "#777",
+                                                            whiteSpace: "nowrap",
+                                                            overflow: "hidden",
+                                                            textOverflow:
+                                                                "ellipsis",
+                                                            maxWidth: "220px"
+                                                        }}
+                                                        title={file.name}
+                                                    >
+                                                        {file.name}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )
+                                    );
+                                })()}
                             </div>
 
-                            <div style={{ display: "flex", justifyContent: "center" }}>
-                                <button className="staff-primary" onClick={handleResetAll}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "center"
+                                }}
+                            >
+                                <button
+                                    className="staff-primary"
+                                    onClick={handleResetAll}
+                                >
                                     Start With New Templates
                                 </button>
                             </div>
@@ -3543,6 +3605,9 @@ const VoiceModule = (props) => {
                 onClose={() => setIsPreviewOpen(false)}
                 careVoiceFiles={props.careVoiceFiles}
                 setCareVoiceFiles={props.setCareVoiceFiles}
+                userEmail={userEmail}
+                staffEmail={staffEmail}
+                staffName={staffName}
             />
         </div>
     );

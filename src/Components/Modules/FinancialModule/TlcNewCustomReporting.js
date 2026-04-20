@@ -150,6 +150,8 @@ export default function TlcNewCustomerReporting(props) {
         ],
     };
     const userEmail = props?.user?.email?.trim();
+    // const userEmail = "gjavier@tenderlovingcaredisability.com.au";
+    // const userEmail = "bastruc@tenderlovingcaredisability.com.au";
     // const userEmail = "mtalukder@tenderlovingcaredisability.com.au";
     const RESTRICTED_USERS = [
         "jballares@tenderlovingcaredisability.com.au",
