@@ -163,6 +163,8 @@
   flex: 1;
   overflow: auto;
   background: #f3f4f6;
+  display: flex;
+  justify-content: center;
 }
 
 /* ===============================
