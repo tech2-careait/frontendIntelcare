@@ -219,8 +219,18 @@ const FilePreviewModal = ({
         </div>
 
         <div className="file-preview-body">
-          {loading && <div className="file-preview-loader">Loading document...</div>}
-          
+          {loading && (
+            <div className="file-preview-loader">
+              <div className="file-preview-loader-box">
+                <div className="file-preview-loader-spinner"></div>
+                <div className="file-preview-loader-title">Opening document...</div>
+                <div className="file-preview-loader-subtitle">
+                  Please wait while the editor loads
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Simple structure like documentation */}
           <div id="superdoc-toolbar" className="superdoc-toolbar" ref={toolbarRef} />
           <div id="superdoc-container" className="superdoc-container" ref={containerRef} />
