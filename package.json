@@ -25,6 +25,7 @@
     "html2pdf.js": "^0.10.3",
     "jsoneditor": "^10.4.2",
     "jszip": "^3.10.1",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.563.0",
     "mammoth": "^1.12.0",
     "markdown-parser-react": "^2.0.2",

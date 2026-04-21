@@ -47,7 +47,11 @@ import { extractAudioFromVideo, getTranscriptTextFromAudioBlob } from "./CareVoi
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import incrementCareVoiceAnalysisCount from "./careVoiceCostAnalysis";
 import FilePreviewModal from "./FilePreviewModal";
-
+import docFilePreviewIcon from "../../../Images/docFilePreviewIcon.svg"
+import Lottie from "lottie-react";
+import selectTemplateAnimation from "../../../Images/document.json"
+import recordingLottieAnimation from "../../../Images/recordingAnimation.json";
+import beforeRecordingAnimation from "../../../Images/beforeRecordingAnimation.json"
 const VoiceModule = (props) => {
     const userEmail = props?.user?.email;
     // const userEmail = "mboutros@tenderlovingcaredisability.com.au";
@@ -71,6 +75,7 @@ const VoiceModule = (props) => {
     const setGeneratedCareVoiceDocsCount = props?.setGeneratedCareVoiceDocsCount;
     const setIsCareVoiceLocked = props?.setIsCareVoiceLocked;
     const domain = userEmail?.split("@")[1] || "";
+
     // console.log("props.careVoiceFiles", props.careVoiceFiles)
     // console.log("userEmail", userEmail)
     // console.log("domain", domain)
@@ -93,6 +98,7 @@ const VoiceModule = (props) => {
     const [showUploadSection, setShowUploadSection] = useState(true);
     const [mapperRows, setMapperRows] = useState([]);
     const [showFeedbackBox, setShowFeedbackBox] = useState(false);
+    const [isRequestingChanges, setIsRequestingChanges] = useState(false);
     // template list & actions
     const [templates, setTemplates] = useState([]);
     const [openMenuId, setOpenMenuId] = useState(null);
@@ -172,6 +178,15 @@ const VoiceModule = (props) => {
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [generatedDocsSasUrls, setGeneratedDocsSasUrls] = useState([])
     const [previewIndex, setPreviewIndex] = useState(null);
+    const feedbackTextareaRef = useRef(null);
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [isEmailingDocs, setIsEmailingDocs] = useState(false);
+    // Add this useEffect
+    useEffect(() => {
+        if (showFeedbackBox && feedbackTextareaRef.current) {
+            feedbackTextareaRef.current.focus();
+        }
+    }, [showFeedbackBox]);
     // Add this function to handle file preview
     const handleFilePreview = (doc, index) => {
         setPreviewDoc(doc);
@@ -625,27 +640,6 @@ const VoiceModule = (props) => {
         return `${h}:${m}:${s}`;
     };
     const startRecording = async () => {
-        // if (testRecord) {
-
-        //     try {
-
-        //         const res = await fetch("/templates/You_re.mp3");
-        //         const blob = await res.blob();
-
-        //         console.log("Test audio loaded size:", blob.size);
-
-        //         setAudioBlob(blob);
-        //         setAudioURL(URL.createObjectURL(blob));
-
-        //         setRecordMode("preview");
-        //         setRecordTime(7200);
-
-        //     } catch (err) {
-        //         console.error("Failed to load test audio", err);
-        //     }
-
-        //     return;
-        // }
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
         const mediaRecorder = new MediaRecorder(stream);
@@ -660,8 +654,37 @@ const VoiceModule = (props) => {
             const blob = new Blob(audioChunksRef.current, { type: "audio/webm" });
             setAudioBlob(blob);
             setAudioURL(URL.createObjectURL(blob));
+            setIsSpeaking(false);
         };
 
+        // 🎤 voice detect
+        const audioContext = new window.AudioContext();
+        const analyser = audioContext.createAnalyser();
+        const source = audioContext.createMediaStreamSource(stream);
+
+        source.connect(analyser);
+        analyser.fftSize = 256;
+
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+        const checkVoice = () => {
+            analyser.getByteFrequencyData(dataArray);
+
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                sum += dataArray[i];
+            }
+
+            const volume = sum / dataArray.length;
+
+            setIsSpeaking(volume > 8);
+
+            if (mediaRecorder.state === "recording") {
+                requestAnimationFrame(checkVoice);
+            }
+        };
+
+        checkVoice();
 
         mediaRecorder.start();
         setRecordMode("recording");
@@ -1335,6 +1358,7 @@ const VoiceModule = (props) => {
 
             setFeedbackText("");
             setShowFeedbackBox(false);
+            setIsRequestingChanges(false);
             pollLatest(sessionId);
         } catch (error) {
             console.error("[UI] Feedback error:", error);
@@ -2205,6 +2229,102 @@ const VoiceModule = (props) => {
         )
     }
     console.log("props.careVoice files", props?.careVoiceFiles)
+    const handleDownloadAllDocs = () => {
+        const filteredFiles = (props.careVoiceFiles || []).filter((file) => {
+            const fileName = file?.name || "";
+            const lowerName = fileName.toLowerCase();
+
+            const isUploadedTranscript =
+                uploadedTranscriptFiles?.some(
+                    (tFile) => tFile?.name === fileName
+                );
+
+            const isTranscriptDoc =
+                /(_\d+\.docx)$/i.test(fileName) &&
+                (
+                    lowerName.includes("transcript") ||
+                    lowerName.includes(".webm_") ||
+                    lowerName.includes(".mp3_") ||
+                    lowerName.includes(".wav_") ||
+                    lowerName.includes(".mp4_") ||
+                    lowerName.includes(".m4a_")
+                );
+
+            return !isUploadedTranscript && !isTranscriptDoc;
+        });
+
+        filteredFiles.forEach((file, index) => {
+            const url = URL.createObjectURL(file);
+
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = file.name || `document_${index + 1}.docx`;
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+        });
+    };
+    const handleEmailAllDocs = async () => {
+        if (isEmailingDocs) return;
+        setIsEmailingDocs(true);
+        alert("Sending email... Please wait");
+
+        try {
+            const filteredFiles = (props.careVoiceFiles || []).filter((file) => {
+                const fileName = file?.name || "";
+                const lowerName = fileName.toLowerCase();
+
+                const isUploadedTranscript =
+                    uploadedTranscriptFiles?.some(
+                        (tFile) => tFile?.name === fileName
+                    );
+
+                const isTranscriptDoc =
+                    /(_\d+\.docx)$/i.test(fileName) &&
+                    (
+                        lowerName.includes("transcript") ||
+                        lowerName.includes(".webm_") ||
+                        lowerName.includes(".mp3_") ||
+                        lowerName.includes(".wav_") ||
+                        lowerName.includes(".mp4_") ||
+                        lowerName.includes(".m4a_")
+                    );
+
+                return !isUploadedTranscript && !isTranscriptDoc;
+            });
+
+            const docs = await Promise.all(
+                filteredFiles.map((file) => {
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+
+                        reader.onload = () => {
+                            const base64 = reader.result.split(",")[1];
+
+                            resolve({
+                                filename: file.name,
+                                base64
+                            });
+                        };
+
+                        reader.onerror = reject;
+                        reader.readAsDataURL(file);
+                    });
+                })
+            );
+
+            await sendGeneratedDocsEmail(docs);
+            alert("Email sent successfully");
+        } catch (error) {
+            alert("Failed to send email");
+            console.error(error);
+        } finally {
+            setIsEmailingDocs(false);
+        }
+    };
     return (
         <div className="voice-container">
             {/* ================= TOP ROW ================= */}
@@ -2264,34 +2384,43 @@ const VoiceModule = (props) => {
 
 
             <div className="voice-divider" />
-            {/* {role === "Staff" && (
-                <div style={{ display: "flex", justifyContent: "flex-end", padding: "10px 20px 10px 20px", width: "161px", height: "41px", marginLeft: "auto" }}>
-                    <button
-                        className="staff-template-btn"
-                        onClick={() => setShowTemplateDrawer(true)}
-                    >
-                        <img src={careVoiceStaffTemplateIcon} alt="templates" style={{ width: "24px", height: "24px" }} />
-                        Templates
-                    </button>
-                </div>
-
-            )} */}
             {role === "Staff" && !showGeneratedFilesUI && staffStep === "landing" && (
-                <div style={{ textAlign: "center", marginTop: "40px" }}>
-                    <h2 style={{ fontWeight: 600, fontSize: "24px", color: "#0e0c16" }}>
-                        Select A Template To Populate
-                    </h2>
-
-                    <button
-                        className="staff-primary"
-                        style={{ margin: "auto" }}
-                        onClick={() => setStaffStep("selectTemplate")}
-                    >
-                        <div style={{ width: "24px", height: "24px" }}>
-                            <img src={careVoiceSelectTemplateIcon} style={{ filter: "brightness(0) invert(1)", height: "21px", width: "20px" }} />
+                <div className="staff-landing-container">
+                    <div className="staff-landing-content">
+                        {/* Lottie Animation */}
+                        <div className="staff-landing-animation">
+                            <Lottie
+                                animationData={selectTemplateAnimation}
+                                loop={true}
+                                autoplay={true}
+                                style={{ width: "200px", height: "200px" }}
+                            />
                         </div>
-                        Select Template
-                    </button>
+
+                        {/* Text Content */}
+                        <div className="staff-landing-text">
+                            <h2 className="staff-landing-title">
+                                Select a template to populate
+                            </h2>
+                            <p className="staff-landing-description">
+                                Choose a template to get started. We'll automatically structure and populate your transcript or recording.
+                            </p>
+                        </div>
+
+                        {/* Button */}
+                        <button
+                            className="staff-primary staff-landing-button"
+                            onClick={() => setStaffStep("selectTemplate")}
+                        >
+                            <div className="staff-landing-button-icon">
+                                <img
+                                    src={careVoiceSelectTemplateIcon}
+                                    alt="template"
+                                />
+                            </div>
+                            Select Template
+                        </button>
+                    </div>
                 </div>
             )}
 
@@ -2574,19 +2703,20 @@ const VoiceModule = (props) => {
                                     <div className="vm-template-track">
                                         {templates.map((tpl, index) => (
                                             <div key={tpl.id} className="vm-template-slide">
-                                                <div className="vm-template-card" onClick={() => {
-                                                    if (openMenuId) return;
+                                                <div className={`vm-template-card ${templates.length === 2 ? "vm-template-card-two" : ""
+                                                    }`} onClick={() => {
+                                                        if (openMenuId) return;
 
-                                                    setActiveTemplate(tpl);
-                                                    setMapperMode("edit");
+                                                        setActiveTemplate(tpl);
+                                                        setMapperMode("edit");
 
-                                                    // ✅ Needed for save API
-                                                    setEditingTemplateId(tpl.id);
-                                                    setRawPrompt(tpl.prompt || "");
-                                                    setRawMapper(tpl.mappings || null);
+                                                        // ✅ Needed for save API
+                                                        setEditingTemplateId(tpl.id);
+                                                        setRawPrompt(tpl.prompt || "");
+                                                        setRawMapper(tpl.mappings || null);
 
-                                                    setMapperRows(mapperToRows(tpl.mappings));
-                                                }}
+                                                        setMapperRows(mapperToRows(tpl.mappings));
+                                                    }}
                                                 >
                                                     <div className="vm-template-left">
                                                         <div className="vm-template-icon">
@@ -2810,7 +2940,7 @@ const VoiceModule = (props) => {
                                 <div className="voice-upload-col" style={{ width: "35%" }}>
                                     <TlcUploadBox
                                         id="admin-sample-upload"
-                                        title="Upload Samples"
+                                        title="Upload Samples*"
                                         subtitle=".DOC, .PDF"
                                         accept=".doc,.docx,.pdf"
                                         files={sampleFiles}
@@ -2860,19 +2990,28 @@ const VoiceModule = (props) => {
 
                             {/* ===== ACTION BUTTONS (TOP) ===== */}
                             <div className="analysis-actions" style={{ marginBottom: "16px" }}>
-                                <button
-                                    onClick={acceptAnalysis}
-                                    className="analysis-accept-btn"
-                                >
-                                    Accept
-                                </button>
 
-                                <button
-                                    onClick={() => setShowFeedbackBox(true)}
-                                    className="analysis-feedback-btn"
-                                >
-                                    Request Changes
-                                </button>
+                                {/* Only show Request Changes button when NOT requesting changes */}
+                                {!isRequestingChanges && (
+                                    <button
+                                        onClick={() => {
+                                            // Request changes - show textarea
+                                            setShowFeedbackBox(true);
+                                            setIsRequestingChanges(true);
+                                        }}
+                                        className="analysis-feedback-request-btn"
+                                    >
+                                        Request Changes
+                                    </button>
+                                )}
+                                {!isRequestingChanges && (
+                                    <button
+                                        onClick={acceptAnalysis}
+                                        className="analysis-accept-btn"
+                                    >
+                                        Accept and analyse
+                                    </button>
+                                )}
                             </div>
 
                             {/* ===== ANALYSIS CONTENT ===== */}
@@ -2883,6 +3022,7 @@ const VoiceModule = (props) => {
                                     </div>
 
                                     <textarea
+                                        ref={feedbackTextareaRef}
                                         className="analysis-feedback-input"
                                         placeholder="Provide your feedback here..."
                                         value={feedbackText}
@@ -2890,10 +3030,21 @@ const VoiceModule = (props) => {
                                         rows="4"
                                     />
 
-                                    <div className="analysis-actions" style={{ marginTop: "16px" }}>
+                                    <div className="analysis-actions" style={{ marginTop: "16px", display: "flex", gap: "12px" }}>
+                                        <button
+                                            onClick={() => {
+                                                // Discard changes - hide textarea and reset
+                                                setShowFeedbackBox(false);
+                                                setIsRequestingChanges(false);
+                                                setFeedbackText("");
+                                            }}
+                                            className="analysis-feedback-discard-btn"
+                                        >
+                                            Discard Changes
+                                        </button>
                                         <button
                                             onClick={sendFeedback}
-                                            className="analysis-feedback-btn"
+                                            className="analysis-feedback-submit-btn"
                                             disabled={!feedbackText.trim()}
                                         >
                                             Submit Changes
@@ -2901,17 +3052,12 @@ const VoiceModule = (props) => {
                                     </div>
                                 </div>
                             )}
-                            <div className="analysis-box" style={{ padding: "2rem" }}>
 
+                            <div className="analysis-box" style={{ padding: "2rem" }}>
                                 <div className="voice-explanation-section">
                                     <CareVoiceExplainationMarkdown content={analysisText} />
                                 </div>
-
                             </div>
-
-                            {/* ===== FEEDBACK BOX ===== */}
-
-
                         </div>
                     )}
 
@@ -2946,7 +3092,7 @@ const VoiceModule = (props) => {
 
             {/* ================= STAFF VIEW ================= */}
             {role === "Staff" && !showGeneratedFilesUI && staffStep === "working" && (
-                <>
+                <div className="carevoice-staff-container">
                     <div className="record-conversation">
                         {/* LEFT */}
                         <div style={{ textAlign: "center" }}>
@@ -2960,7 +3106,7 @@ const VoiceModule = (props) => {
 
                         {/* RIGHT */}
                         {selectedTemplate && (
-                            <div className="selectedtemplatebtn">
+                            <div className="selectedtemplatebtn" onClick={() => setStaffStep("selectTemplate")}>
                                 {/* LEFT DOC ICON */}
                                 <img
                                     src={careVoiceStaffTemplateIcon}
@@ -2980,6 +3126,7 @@ const VoiceModule = (props) => {
                                         borderRadius: "999px",
                                         fontSize: "14px",
                                         fontWeight: 500,
+                                        cursor: "pointer"
                                     }}
                                 >
                                     {/* CHECK */}
@@ -3027,15 +3174,48 @@ const VoiceModule = (props) => {
 
                     </div>
 
-                    <div className="staff-recorder">
+                    <div
+                        className={`staff-recorder ${audioURL || recordMode === "recording" || recordMode === "paused"
+                            ? "staff-recorder-active"
+                            : ""
+                            }`}
+                    >
 
                         {/* ===== REAL AUDIO PLAYER ===== */}
                         <audio ref={audioRef} src={audioURL} />
 
                         {/* ===== TIMER CIRCLE ===== */}
-                        {(recordMode === "idle" || recordMode === "recording") && (
+                        {(recordMode === "idle" || recordMode === "recording" || recordMode === "paused") && (
                             <div className="staff-rec-circle">
-                                <span>{formatTime(recordTime)}</span>
+                                {recordMode === "recording" || recordMode === "paused" ? (
+                                    <div className="staff-recording-wrapper">
+                                        <Lottie
+                                            animationData={recordingLottieAnimation}
+                                            loop={recordMode === "recording"}
+                                            autoplay={recordMode === "recording"}
+                                            pause={recordMode === "paused"}
+                                            className="staff-recording-lottie"
+                                        />
+
+                                        <span className="staff-recording-timer">
+                                            {formatTime(recordTime)}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="staff-recording-wrapper">
+                                        <Lottie
+                                            animationData={beforeRecordingAnimation}
+                                            loop={true}
+                                            autoplay={true}
+                                            paused={!isSpeaking}
+                                            className="staff-recording-lottie"
+                                        />
+
+                                        {/* <span className="staff-recording-timer">
+                                            {formatTime(recordTime)}
+                                        </span> */}
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -3044,26 +3224,44 @@ const VoiceModule = (props) => {
                         {(recordMode === "paused" || recordMode === "preview") && audioURL && (
                             <div className="staff-audio-preview-wrapper">
 
-                                {/* PLAY / PAUSE ICON */}
-                                <button
-                                    className="staff-play-circle"
-                                    onClick={togglePlayAudio}
-                                >
-                                    <img
-                                        src={isPlaying ? careVoicePause : careVoicePlay}
-                                        alt="play-pause"
-                                        style={{ width: "20px", height: "20px" }}
-                                    />
-                                </button>
+                                <div className="staff-play-recorder-div">
+                                    {/* PLAY / PAUSE ICON */}
+                                    <button
+                                        className="staff-play-circle"
+                                        onClick={togglePlayAudio}
+                                    >
+                                        <img
+                                            src={isPlaying ? careVoicePause : careVoicePlay}
+                                            alt="play-pause"
+                                            style={{ width: "20px", height: "20px" }}
+                                        />
+                                    </button>
 
-                                {/* WAVE ICON */}
-                                <div className="staff-wave-container">
-                                    <img
-                                        src={careVoiceWave}
-                                        className={`staff-wave-small ${isPlaying ? "playing" : ""}`}
-                                        alt="wave"
-                                    />
-
+                                    {/* WAVE ICON */}
+                                    <div className="staff-wave-container">
+                                        <div className="staff-audio-seek-wrapper">
+                                            <input
+                                                type="range"
+                                                min="0"
+                                                max={audioRef.current?.duration || 0}
+                                                value={playTime}
+                                                step="0.1"
+                                                onChange={(e) => {
+                                                    const time = Number(e.target.value);
+                                                    audioRef.current.currentTime = time;
+                                                    setPlayTime(time);
+                                                }}
+                                                className="staff-audio-seekbar"
+                                                style={{
+                                                    background: audioRef.current?.duration
+                                                        ? `linear-gradient(to right, #6c4cdc ${(playTime / audioRef.current.duration) * 100
+                                                        }%, #bdbdbd ${(playTime / audioRef.current.duration) * 100
+                                                        }%)`
+                                                        : "#bdbdbd",
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* TIME */}
@@ -3157,13 +3355,13 @@ const VoiceModule = (props) => {
 
 
                     {/* ===== OR ===== */}
-                    {!["recording", "paused"].includes(recordMode) && <div className="voice-or-row">
+                    {!["recording", "paused", "preview"].includes(recordMode) && <div className="voice-or-row">
                         <span className="voice-or-line" />
                         <span className="voice-or-text">Or</span>
                         <span className="voice-or-line" />
                     </div>}
 
-                    {!["recording", "paused"].includes(recordMode) && <div className="voice-upload-col">
+                    {!["recording", "paused", "preview"].includes(recordMode) && <div className="voice-upload-col">
                         <TlcUploadBox
                             id="staff-transcript-upload"
                             title="Upload Transcript"
@@ -3208,7 +3406,7 @@ const VoiceModule = (props) => {
 
 
 
-                </>
+                </div>
             )}
             {role === "Staff" && staffStep === "selectTemplate" && (
                 <div className="vm-confirm-overlay">
@@ -3244,7 +3442,13 @@ const VoiceModule = (props) => {
                                 <img
                                     src={careVoiceCross}
                                     style={{ width: "24px", height: "24px", cursor: "pointer" }}
-                                    onClick={() => setStaffStep("landing")}
+                                    onClick={() => {
+                                        if (!selectedTemplate?.isMulti || selectedTemplate.templates.length === 0) {
+                                            setStaffStep("landing");
+                                        } else {
+                                            setStaffStep("working");
+                                        }
+                                    }}
                                 />
                             </div>
 
@@ -3425,18 +3629,9 @@ const VoiceModule = (props) => {
             )} */}
 
             {showGeneratedFilesUI && (
-                <div style={{ padding: "20px", maxWidth: "1100px", margin: "0 auto" }}>
-                    <div
-                        style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            marginBottom: "36px",
-                            fontWeight: 600,
-                            fontSize: "24px"
-                        }}
-                    >
-                        <h3 style={{ margin: 0 }}>
+                <div className="generated-docs-container">
+                    <div className="generated-docs-header">
+                        <h3 className="generated-docs-title">
                             {!props?.isCareVoiceGeneratingDocs
                                 ? "Generated Documents"
                                 : "Generating Documents..."}
@@ -3448,143 +3643,153 @@ const VoiceModule = (props) => {
                         <div className="round-loader"></div>
                     ) : (
                         <>
-                            <div
-                                style={{
-                                    display: "grid",
-                                    gridTemplateColumns:
-                                        "repeat(auto-fill, minmax(300px, 1fr))",
-                                    gap: "15px",
-                                    marginBottom: "36px"
-                                }}
-                            >
-                                {(() => {
-                                    const filteredFiles = (props.careVoiceFiles || [])
-                                        .map((file, originalIndex) => ({
-                                            file,
-                                            originalIndex
-                                        }))
-                                        .filter(({ file }) => {
-                                            const fileName = file?.name || "";
+                            <div className="generated-docs-grid-wrapper">
+                                <div
+                                    className="generated-docs-grid"
+                                    style={{
+                                        ...(() => {
+                                            const filteredFiles = (props.careVoiceFiles || [])
+                                                .map((file, originalIndex) => ({
+                                                    file,
+                                                    originalIndex
+                                                }))
+                                                .filter(({ file }) => {
+                                                    const fileName = file?.name || "";
+                                                    const isUploadedTranscript =
+                                                        uploadedTranscriptFiles?.some(
+                                                            (tFile) => tFile?.name === fileName
+                                                        );
+                                                    const lowerName = fileName.toLowerCase();
+                                                    const isTranscriptDoc =
+                                                        /(_\d+\.docx)$/i.test(fileName) &&
+                                                        (
+                                                            lowerName.includes("transcript") ||
+                                                            lowerName.includes(".webm_") ||
+                                                            lowerName.includes(".mp3_") ||
+                                                            lowerName.includes(".wav_") ||
+                                                            lowerName.includes(".mp4_") ||
+                                                            lowerName.includes(".m4a_")
+                                                        );
+                                                    return !isUploadedTranscript && !isTranscriptDoc;
+                                                });
 
-                                            // hide selected transcript upload files
-                                            const isUploadedTranscript =
-                                                uploadedTranscriptFiles?.some(
-                                                    (tFile) =>
-                                                        tFile?.name === fileName
+                                            const fileCount = filteredFiles.length;
+
+                                            if (fileCount === 1) {
+                                                return { gridTemplateColumns: "1fr", maxWidth: "300px" };
+                                            } else if (fileCount === 2) {
+                                                return { gridTemplateColumns: "1fr 1fr", maxWidth: "630px" };
+                                            } else {
+                                                return { gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", maxWidth: "100%" };
+                                            }
+                                        })()
+                                    }}
+                                >
+                                    {(() => {
+                                        const filteredFiles = (props.careVoiceFiles || [])
+                                            .map((file, originalIndex) => ({
+                                                file,
+                                                originalIndex
+                                            }))
+                                            .filter(({ file }) => {
+                                                const fileName = file?.name || "";
+
+                                                const isUploadedTranscript =
+                                                    uploadedTranscriptFiles?.some(
+                                                        (tFile) =>
+                                                            tFile?.name === fileName
+                                                    );
+
+                                                const lowerName = fileName.toLowerCase();
+
+                                                const isTranscriptDoc =
+                                                    /(_\d+\.docx)$/i.test(fileName) &&
+                                                    (
+                                                        lowerName.includes("transcript") ||
+                                                        lowerName.includes(".webm_") ||
+                                                        lowerName.includes(".mp3_") ||
+                                                        lowerName.includes(".wav_") ||
+                                                        lowerName.includes(".mp4_") ||
+                                                        lowerName.includes(".m4a_")
+                                                    );
+
+                                                return (
+                                                    !isUploadedTranscript &&
+                                                    !isTranscriptDoc
                                                 );
+                                            });
 
-                                            // hide generated transcript docs
-                                            const lowerName = fileName.toLowerCase();
-
-                                            const isTranscriptDoc =
-                                                /(_\d+\.docx)$/i.test(fileName) &&
-                                                (
-                                                    lowerName.includes("transcript") ||
-                                                    lowerName.includes(".webm_") ||
-                                                    lowerName.includes(".mp3_") ||
-                                                    lowerName.includes(".wav_") ||
-                                                    lowerName.includes(".mp4_") ||
-                                                    lowerName.includes(".m4a_")
-                                                );
-
-                                            return (
-                                                !isUploadedTranscript &&
-                                                !isTranscriptDoc
-                                            );
-                                        });
-
-                                    return filteredFiles.map(
-                                        ({ file, originalIndex }) => (
-                                            <div
-                                                key={originalIndex}
-                                                onClick={() =>
-                                                    handleFilePreview(
-                                                        file,
-                                                        originalIndex
-                                                    )
-                                                }
-                                                style={{
-                                                    width: "100%",
-                                                    height: "75px",
-                                                    background: "#F5F5F7",
-                                                    borderRadius: "10px",
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    padding: "12px 15px",
-                                                    gap: "12px",
-                                                    cursor: "pointer"
-                                                }}
-                                            >
+                                        return filteredFiles.map(
+                                            ({ file, originalIndex }) => (
                                                 <div
-                                                    style={{
-                                                        width: "36px",
-                                                        height: "36px",
-                                                        background: "#4F46E5",
-                                                        borderRadius: "8px",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        justifyContent: "center",
-                                                        flexShrink: 0
-                                                    }}
+                                                    key={originalIndex}
+                                                    className="generated-doc-card"
+                                                    onClick={() =>
+                                                        handleFilePreview(
+                                                            file,
+                                                            originalIndex
+                                                        )
+                                                    }
                                                 >
-                                                    <FiFileText
-                                                        color="#fff"
-                                                        size={18}
-                                                    />
-                                                </div>
+                                                    <div className="generated-doc-content">
+                                                        <div className="generated-doc-icon-wrapper">
+                                                            <FiFileText
+                                                                color="#fff"
+                                                                size={18}
+                                                                className="default-icon"
+                                                            />
+                                                        </div>
 
-                                                <div
-                                                    style={{
-                                                        display: "flex",
-                                                        flexDirection: "column",
-                                                        width: "100%",
-                                                        textAlign: "left"
-                                                    }}
-                                                >
-                                                    <span
-                                                        style={{
-                                                            fontWeight: 500,
-                                                            fontSize: "14px",
-                                                            whiteSpace: "nowrap",
-                                                            overflow: "hidden",
-                                                            textOverflow:
-                                                                "ellipsis",
-                                                            maxWidth: "220px"
-                                                        }}
-                                                        title={file.name}
-                                                    >
-                                                        {file.name?.split(
-                                                            "."
-                                                        )[0]}
-                                                    </span>
+                                                        <div className="generated-doc-info">
+                                                            <span
+                                                                className="generated-doc-name"
+                                                                title={file.name}
+                                                            >
+                                                                {file.name?.split(".")[0]}
+                                                            </span>
 
-                                                    <span
-                                                        style={{
-                                                            fontSize: "12px",
-                                                            color: "#777",
-                                                            whiteSpace: "nowrap",
-                                                            overflow: "hidden",
-                                                            textOverflow:
-                                                                "ellipsis",
-                                                            maxWidth: "220px"
-                                                        }}
-                                                        title={file.name}
-                                                    >
-                                                        {file.name}
-                                                    </span>
+                                                            <span
+                                                                className="generated-doc-filename"
+                                                                title={file.name}
+                                                            >
+                                                                {file.name}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Hover Icon in Top Right Corner */}
+                                                    <div className="generated-doc-hover-icon">
+                                                        <img
+                                                            src={docFilePreviewIcon}
+                                                            alt="preview"
+                                                        />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )
-                                    );
-                                })()}
+                                            )
+                                        );
+                                    })()}
+                                </div>
                             </div>
 
-                            <div
-                                style={{
-                                    display: "flex",
-                                    justifyContent: "center"
-                                }}
-                            >
+                            <div className="generated-docs-actions">
+                                <button
+                                    className="staff-primary"
+                                    onClick={handleDownloadAllDocs}
+                                >
+                                    Download All Docs
+                                </button>
+
+                                <button
+                                    className="staff-primary"
+                                    onClick={handleEmailAllDocs}
+                                    disabled={isEmailingDocs}
+                                    style={{
+                                        opacity: isEmailingDocs ? 0.6 : 1,
+                                        cursor: isEmailingDocs ? "not-allowed" : "pointer"
+                                    }}
+                                >
+                                    {isEmailingDocs ? "Sending..." : "Email All Docs"}
+                                </button>
                                 <button
                                     className="staff-primary"
                                     onClick={handleResetAll}
