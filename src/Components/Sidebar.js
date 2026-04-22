@@ -70,7 +70,8 @@ const Sidebar = ({
   openSettings,
   openTeamMembers,
   openUsageDetails,
-  openPlansBilling
+  openPlansBilling,
+  closeAllPanels
 }) => {
   // console.log(activeReportType);
   const [showRoles, setShowRoles] = useState(true);
@@ -240,6 +241,7 @@ const Sidebar = ({
                     let reportType = report;
                     setSelectedRole(reportType);
                     setActiveItem(report);
+                    closeAllPanels();
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", }}>
@@ -274,6 +276,7 @@ const Sidebar = ({
                       reportType = "Client Profitability & Service";
                     setSelectedRole(reportType);
                     setActiveItem(role);
+                    closeAllPanels();
                   }}
                   style={{ cursor: "pointer", opacity: 1, marginTop: "2px" }}
                 >
@@ -305,6 +308,7 @@ const Sidebar = ({
                     setSelectedRole(reportType);
                     setActiveItem(report);
                     setMajorTypeOfReport("AI AUTOMATION");
+                    closeAllPanels();
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", }}>
@@ -390,6 +394,7 @@ const Sidebar = ({
                   setMajorTypeOfReport("NDIS");
 
                   if (analysedReportdata) setAnalysedReportdata(null);
+                  closeAllPanels();
                 }}
               >
                 <div
@@ -443,6 +448,7 @@ const Sidebar = ({
                     setSelectedRole(reportType);
                     setActiveItem(report);
                     setMajorTypeOfReport("SUPPORT AT HOME");
+                    closeAllPanels();
                   }}
                 >
                   <div

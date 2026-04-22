@@ -344,7 +344,7 @@ const SettingsPage = ({ user, onBack }) => {
 
             <div className="support-container">
 
-                <div className="support-header">
+                <div className="support-header" onClick={() => setShowSupportModal(true)}>
                     <div className="support-header-left">
                         <div className="support-icon">?</div>
                         <div>
@@ -357,7 +357,6 @@ const SettingsPage = ({ user, onBack }) => {
 
                     <div
                         className="support-arrow"
-                        onClick={() => setShowSupportModal(true)}
                     >
                         <img
                             src={supportSettingsRight}
