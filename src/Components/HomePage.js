@@ -681,7 +681,7 @@ const HomePage = () => {
           console.log("Care Voice Query Response:", data);
           const botReply = data?.data?.answer || "No response";
           const sources = data?.data?.sources || [];
-          
+
           setMessages(prev =>
             prev.map(msg =>
               msg.temp
@@ -734,7 +734,7 @@ const HomePage = () => {
           );
 
           // ✅ Update with the NEW conversation history from response
-          console.log("response.data in financial health ask ai",response.data)
+          console.log("response.data in financial health ask ai", response.data)
           setFinancialAiHistoryPayload(response.data?.conversation_history || []);
           await incrementCareVoiceAnalysisCount(
             user?.email?.trim().toLowerCase(),
@@ -811,7 +811,7 @@ const HomePage = () => {
             response.data?.results?.answer ||
             response.data?.answer ||
             JSON.stringify(response.data, null, 2);
- 
+
           setMessages(prev =>
             prev.map(msg => (msg.temp ? { sender: "bot", text: botReply } : msg))
           );
@@ -841,7 +841,7 @@ const HomePage = () => {
             form,
             { headers: { "Content-Type": "multipart/form-data" } }
           );
-          console.log("response.data in manual rostering",response.data)
+          console.log("response.data in manual rostering", response.data)
           const botReply =
             response.data?.answer ||
             response.data?.response ||
@@ -934,7 +934,7 @@ const HomePage = () => {
           setClientProfitabilityAiHistoryPayload(updatedHistory);
 
           // Count usage for Client Profitability
-          console.log("response?.data",response?.data)
+          console.log("response?.data", response?.data)
           if (user?.email) {
             try {
               const email = user.email.trim().toLowerCase();
@@ -1207,6 +1207,12 @@ const HomePage = () => {
                     setShowTeamMembers(false);
                   }}
                   openPlansBilling={() => setShowPlansBillingModal(true)}
+                  closeAllPanels={() => {
+                    setShowSettings(false);
+                    setShowTeamMembers(false);
+                    setShowUsageDetails(false);
+                    setShowPlansBillingModal(false);
+                  }}
                 />
               )}
 
@@ -1444,7 +1450,7 @@ const HomePage = () => {
                       </div>
 
                       <div style={{ display: selectedRole === "SIRS Analysis" ? "block" : "none" }}>
-                        <SirsAnalysis selectedRole="SIRS Analysis" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} user={user}/>
+                        <SirsAnalysis selectedRole="SIRS Analysis" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} user={user} />
                       </div>
 
                       <div style={{ display: selectedRole === "Participant Events & Incident Management" ? "block" : "none" }}>
@@ -1463,7 +1469,7 @@ const HomePage = () => {
                       </div>
 
                       <div style={{ display: selectedRole === "Custom Incident Management" ? "block" : "none", padding: '24px 4%' }}>
-                        <IncidentManagement selectedRole="Custom Incident Management" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} user={user}/>
+                        <IncidentManagement selectedRole="Custom Incident Management" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} user={user} />
                       </div>
 
                       <div style={{ display: selectedRole === "Payroll Analysis" ? "block" : "none" }}>
@@ -1502,11 +1508,11 @@ const HomePage = () => {
                       </div>
 
                       <div style={{ display: selectedRole === "Incident Report" ? "block" : "none" }}>
-                        <IncidentReport selectedRole="Incident Report" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} user={user}/>
+                        <IncidentReport selectedRole="Incident Report" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} user={user} />
                       </div>
 
                       <div style={{ display: selectedRole === "Quality and Risk Reporting" ? "block" : "none" }}>
-                        <QualityandRisk selectedRole="Quality and Risk Reporting" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} user={user}/>
+                        <QualityandRisk selectedRole="Quality and Risk Reporting" handleClick={handleClick} setShowFeedbackPopup={setShowFeedbackPopup} user={user} />
                       </div>
 
                       <div style={{ display: selectedRole === "Smart Rostering" ? "block" : "none" }}>
@@ -1589,7 +1595,7 @@ const HomePage = () => {
                             {isCareVoicePage
                               ? (careVoiceStarted
                                 ? "Ask Any Question Related To Care Voice Document"
-                                : "Click Start Session to ask questions to AI")
+                                : "Click Start Session To Unlock AI Assistance")
                               : isSoftwareConnectPage
                                 ? "API Connection Tutorials"
                                 : "Ask AI"}

@@ -40,8 +40,8 @@
   flex-direction: column;
 
   box-shadow:
-    0 25px 60px rgba(0,0,0,.25),
-    0 8px 20px rgba(0,0,0,.12);
+    0 25px 60px rgba(0, 0, 0, .25),
+    0 8px 20px rgba(0, 0, 0, .12);
 }
 
 /* ===============================
@@ -53,11 +53,11 @@
   padding: 0 18px;
   border-bottom: 1px solid #ececec;
   background: #fff;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+  text-align: left;
 }
 
 .file-preview-title {
@@ -134,7 +134,8 @@
   border-bottom: 1px solid #ececec;
   padding: 8px 10px;
 
-  overflow-x: auto;   /* 🔥 horizontal scroll */
+  overflow-x: auto;
+  /* 🔥 horizontal scroll */
   overflow-y: hidden;
   white-space: nowrap;
 
@@ -151,7 +152,7 @@
 }
 
 /* Keep toolbar content in single row */
-.superdoc-toolbar > * {
+.superdoc-toolbar>* {
   white-space: nowrap;
 }
 
@@ -187,7 +188,7 @@ body [data-radix-popper-content-wrapper] {
 .file-preview-dialog-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.28);
+  background: rgba(0, 0, 0, .28);
   z-index: 1000000;
 
   display: flex;
@@ -273,6 +274,7 @@ body [data-radix-popper-content-wrapper] {
   background: #dfe5ee;
   transform: translateY(-1px);
 }
+
 /* ===============================
    FILE PREVIEW LOADER FIX
 ================================= */
@@ -326,6 +328,7 @@ body [data-radix-popper-content-wrapper] {
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

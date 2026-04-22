@@ -16,7 +16,7 @@ import careVoiceEndAndPreview from "../../../Images/careVoiceEndAndPreview.png"
 import careVoiceStaffTemplateIcon from "../../../Images/careVoiceStaffTemplateIcon.png"
 import careVoiceLeft from "../../../Images/careVoiceLeft.png"
 import careVoiceRight from "../../../Images/careVoiceRight.png"
-import { FiDownload, FiFileText, FiUploadCloud } from "react-icons/fi";
+import { FiDownload, FiFileText, FiMail, FiUploadCloud } from "react-icons/fi";
 import MapperGrid from "./VoiceModuleMapper";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import PulsatingLoader from "../../PulsatingLoader";
@@ -52,6 +52,9 @@ import Lottie from "lottie-react";
 import selectTemplateAnimation from "../../../Images/document.json"
 import recordingLottieAnimation from "../../../Images/recordingAnimation.json";
 import beforeRecordingAnimation from "../../../Images/beforeRecordingAnimation.json"
+import { HiOutlineDocumentAdd } from "react-icons/hi";
+import generatingDocAnimation from "../../../Images/generatingDocAnimation.json"
+import generatingDocAnimationVideo from "../../../Images/generatingDocAnimationVideo.mp4"
 const VoiceModule = (props) => {
     const userEmail = props?.user?.email;
     // const userEmail = "mboutros@tenderlovingcaredisability.com.au";
@@ -474,7 +477,9 @@ const VoiceModule = (props) => {
             if (!card) return;
 
             const cardWidth = card.offsetWidth + 12; // same gap
-            const index = Math.round(slider.scrollLeft / cardWidth);
+            const index = Math.floor(
+                (slider.scrollLeft + cardWidth / 2) / cardWidth
+            );
 
             setTemplateIndex(index);
         };
@@ -1156,7 +1161,8 @@ const VoiceModule = (props) => {
 
     const startAnalysis = async () => {
         if (!templateFile) return;
-
+        setEditingTemplateId(null);
+        setActiveTemplate(null);
         // console.log("[UI] Starting onboarding analysis");
 
         // RESET PREVIOUS STATE (VERY IMPORTANT)
@@ -1260,6 +1266,8 @@ const VoiceModule = (props) => {
                 }
                 // console.log("data in poll latest", data);
                 if (data.type === "final_result") {
+                    setEditingTemplateId(null);
+                    setActiveTemplate(null);
                     pushEvent("Final document generated", 4);
 
                     setRawPrompt(data.prompt || "");
@@ -1439,7 +1447,7 @@ const VoiceModule = (props) => {
             sampleFiles.forEach((file) => {
                 formData.append("samples", file);
             });
-            // console.log("editingTemplateId",editingTemplateId)
+            console.log("editingTemplateId", editingTemplateId)
             const url = editingTemplateId !== null
                 ? `${API_BASE}/api/voiceModuleTemplate/${editingTemplateId}`
                 : `${API_BASE}/api/voiceModuleTemplate`;
@@ -1788,11 +1796,11 @@ const VoiceModule = (props) => {
             left: dir === "left" ? -scrollAmount : scrollAmount,
             behavior: "smooth",
         });
-        setTemplateIndex(prev =>
-            dir === "left"
-                ? Math.max(prev - CARDS_PER_VIEW, 0)
-                : Math.min(prev + CARDS_PER_VIEW, (totalPages - 1) * CARDS_PER_VIEW)
-        );
+        // setTemplateIndex(prev =>
+        //     dir === "left"
+        //         ? Math.max(prev - CARDS_PER_VIEW, 0)
+        //         : Math.min(prev + CARDS_PER_VIEW, (totalPages - 1) * CARDS_PER_VIEW)
+        // );
     };
 
 
@@ -2412,12 +2420,7 @@ const VoiceModule = (props) => {
                             className="staff-primary staff-landing-button"
                             onClick={() => setStaffStep("selectTemplate")}
                         >
-                            <div className="staff-landing-button-icon">
-                                <img
-                                    src={careVoiceSelectTemplateIcon}
-                                    alt="template"
-                                />
-                            </div>
+                            <HiOutlineDocumentAdd size={18} />
                             Select Template
                         </button>
                     </div>
@@ -2450,7 +2453,18 @@ const VoiceModule = (props) => {
                                         alignItems: "center",
                                         gap: "2px"
                                     }}
-                                    onClick={() => setActiveTemplate(null)}
+                                    onClick={() => {
+                                        setActiveTemplate(null);
+                                        setEditingTemplateId(null);
+
+                                        setAnalysisText("");
+                                        setRawPrompt("");
+                                        setRawMapper(null);
+                                        setMapperRows([]);
+
+                                        setEditedPrompt("");
+                                        setIsPromptEditing(false);
+                                    }}
                                 >
                                     <GoArrowLeft size={22} color="#6C4CDC" /> Back
                                 </div>
@@ -2706,7 +2720,7 @@ const VoiceModule = (props) => {
                                                 <div className={`vm-template-card ${templates.length === 2 ? "vm-template-card-two" : ""
                                                     }`} onClick={() => {
                                                         if (openMenuId) return;
-
+                                                        if (editingNameId === tpl.id) return;
                                                         setActiveTemplate(tpl);
                                                         setMapperMode("edit");
 
@@ -2787,7 +2801,7 @@ const VoiceModule = (props) => {
                                                                 </div>
 
                                                                 {/* RIGHT : DOTS */}
-                                                                <div className="vm-template-actions">
+                                                                {editingNameId !== tpl.id && <div className="vm-template-actions">
                                                                     <span
                                                                         className="vm-dots"
                                                                         onClick={(e) => openDropdown(e, tpl.id)}
@@ -2796,7 +2810,7 @@ const VoiceModule = (props) => {
                                                                     </span>
 
 
-                                                                </div>
+                                                                </div>}
 
                                                             </div>
 
@@ -3628,19 +3642,34 @@ const VoiceModule = (props) => {
                 </div>
             )} */}
 
-            {showGeneratedFilesUI && (
-                <div className="generated-docs-container">
+            {role === "Staff" && showGeneratedFilesUI && (
+                <div className="generated-docs-container" style={
+                    props?.careVoiceFiles?.length === 0 ||
+                        props?.isCareVoiceGeneratingDocs
+                        ? { background: "white" }
+                        : {}
+                }>
                     <div className="generated-docs-header">
                         <h3 className="generated-docs-title">
                             {!props?.isCareVoiceGeneratingDocs
                                 ? "Generated Documents"
-                                : "Generating Documents..."}
+                                : ""}
                         </h3>
                     </div>
 
                     {props?.careVoiceFiles?.length === 0 ||
                         props?.isCareVoiceGeneratingDocs ? (
-                        <div className="round-loader"></div>
+                        <div className="genratingDocLottieDiv">
+                            <video
+                                className="generating-docs-video"
+                                autoPlay
+                                loop
+                                muted
+                                playsInline
+                            >
+                                <source src={generatingDocAnimationVideo} type="video/mp4" />
+                            </video>
+                        </div>
                     ) : (
                         <>
                             <div className="generated-docs-grid-wrapper">
@@ -3773,14 +3802,15 @@ const VoiceModule = (props) => {
 
                             <div className="generated-docs-actions">
                                 <button
-                                    className="staff-primary"
+                                    className="generate-doc-btns"
                                     onClick={handleDownloadAllDocs}
                                 >
+                                    <FiDownload size={18} />
                                     Download All Docs
                                 </button>
 
                                 <button
-                                    className="staff-primary"
+                                    className="generate-doc-btns"
                                     onClick={handleEmailAllDocs}
                                     disabled={isEmailingDocs}
                                     style={{
@@ -3788,13 +3818,15 @@ const VoiceModule = (props) => {
                                         cursor: isEmailingDocs ? "not-allowed" : "pointer"
                                     }}
                                 >
+                                    <FiMail size={18} />
                                     {isEmailingDocs ? "Sending..." : "Email All Docs"}
                                 </button>
                                 <button
-                                    className="staff-primary"
+                                    className="start-with-new-template-btn"
                                     onClick={handleResetAll}
                                 >
-                                    Start With New Templates
+                                    <HiOutlineDocumentAdd size={18} />
+                                    New Template
                                 </button>
                             </div>
                         </>
@@ -3818,4 +3850,4 @@ const VoiceModule = (props) => {
     );
 };
 
-export default VoiceModule;     
+export default VoiceModule;
