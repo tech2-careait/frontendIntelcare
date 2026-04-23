@@ -1557,7 +1557,7 @@ const NewFinancialHealth = (props) => {
                     stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
-                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-upload-analysis", analysisData?.llm_cost?.total_usd,"financial-health");
+                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-files-analysis", analysisData?.llm_cost?.total_usd,"financial-health");
             }
 
 
