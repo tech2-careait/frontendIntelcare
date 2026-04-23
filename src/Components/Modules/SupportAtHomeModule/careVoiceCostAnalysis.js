@@ -1,11 +1,11 @@
 const COUNT_API_BASE =
   "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net";
 
-const incrementCareVoiceAnalysisCount = async (userEmail, buttonType, AiAnalysisCost) => {
+const incrementCareVoiceAnalysisCount = async (userEmail, buttonType, AiAnalysisCost, moduleName) => {
   try {
     if (!userEmail) return;
 
-    const payload = { userEmail, buttonType, AiAnalysisCost };
+    const payload = { userEmail, buttonType, AiAnalysisCost, moduleName };
 
     const res = await fetch(`${COUNT_API_BASE}/carevoice-increment`, {
       method: "POST",
@@ -16,7 +16,7 @@ const incrementCareVoiceAnalysisCount = async (userEmail, buttonType, AiAnalysis
     });
 
     const data = await res.json();
-    console.log("data in incrementCareVoiceAnalysisCount",data) 
+    console.log("data in incrementCareVoiceAnalysisCount", data)
     //Trigger popup when backend starts auto topup
     if (
       res.status === 403 &&

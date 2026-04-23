@@ -8,6 +8,7 @@ import star from '../../../Images/star.png';
 import '../../../Styles/UploaderPage.css';
 import NewReportIcon from '../../../Images/NewReportIcon.png';
 import incrementAnalysisCount from "./TLcAnalysisCount";
+import incrementCareVoiceAnalysisCount from "../SupportAtHomeModule/careVoiceCostAnalysis";
 
 const IncidentManagement = (props) => {
     const [zipFile1, setZipFile1] = useState(null);
@@ -118,7 +119,7 @@ const IncidentManagement = (props) => {
             setZipProgress(100);
 
             setReportZipdata(allResponses);
-            await incrementAnalysisCount(userEmail?.trim(), "incident-management");
+            await incrementCareVoiceAnalysisCount(userEmail?.trim(), "incident-management-analysis",0,"incident-management");
             setShowFinalZipReport(true);
         } catch (error) {
             console.error("Error processing ZIP:", error);

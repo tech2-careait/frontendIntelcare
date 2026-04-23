@@ -1282,7 +1282,8 @@ const VoiceModule = (props) => {
                         await incrementCareVoiceAnalysisCount(
                             userEmail,
                             "care-voice-onboarding",
-                            data?.llm_cost?.total_usd
+                            data?.llm_cost?.total_usd,
+                            "carevoice"
                         );
                     }
                     setProcessingProgress(100);
@@ -1522,7 +1523,8 @@ const VoiceModule = (props) => {
             await incrementCareVoiceAnalysisCount(
                 userEmail,
                 "care-voice-document-generation",
-                data?.llm_cost?.total_usd
+                data?.llm_cost?.total_usd,
+                "carevoice"
             );
         }
     };
@@ -1695,7 +1697,8 @@ const VoiceModule = (props) => {
                 await incrementCareVoiceAnalysisCount(
                     userEmail,
                     "care-voice-document-generation",
-                    data?.llm_cost?.total_usd
+                    data?.llm_cost?.total_usd,
+                    "carevoice"
                 )
             }
             if (data.success && data.filled_document) {
@@ -1842,7 +1845,8 @@ const VoiceModule = (props) => {
                 await incrementCareVoiceAnalysisCount(
                     userEmail,
                     "care-voice-document-generation",
-                    data?.llm_cost?.total_usd
+                    data?.llm_cost?.total_usd,
+                    "carevoice"
                 )
             }
             // downloadBase64File(data.filled_document, filename);

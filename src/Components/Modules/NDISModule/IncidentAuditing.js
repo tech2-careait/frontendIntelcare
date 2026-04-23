@@ -16,6 +16,7 @@ import { IoIosArrowUp, IoIosArrowDown } from "react-icons/io";
 import { RiDeleteBin6Line } from "react-icons/ri";
 import { GoArrowLeft } from "react-icons/go";
 import incrementAnalysisCount from "../FinancialModule/TLcAnalysisCount";
+import incrementCareVoiceAnalysisCount from "../SupportAtHomeModule/careVoiceCostAnalysis";
 
 const TASK_QUEUE = [
     "Analysing data",
@@ -530,7 +531,7 @@ const IncidentAuditing = (props) => {
                             data.incidents !== undefined
                         ) {
                             setResponseData(data);
-                            await incrementAnalysisCount(props?.user?.email?.trim(), "incident-auditing");
+                            await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "incident-auditing-analysis",0,"incident-auditing");
                         }
                     } catch (err) {
                         console.warn("Non-JSON SSE", jsonStr);

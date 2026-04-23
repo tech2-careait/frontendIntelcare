@@ -6,6 +6,7 @@ import star from '../../../Images/star.png';
 import SummaryReport from "../../SummaryReportViewer";
 import '../../../Styles/UploaderPage.css'
 import incrementAnalysisCount from "./TLcAnalysisCount";
+import incrementCareVoiceAnalysisCount from "../SupportAtHomeModule/careVoiceCostAnalysis";
 
 const SirsAnalysis = (props) => {
     const [sirsReportFiles, setSirsReportFiles] = useState([]);
@@ -81,7 +82,7 @@ const SirsAnalysis = (props) => {
                     if (i === 0) {
                         // Show the first result immediately
                         setSirsReport([result]);
-                        await incrementAnalysisCount(props?.user?.email?.trim(), "sirs-analysis");
+                        await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "sirs-analysis",0,"SIRS");
                         setSirsProgress(100);
                         setTimeout(() => {
                             setShowSirsReport(true);
