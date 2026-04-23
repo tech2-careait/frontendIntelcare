@@ -8,6 +8,7 @@ import '../../../Styles/UploaderPage.css';
 import SummaryReport from "../../SummaryReportViewer";
 import '../../../Styles/UploaderPage.css'
 import incrementAnalysisCount from "../FinancialModule/TLcAnalysisCount";
+import incrementCareVoiceAnalysisCount from "./careVoiceCostAnalysis";
 
 const QualityandRisk = (props) => {
     const [qualityreportFiles, setQualityReportFiles] = useState([]);
@@ -74,7 +75,7 @@ const QualityandRisk = (props) => {
             if (response.status === 200 && response.data?.report) {
                 const allReports = response.data.report;
                 setAnalysedQualityReportdata(allReports);
-                await incrementAnalysisCount(props?.user?.email?.trim(), "quality-and-risk");
+                await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "quality-and-risk-analysis",0,"quality-and-risk");
                 //First response triggers UI change
                 clearInterval(progressInterval);
                 setIsAnalysedQualityReportProgress(100);

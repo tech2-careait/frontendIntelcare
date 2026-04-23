@@ -1512,7 +1512,7 @@ const NewFinancialHealth = (props) => {
                     stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
-                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-api-analysis", analysisData?.llm_cost?.total_usd);
+                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-api-analysis", analysisData?.llm_cost?.total_usd,"financial-health");
             } else {
                 // 🔹 Old upload flow
                 // 🔹 Upload flow (FIXED – parse like API)
@@ -1557,7 +1557,7 @@ const NewFinancialHealth = (props) => {
                     stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
-                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-upload-analysis", analysisData?.llm_cost?.total_usd);
+                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-upload-analysis", analysisData?.llm_cost?.total_usd,"financial-health");
             }
 
 

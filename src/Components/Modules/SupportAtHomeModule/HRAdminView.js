@@ -7,6 +7,7 @@ import ScreeningTestCreation from "./ScreeningTestCreation";
 import AdminDocumentVerification from "./AdminDocumentVerification";
 import AdminCourseCreation from "./AdminCourseCreation";
 import incrementAnalysisCount from "../FinancialModule/TLcAnalysisCount";
+import incrementCareVoiceAnalysisCount from "./careVoiceCostAnalysis";
 
 const HRAdminView = ({
   handleClick,
@@ -72,7 +73,7 @@ const HRAdminView = ({
       }));
 
       setCandidates(mappedCandidates);
-      await incrementAnalysisCount(user?.email?.trim(), "staff-onboarding-resume-screening");
+      await incrementCareVoiceAnalysisCount(user?.email?.trim(), "staff-onboarding-resume-screening",0,"staff-onboarding");
       setProgress(100);
       clearInterval(interval);
 

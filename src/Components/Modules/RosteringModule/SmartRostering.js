@@ -410,7 +410,7 @@ const SmartRostering = (props) => {
 
             // console.log("Smart Rostering Response:", response.data);
             if (userEmail) {
-                await incrementCareVoiceAnalysisCount(userEmail, "smart-rostering", response?.data?.llm_cost?.total_usd);
+                await incrementCareVoiceAnalysisCount(userEmail, "smart-rostering-card-analysis", response?.data?.llm_cost?.total_usd,"smart-rostering");
             }
             // ⏳ Only now switch to screen 2 after data is ready
             if (response.data?.data?.final_ranked?.length > 0) {
@@ -474,7 +474,7 @@ const SmartRostering = (props) => {
                 );
                 // console.log("manualResponse", manualResponse);
                 if (userEmail) {
-                    await incrementCareVoiceAnalysisCount(userEmail, "manual-smart-rostering", manualResponse?.data?.llm_cost?.total_usd);
+                    await incrementCareVoiceAnalysisCount(userEmail, "manual-smart-rostering-analysis", manualResponse?.data?.llm_cost?.total_usd,"smart-rostering");
                 }
                 // console.log("📌 Manual Roster Response:", manualResponse.data);
 
@@ -521,7 +521,7 @@ const SmartRostering = (props) => {
             const rosteringCost = response?.data?.rostering_llm_cost?.total_usd || 0;
             const totalCost = promptCost + rosteringCost;
             if (userEmail) {
-                await incrementCareVoiceAnalysisCount(userEmail, "prompt-smart-rostering", totalCost);
+                await incrementCareVoiceAnalysisCount(userEmail, "prompt-smart-rostering", totalCost,"smart-rostering");
             }
             const rankedStaff = response.data?.rostering_summary?.final_ranked || [];
             if (!rankedStaff.length) {

@@ -972,7 +972,7 @@ const TlcNewClientProfitability = (props) => {
                         onPrepareAiPayload({
                             table_data: statusData.result?.table,
                         });
-                        await incrementCareVoiceAnalysisCount(userEmail, "client-profitability", statusData?.result?.llm_cost?.total_usd);
+                        await incrementCareVoiceAnalysisCount(userEmail, "client-profitability", statusData?.result?.llm_cost?.total_usd,"tlc-client-profitability");
                     }
 
                     if (statusData.status === "failed") {
@@ -1044,7 +1044,7 @@ const TlcNewClientProfitability = (props) => {
             const data = await res.json();
             console.log("data", data)
             if (data) {
-                await incrementCareVoiceAnalysisCount(userEmail, "tlc-client-profitibility-aiSummary", data?.llm_cost?.total_usd)
+                await incrementCareVoiceAnalysisCount(userEmail, "tlc-client-profitibility-aiSummary", data?.llm_cost?.total_usd,"tlc-client-profitibility")
             }
             clearInterval(aiProgressInterval);
             updateTab({

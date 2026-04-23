@@ -976,7 +976,7 @@ export default function TlcNewCustomerReporting(props) {
             });
             try {
                 if (userEmail) {
-                    await incrementCareVoiceAnalysisCount(userEmail, "tlc-report-analysis", analyzeData?.analysisResult?.llm_cost?.total_usd);
+                    await incrementCareVoiceAnalysisCount(userEmail, "tlc-report-analysis", analyzeData?.analysisResult?.llm_cost?.total_usd,"tlc-payroll-analysis");
                 } else {
                     console.warn("⚠️ User email missing — skipping count increment");
                 }
@@ -1311,7 +1311,7 @@ export default function TlcNewCustomerReporting(props) {
             });
             try {
                 if (userEmail) {
-                    await incrementCareVoiceAnalysisCount(userEmail, "tlc-ai-analysis", data?.ai_analysis_cost);
+                    await incrementCareVoiceAnalysisCount(userEmail, "tlc-ai-analysis", data?.ai_analysis_cost,"tlc-payroll-analysis");
                 }
             } catch (err) {
                 console.error("Error incrementing AI analysis count:", err);
