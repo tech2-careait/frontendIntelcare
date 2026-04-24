@@ -976,7 +976,7 @@ export default function TlcNewCustomerReporting(props) {
             });
             try {
                 if (userEmail) {
-                    await incrementCareVoiceAnalysisCount(userEmail, "tlc-payroll-analysis", analyzeData?.analysisResult?.llm_cost?.total_usd,"tlc-payroll-analysis");
+                    await incrementCareVoiceAnalysisCount(userEmail, "ai-analysis", analyzeData?.analysisResult?.llm_cost?.total_usd,"payroll-analysis",analyzeData?.analysisResult?.llm_cost?.token_usage);
                 } else {
                     console.warn("⚠️ User email missing — skipping count increment");
                 }
@@ -1309,9 +1309,10 @@ export default function TlcNewCustomerReporting(props) {
                 aiLoading: false,
                 aiProgress: 100,
             });
+            console.log("data in report",data)
             try {
                 if (userEmail) {
-                    await incrementCareVoiceAnalysisCount(userEmail, "tlc-payroll-report-generation", data?.ai_analysis_cost,"tlc-payroll-analysis");
+                    await incrementCareVoiceAnalysisCount(userEmail, "report-generation", data?.ai_analysis_cost,"payroll-analysis",data?.token_usage);
                 }
             } catch (err) {
                 console.error("Error incrementing AI analysis count:", err);
@@ -1386,6 +1387,7 @@ export default function TlcNewCustomerReporting(props) {
                     });
                 }
             }, 100);
+            await incrementCareVoiceAnalysisCount(userEmail,"history-click",0,"payroll-analysis",0)
         } catch (err) {
             console.error("❌ Error loading analysis:", err);
             alert("Failed to load analysis: " + err.message);

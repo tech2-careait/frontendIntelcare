@@ -410,7 +410,7 @@ const SmartRostering = (props) => {
 
             // console.log("Smart Rostering Response:", response.data);
             if (userEmail) {
-                await incrementCareVoiceAnalysisCount(userEmail, "smart-rostering-card-analysis", response?.data?.llm_cost?.total_usd,"smart-rostering");
+                await incrementCareVoiceAnalysisCount(userEmail, "card-shortlist-analysis", response?.data?.llm_cost?.total_usd,"smart-rostering",response?.data?.llm_cost?.token_usage);
             }
             // ⏳ Only now switch to screen 2 after data is ready
             if (response.data?.data?.final_ranked?.length > 0) {
@@ -474,7 +474,7 @@ const SmartRostering = (props) => {
                 );
                 // console.log("manualResponse", manualResponse);
                 if (userEmail) {
-                    await incrementCareVoiceAnalysisCount(userEmail, "manual-smart-rostering-analysis", manualResponse?.data?.llm_cost?.total_usd,"smart-rostering");
+                    await incrementCareVoiceAnalysisCount(userEmail, "manual-rostering-analysis", manualResponse?.data?.llm_cost?.total_usd,"smart-rostering",manualResponse?.data?.llm_cost?.token_usage);
                 }
                 // console.log("📌 Manual Roster Response:", manualResponse.data);
 
@@ -516,12 +516,15 @@ const SmartRostering = (props) => {
                 { prompt: query, userEmail },
                 { headers: { "Content-Type": "application/json" } }
             );
-            // console.log("response in prompt based rostering", response)
+            console.log("response in prompt based rostering", response)
             const promptCost = response?.data?.filler?.llm_cost?.total_usd || 0;
             const rosteringCost = response?.data?.rostering_llm_cost?.total_usd || 0;
+            const promptToken_usage = response?.data?.filler?.llm_cost?.token_usage;
+            const rosteringToken_usage = response?.data?.rostering_llm_cost?.token_usage;
             const totalCost = promptCost + rosteringCost;
+            const tokenTokenUsage = promptToken_usage + rosteringToken_usage;
             if (userEmail) {
-                await incrementCareVoiceAnalysisCount(userEmail, "prompt-smart-rostering", totalCost,"smart-rostering");
+                await incrementCareVoiceAnalysisCount(userEmail, "manifest-filler", totalCost,"smart-rostering",tokenTokenUsage);
             }
             const rankedStaff = response.data?.rostering_summary?.final_ranked || [];
             if (!rankedStaff.length) {

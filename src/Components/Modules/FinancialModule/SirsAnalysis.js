@@ -82,7 +82,7 @@ const SirsAnalysis = (props) => {
                     if (i === 0) {
                         // Show the first result immediately
                         setSirsReport([result]);
-                        await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "sirs-analysis",0,"SIRS");
+                        await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "ai-analysis",0,"SIRS",0);
                         setSirsProgress(100);
                         setTimeout(() => {
                             setShowSirsReport(true);

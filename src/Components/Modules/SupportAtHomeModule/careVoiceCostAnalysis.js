@@ -1,11 +1,11 @@
 const COUNT_API_BASE =
   "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net";
 
-const incrementCareVoiceAnalysisCount = async (userEmail, buttonType, AiAnalysisCost, moduleName) => {
+const incrementCareVoiceAnalysisCount = async (userEmail, buttonType, AiAnalysisCost, moduleName,tokenDeducted) => {
   try {
     if (!userEmail) return;
 
-    const payload = { userEmail, buttonType, AiAnalysisCost, moduleName };
+    const payload = { userEmail, buttonType, AiAnalysisCost, moduleName,tokenDeducted };
 
     const res = await fetch(`${COUNT_API_BASE}/carevoice-increment`, {
       method: "POST",

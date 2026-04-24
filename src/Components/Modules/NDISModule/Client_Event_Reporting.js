@@ -285,7 +285,7 @@ const Client_Event_Reporting = (props) => {
             .map((key) => s3[key]);
 
         setStage3Data(eventsArray);
-        await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "client-event-reporting-analysis",0,"client-event-reporting");
+        await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "ai-analysis",0,"client-event-reporting",0);
       } else {
         alert("Stage 3 data not found in response");
       }

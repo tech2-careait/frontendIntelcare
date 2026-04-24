@@ -73,7 +73,7 @@ const HRAdminView = ({
       }));
 
       setCandidates(mappedCandidates);
-      await incrementCareVoiceAnalysisCount(user?.email?.trim(), "staff-onboarding-resume-screening",0,"staff-onboarding");
+      await incrementCareVoiceAnalysisCount(user?.email?.trim(), "resume-screening",0,"staff-onboarding",0);
       setProgress(100);
       clearInterval(interval);
 
