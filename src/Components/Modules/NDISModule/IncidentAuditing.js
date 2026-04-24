@@ -219,7 +219,7 @@ const IncidentAuditing = (props) => {
                 setEndMonth("");
                 setEndDay("");
             }
-
+            await incrementCareVoiceAnalysisCount(props.user.email,"history-click",0,"incident-auditing",0)
             // ✅ When viewing from history disable upload effect
             setIncidentAuditingFiles([]);
 
