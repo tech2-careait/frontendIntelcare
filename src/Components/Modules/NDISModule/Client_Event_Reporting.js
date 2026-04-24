@@ -181,6 +181,7 @@ const Client_Event_Reporting = (props) => {
 
       // Mark history mode
       setIsFromHistory(true);
+      await incrementCareVoiceAnalysisCount(props.user.email,"history-click",0,"client-event-reporting",0)
     } catch (err) {
       console.error("Failed to load client event history item", err);
     }
