@@ -531,7 +531,7 @@ const IncidentAuditing = (props) => {
                             data.incidents !== undefined
                         ) {
                             setResponseData(data);
-                            await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "ai-analysis",0,"incident-auditing");
+                            await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "ai-analysis",0,"incident-auditing",0);
                         }
                     } catch (err) {
                         console.warn("Non-JSON SSE", jsonStr);
