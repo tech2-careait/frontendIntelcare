@@ -91,7 +91,7 @@ const IncidentReport = (props) => {
 
                         // ✅ First row: show UI and stop loading/progress
                         if (i === 0) {
-                            await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "incident-report-analysis",0,"incident-report");
+                            await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "ai-analysis",0,"incident-report",0);
                             clearInterval(progressInterval);
                             setIsAnalysedIncidentReportProgress(100);
                             setIsAnalysingIncidentReportLoading(false);

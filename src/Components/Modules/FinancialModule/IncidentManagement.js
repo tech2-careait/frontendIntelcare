@@ -119,7 +119,7 @@ const IncidentManagement = (props) => {
             setZipProgress(100);
 
             setReportZipdata(allResponses);
-            await incrementCareVoiceAnalysisCount(userEmail?.trim(), "incident-management-analysis",0,"incident-management");
+            await incrementCareVoiceAnalysisCount(userEmail?.trim(), "ai-analysis",0,"incident-management",0);
             setShowFinalZipReport(true);
         } catch (error) {
             console.error("Error processing ZIP:", error);

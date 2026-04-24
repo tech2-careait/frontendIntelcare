@@ -242,6 +242,7 @@ const Sidebar = ({
                     setSelectedRole(reportType);
                     setActiveItem(report);
                     closeAllPanels();
+                    setShowProfilePanel(false)
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", }}>
@@ -277,6 +278,7 @@ const Sidebar = ({
                     setSelectedRole(reportType);
                     setActiveItem(role);
                     closeAllPanels();
+                    setShowProfilePanel(false)
                   }}
                   style={{ cursor: "pointer", opacity: 1, marginTop: "2px" }}
                 >
@@ -309,6 +311,7 @@ const Sidebar = ({
                     setActiveItem(report);
                     setMajorTypeOfReport("AI AUTOMATION");
                     closeAllPanels();
+                    setShowProfilePanel(false)
                   }}
                 >
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", }}>
@@ -395,6 +398,7 @@ const Sidebar = ({
 
                   if (analysedReportdata) setAnalysedReportdata(null);
                   closeAllPanels();
+                  setShowProfilePanel(false)
                 }}
               >
                 <div
@@ -449,6 +453,7 @@ const Sidebar = ({
                     setActiveItem(report);
                     setMajorTypeOfReport("SUPPORT AT HOME");
                     closeAllPanels();
+                    setShowProfilePanel(false)
                   }}
                 >
                   <div

@@ -75,7 +75,7 @@ const QualityandRisk = (props) => {
             if (response.status === 200 && response.data?.report) {
                 const allReports = response.data.report;
                 setAnalysedQualityReportdata(allReports);
-                await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "quality-and-risk-analysis",0,"quality-and-risk");
+                await incrementCareVoiceAnalysisCount(props?.user?.email?.trim(), "ai-analysis",0,"quality-and-risk",0);
                 //First response triggers UI change
                 clearInterval(progressInterval);
                 setIsAnalysedQualityReportProgress(100);

@@ -1281,9 +1281,10 @@ const VoiceModule = (props) => {
                     if (userEmail) {
                         await incrementCareVoiceAnalysisCount(
                             userEmail,
-                            "care-voice-onboarding",
+                            "onboarding",
                             data?.llm_cost?.total_usd,
-                            "carevoice"
+                            "carevoice",
+                            data?.llm_cost?.token_usage
                         );
                     }
                     setProcessingProgress(100);
@@ -1522,9 +1523,10 @@ const VoiceModule = (props) => {
         if (userEmail) {
             await incrementCareVoiceAnalysisCount(
                 userEmail,
-                "care-voice-document-generation",
+                "document-generation",
                 data?.llm_cost?.total_usd,
-                "carevoice"
+                "carevoice",
+                data?.llm_cost?.token_usage
             );
         }
     };
@@ -1696,9 +1698,10 @@ const VoiceModule = (props) => {
             if (userEmail) {
                 await incrementCareVoiceAnalysisCount(
                     userEmail,
-                    "care-voice-document-generation",
+                    "document-generation",
                     data?.llm_cost?.total_usd,
-                    "carevoice"
+                    "carevoice",
+                    data?.llm_cost?.token_usage
                 )
             }
             if (data.success && data.filled_document) {
@@ -1844,9 +1847,10 @@ const VoiceModule = (props) => {
             if (userEmail) {
                 await incrementCareVoiceAnalysisCount(
                     userEmail,
-                    "care-voice-document-generation",
+                    "document-generation",
                     data?.llm_cost?.total_usd,
-                    "carevoice"
+                    "carevoice",
+                    data?.llm_cost?.token_usage
                 )
             }
             // downloadBase64File(data.filled_document, filename);

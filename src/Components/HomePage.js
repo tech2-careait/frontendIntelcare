@@ -691,9 +691,10 @@ const HomePage = () => {
           );
           await incrementCareVoiceAnalysisCount(
             user?.email?.trim().toLowerCase(),
-            "care-voice-askai",
+            "askai",
             data?.data?.llm_cost?.total_usd,
-            "carevoice"
+            "carevoice",
+            data?.data?.llm_cost?.token_usage
           );
         } catch (err) {
           console.error("Care Voice AskAI Error:", err);
@@ -739,9 +740,10 @@ const HomePage = () => {
           setFinancialAiHistoryPayload(response.data?.conversation_history || []);
           await incrementCareVoiceAnalysisCount(
             user?.email?.trim().toLowerCase(),
-            "financial-health-askai",
+            "askai",
             response?.data?.llm_cost?.total_usd,
-            "financial-health"
+            "financial-health",
+            response?.data?.llm_cost?.token_usage
           );
 
         } catch (err) {
@@ -819,9 +821,10 @@ const HomePage = () => {
           );
           await incrementCareVoiceAnalysisCount(
             user?.email?.trim().toLowerCase(),
-            "smart-onboarding-askai",
+            "askai",
             0,
-            "smart-onboarding"
+            "smart-onboarding",
+            0
           );
           return;
         } catch (error) {
@@ -856,9 +859,10 @@ const HomePage = () => {
           );
           await incrementCareVoiceAnalysisCount(
             user?.email?.trim().toLowerCase(),
-            "manual-smart-rostering-askai",
+            "askai",
             response?.data?.llm_cost?.total_usd,
-            "smart-rostering"
+            "smart-rostering",
+            response?.data?.llm_cost?.token_usage
           );
           return; // Stop here
         }
@@ -887,9 +891,10 @@ const HomePage = () => {
         );
         await incrementCareVoiceAnalysisCount(
           user?.email?.trim().toLowerCase(),
-          "smart-rostering-askai",
+          "askai",
           response?.data?.llm_cost?.total_usd,
-          "smart-rostering"
+          "smart-rostering",
+          response?.data?.llm_cost?.token_usage
         );
         return;
       }
@@ -944,7 +949,7 @@ const HomePage = () => {
           if (user?.email) {
             try {
               const email = user.email.trim().toLowerCase();
-              await incrementCareVoiceAnalysisCount(email, "tlc-client-profitability-askai", response?.data?.llm_cost?.total_usd,"tlc-client-profitability");
+              await incrementCareVoiceAnalysisCount(email, "askai", response?.data?.llm_cost?.total_usd,"client-profitability",response?.data?.llm_cost?.token_usage);
             } catch (err) {
               console.error("❌ Failed to increment Client Profitability AskAI count:", err.message);
             }
