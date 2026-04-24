@@ -758,7 +758,7 @@ const NewFinancialHealth = (props) => {
                 }
 
                 const json = await res.json();
-                console.log("json",json)
+                console.log("json", json)
                 const filteredHistory = userStates.length
                     ? (json.data || []).filter(item =>
                         item.filters?.selectedState?.some(selected =>
@@ -931,7 +931,7 @@ const NewFinancialHealth = (props) => {
                 console.warn("Unknown reportType:", data.reportType);
                 updateTab(baseTabPayload);
             }
-
+            await incrementCareVoiceAnalysisCount(userEmail, "history-click", 0, "financial-health",0)
         } catch (err) {
             console.error("Failed to load history", err);
         }
@@ -1051,21 +1051,7 @@ const NewFinancialHealth = (props) => {
 
             // Handle dates
             let fromDate, toDate;
-            // if (type === "api" || type === "hybrid") {
-            //     fromDate = startDate.toISOString();
-            //     toDate = endDate.toISOString();
-
-            //     if (!fromDate || !toDate) {
-            //         alert("Please select valid start and end dates for sync mode.");
-            //         clearInterval(interval);
-            //         setIsFinancialProcessing(false);
-            //         return;
-            //     }
-            // } else {
-            //     const currentYear = new Date().getFullYear();
-            //     fromDate = `${currentYear}-01-01T00:00:00Z`;
-            //     toDate = `${currentYear}-12-31T23:59:59Z`;
-            // }
+        
             if (type === "api") {
                 fromDate = startDate.toISOString();
                 toDate = endDate.toISOString();
@@ -1097,17 +1083,6 @@ const NewFinancialHealth = (props) => {
             formData.append("provider", selectedActor);
             formData.append("fromDate", fromDate);
             formData.append("toDate", toDate);
-
-            // Append files if needed
-            // if (type === "upload" || type === "hybrid") {
-            //     if (financialReportFiles.length === 0) {
-            //         alert("No files selected for upload.");
-            //         clearInterval(interval);
-            //         setIsFinancialProcessing(false);
-            //         return;
-            //     }
-            //     financialReportFiles.forEach((file) => formData.append("files", file));
-            // }
             if (type === "upload") {
                 if (activeTabData.selectedFiles.length === 0) {
                     alert("No files selected for upload.");
@@ -1211,165 +1186,6 @@ const NewFinancialHealth = (props) => {
 
             if (!analysisData) throw new Error("Empty response from analysis API");
 
-
-            // // --- Step 2: Build Visualization Payload ---
-            // let vizPayload;
-
-            // // Non-Kris = normal behavior
-            // vizPayload = {
-            //     reportResponse: analysisData,
-            //     from_date: fromDate,
-            //     to_date: toDate,
-            //     userEmail: userEmail
-            // };
-            // // console.log("vizPayload", vizPayload)
-
-            // // --- Step 3: Call Visualization API ---
-            // let vizData = null;
-            // // console.log("vizpayload", vizPayload)
-            // if (type === "upload") {
-            //     const vizRes = await axios.post(
-            //         "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/vizualize-reports",
-            //         vizPayload,
-            //         { headers: { "Content-Type": "application/json" } }
-            //     );
-
-            //     vizData = vizRes.data;
-            // }
-
-            // // --- Step 4: Normalize Figures ---
-            // const normalizeFigures = (source) => {
-            //     // console.log("source", source);
-
-            //     const results = [];
-
-            //     // 1️⃣ Case: Normal Plotly JSON charts
-            //     if (Array.isArray(source?.data?.figures)) {
-            //         const charts = source.data.figures.map((fig, i) => ({
-            //             type: "json",
-            //             figure: fig.figure,
-            //             metricName: fig.key || `Figure ${i + 1}`,
-            //         }));
-            //         results.push(...charts);
-            //     }
-
-            //     // 🧩 2️⃣ Case: Image attachments
-            //     if (Array.isArray(source?.data?.attachments)) {
-            //         const images = source.data.attachments.map((att, i) => ({
-            //             type: "image",
-            //             image: `data:image/png;base64,${att.file_base64}`,
-            //             metricName: att.filename
-            //                 ? att.filename.replace(/\.[^/.]+$/, "")
-            //                 : `Attachment ${i + 1}`,
-            //         }));
-            //         results.push(...images);
-            //     }
-
-            //     // 🧩 3️⃣ Case: Unavailable metrics (✅ top level)
-            //     if (Array.isArray(source?.unavailable_metrics)) {
-            //         // console.log("Found top-level unavailable_metrics", source.unavailable_metrics);
-            //         const seen = new Set();
-            //         const uniqueMetrics = [];
-
-            //         for (const [metricName, reason] of source.unavailable_metrics) {
-            //             if (!metricName) continue;
-            //             if (!seen.has(metricName)) {
-            //                 seen.add(metricName);
-            //                 uniqueMetrics.push({ metricName, reason });
-            //             }
-            //         }
-
-            //         const blanks = uniqueMetrics.map(({ metricName, reason }, i) => ({
-            //             type: "blank",
-            //             metricName: metricName || `Unavailable Metric ${i + 1}`,
-            //             reason: reason || "No data available",
-            //         }));
-
-            //         results.push(...blanks);
-            //     }
-
-            //     // 🧩 4️⃣ Case: Unavailable metrics nested inside data
-            //     if (Array.isArray(source?.data?.unavailable_metrics)) {
-            //         // console.log("Found nested unavailable_metrics", source.data.unavailable_metrics);
-            //         const seen = new Set();
-            //         const uniqueMetrics = [];
-
-            //         for (const [metricName, reason] of source.data.unavailable_metrics) {
-            //             if (!metricName) continue;
-            //             if (!seen.has(metricName)) {
-            //                 seen.add(metricName);
-            //                 uniqueMetrics.push({ metricName, reason });
-            //             }
-            //         }
-
-            //         const blanks = uniqueMetrics.map(({ metricName, reason }, i) => ({
-            //             type: "blank",
-            //             metricName: metricName || `Unavailable Metric ${i + 1}`,
-            //             reason: reason || "No data available",
-            //         }));
-
-            //         results.push(...blanks);
-            //     }
-
-            //     // console.log("normalizeFigures results:", results);
-            //     return results;
-            // };
-
-            // console.log("vizPayload?.reportResponse?.excel_exports", vizPayload?.reportResponse?.excel_exports)
-            // if (type === "api") {
-            //     if (vizPayload?.reportResponse?.excel_exports) {
-            //         try {
-            //             const mergedWorkbook = XLSX.utils.book_new();
-            //             const usedSheetNames = new Set();
-
-            //             const excelFiles = Object.values(vizPayload?.reportResponse?.excel_exports).flat();
-            //             const titlesArray = [];
-
-            //             for (const fileData of excelFiles) {
-            //                 let base64 = fileData.data_url;
-            //                 let fileTitle = fileData.title;
-            //                 titlesArray.push(fileTitle);
-
-            //                 const base64String = base64.includes("base64,") ? base64.split("base64,")[1] : base64;
-            //                 const binary = atob(base64String);
-            //                 const arrayBuffer = new ArrayBuffer(binary.length);
-            //                 const view = new Uint8Array(arrayBuffer);
-            //                 for (let i = 0; i < binary.length; i++) view[i] = binary.charCodeAt(i) & 0xff;
-
-            //                 const workbook = XLSX.read(arrayBuffer, { type: "array" });
-
-            //                 for (const sheetName of workbook.SheetNames) {
-            //                     let newSheetName = fileTitle.slice(0, 31);
-            //                     let counter = 1;
-            //                     while (usedSheetNames.has(newSheetName)) {
-            //                         const suffix = `_${counter++}`;
-            //                         newSheetName = fileTitle.slice(0, 31 - suffix.length) + suffix;
-            //                     }
-            //                     usedSheetNames.add(newSheetName);
-            //                     XLSX.utils.book_append_sheet(mergedWorkbook, workbook.Sheets[sheetName], newSheetName);
-            //                 }
-            //             }
-
-            //             updateTab({
-            //                 titleArray: titlesArray,
-            //             });
-
-            //             const wbout = XLSX.write(mergedWorkbook, { bookType: "xlsx", type: "binary" });
-            //             const blob = new Blob([s2ab(wbout)], {
-            //                 type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            //             });
-
-            //             const url = URL.createObjectURL(blob);
-            //             updateTab({
-            //                 apiExcelUrls: [url],
-            //             });
-            //         } catch (err) {
-            //             console.error("Error merging API Excel files:", err);
-            //         }
-            //     }
-            // } else {
-            //     updateTab({ apiExcelUrls: [] });
-            // }
             if (type === "upload") {
                 updateTab({ apiExcelUrls: [] });
             }
@@ -1512,7 +1328,8 @@ const NewFinancialHealth = (props) => {
                     stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
-                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-api-analysis", analysisData?.llm_cost?.total_usd,"financial-health");
+                console.log("analysisData?.llm_cost",analysisData?.llm_cost)
+                await incrementCareVoiceAnalysisCount(userEmail, "ai-analysis", analysisData?.llm_cost?.total_usd, "financial-health",analysisData?.llm_cost?.token_usage);
             } else {
                 // 🔹 Old upload flow
                 // 🔹 Upload flow (FIXED – parse like API)
@@ -1557,7 +1374,8 @@ const NewFinancialHealth = (props) => {
                     stage: "overview",
                     ...(tabDateName ? { name: tabDateName } : {}),
                 });
-                await incrementCareVoiceAnalysisCount(userEmail, "financial-health-files-analysis", analysisData?.llm_cost?.total_usd,"financial-health");
+                console.log("analysisData?.llm_cost in upload type",analysisData?.llm_cost)
+                await incrementCareVoiceAnalysisCount(userEmail, "ai-analysis", analysisData?.llm_cost?.total_usd, "financial-health",analysisData?.llm_cost?.token_usage);
             }
 
 
