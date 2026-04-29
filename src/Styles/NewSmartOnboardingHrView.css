@@ -163,6 +163,10 @@
     padding: 16px;
     cursor: pointer;
     text-align: left;
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .resume-summary-box h4 {
@@ -175,12 +179,19 @@
     font-size: 14px;
     line-height: 1.6;
     color: #333;
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 0;
 }
 
 .resume-score-row {
     display: flex;
     justify-content: space-between;
-    margin-top: 16px;
+    margin-top: auto;
+    padding-top: 16px;
 }
 
 .resume-score-row strong {
