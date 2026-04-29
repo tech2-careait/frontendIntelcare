@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import "../../../Styles/SmartOnboarding.enhanced.css";
 import "../../../Styles/ResumeScreening.css";
 import "../../../Styles/NewSmartOnboardingHrView.css"
 import StaffOnboarding from "./StaffOnboarding";
@@ -21,8 +22,6 @@ const HRAdminView = ({
   setMessages,
   setHrMode,
   setHrStep,
-  organizationId,
-  smartCandidates = [],
 }) => {
   const [selectedFile, setSelectedFile] = useState([]);
   const [selectedJd, setSelectedJd] = useState([]);
@@ -34,7 +33,105 @@ const HRAdminView = ({
   const [progress, setProgress] = useState(0);
   const [selectedAssessment, setSelectedAssessment] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  console.log("smartCandidates in HRAdminView", smartCandidates)
+  const [organizationId, setOrganizationId] = useState(null);
+  const [testResultsById, setTestResultsById] = useState({});
+  const [selectedTestResult, setSelectedTestResult] = useState(null);
+  const [smartCandidates, setSmartCandidates] = useState([]);
+
+  useEffect(() => {
+    const fetchOrganizationId = async () => {
+      const email = user?.email;
+      if (!email) return;
+
+      try {
+        const res = await fetch(
+          `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/teamMembers/hierarchy?email=${encodeURIComponent(email)}`
+        );
+        const data = await res.json();
+        console.log("Organization hierarchy response:", data);  
+        if (res.ok && data?.groupData?.id) {
+          setOrganizationId(data?.groupData?.id);
+        } else {
+          setOrganizationId(email);
+        }
+      } catch (error) {
+        console.error("fetchOrganizationId error:", error);
+        setOrganizationId(email);
+      }
+    };
+
+    fetchOrganizationId();
+  }, [user?.email]);
+
+  useEffect(() => {
+    const fetchTestResults = async () => {
+      if (!organizationId) return;
+
+      try {
+        const res = await fetch(
+          `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/get-test-results?organisation_id=${encodeURIComponent(organizationId)}`
+        );
+        const data = await res.json();
+
+        if (data?.ok && Array.isArray(data.results)) {
+          const map = {};
+          data.results.forEach((r) => {
+            if (r.candidateId) map[r.candidateId] = r;
+          });
+          setTestResultsById(map);
+        }
+      } catch (error) {
+        console.error("fetchTestResults error:", error);
+      }
+    };
+
+    fetchTestResults();
+  }, [organizationId]);
+
+  useEffect(() => {
+    const fetchAllCandidates = async () => {
+      if (!user?.email || !organizationId) return;
+
+      try {
+        const params = new URLSearchParams({
+          admin_email: user.email,
+          organization_id: organizationId,
+        });
+        const res = await fetch(
+          `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/get-all-candidates?${params.toString()}`
+        );
+        const data = await res.json();
+
+        if (data?.ok) {
+          setSmartCandidates(data.candidates || []);
+        }
+      } catch (error) {
+        console.error("fetchAllCandidates error:", error);
+      }
+    };
+
+    fetchAllCandidates();
+  }, [organizationId, user?.email]);
+
+  const parseTestAnalysis = (analysis) => {
+    if (!analysis) return [];
+    if (typeof analysis === "object") {
+      return Object.entries(analysis).map(([k, v]) => `${k}: ${v}`);
+    }
+    const text = String(analysis).trim();
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) return parsed.map((x) => String(x));
+      if (parsed && typeof parsed === "object") {
+        return Object.entries(parsed).map(([k, v]) => `${k}: ${v}`);
+      }
+    } catch (_) {}
+    return text
+      .split(/\r?\n|(?:\s*[•\-\*]\s+)/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+  };
+
   const filteredCandidates = smartCandidates.filter((item) => {
     const query = searchTerm.toLowerCase().trim();
 
@@ -54,7 +151,6 @@ const HRAdminView = ({
       skills.includes(query)
     );
   });
-  console.log("Filtered candidates:", filteredCandidates);
   const handleAnalyze = async () => {
     if (!selectedFile.length || !selectedJd.length) {
       alert("Please upload both Resume ZIP and Job Description PDF.");
@@ -166,7 +262,7 @@ const HRAdminView = ({
               }`}
             onClick={() => handleTabClick("Resume Screening")}
           >
-            Resume Screening
+            Dashboard
           </button>
           <button
             className={`nav-tab ${activeTab === "Screening Test Creation" ? "active" : ""
@@ -300,6 +396,15 @@ const HRAdminView = ({
                     item.candidateName?.charAt(0)?.toUpperCase() || "U";
 
                   const score = item.candidateResumeScore || 0;
+                  const testResult = testResultsById[item.candidateId];
+                  const testScore = testResult?.candidate_test_score;
+                  const testStatusRaw = testResult?.candidate_test_status;
+                  const testStatusLabel = testStatusRaw
+                    ? String(testStatusRaw).charAt(0).toUpperCase() +
+                      String(testStatusRaw).slice(1).toLowerCase()
+                    : null;
+                  const isPass = testStatusRaw &&
+                    String(testStatusRaw).toLowerCase() === "pass";
 
                   return (
                     <div className="resume-candidate-card" key={item.candidateId}>
@@ -337,40 +442,72 @@ const HRAdminView = ({
 
                         <div className="resume-right-progress">
 
-                          <div className="resume-progress-block">
-                            <div className="resume-progress-head">
-                              <span>Documents</span>
-                              <span>
-                                {item.docs_verification_status === "verified"
-                                  ? "3 / 3 verified"
-                                  : "0 / 3 verified"}
-                              </span>
-                            </div>
-                            <div className="resume-bar">
-                              <div
-                                className="resume-bar-fill green"
-                                style={{
-                                  width:
-                                    item.docs_verification_status === "verified"
-                                      ? "100%"
-                                      : "0%"
-                                }}
-                              ></div>
-                            </div>
-                          </div>
+                          {(() => {
+                            const required = Number(item.candidate_number_of_docs_required) || 0;
+                            const uploaded = Number(item.candidate_number_of_docs_uploaded) || 0;
+                            const docsPercent = required > 0
+                              ? Math.min(100, Math.round((uploaded / required) * 100))
+                              : 0;
+                            return (
+                              <div className="resume-progress-block">
+                                <div className="resume-progress-head">
+                                  <span>Documents</span>
+                                  <span>{uploaded} / {required} uploaded</span>
+                                </div>
+                                <div className="resume-bar">
+                                  <div
+                                    className="resume-bar-fill green"
+                                    style={{ width: `${docsPercent}%` }}
+                                  ></div>
+                                </div>
+                              </div>
+                            );
+                          })()}
 
                           <div className="resume-progress-block">
                             <div className="resume-progress-head">
                               <span>Training Modules</span>
-                              <span>{score}% Done</span>
+                              <span>{0}% Done</span>
                             </div>
                             <div className="resume-bar">
                               <div
                                 className="resume-bar-fill purple"
-                                style={{ width: `${score}%` }}
+                                style={{ width: `${0}%` }}
                               ></div>
                             </div>
                           </div>
+                        </div>
+                      </div>
+
+                      <div
+                        className={`resume-test-result-row ${testResult ? "has-result" : "no-result"}`}
+                        onClick={() => testResult && setSelectedTestResult({ ...testResult, candidate: item })}
+                      >
+                        <div className="resume-test-result-left">
+                          <div className="resume-test-result-icon">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M9 11H7a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-2"></path>
+                              <rect x="9" y="2" width="6" height="4" rx="1"></rect>
+                              <path d="M9 14h6"></path>
+                              <path d="M9 18h4"></path>
+                            </svg>
+                          </div>
+                          <div className="resume-test-result-label">Screening Test Results</div>
+                        </div>
+                        <div className="resume-test-result-right">
+                          {testResult ? (
+                            <>
+                              <span className={`resume-test-result-value ${isPass ? "pass" : "fail"}`}>
+                                {testStatusLabel || "—"}
+                                {testScore != null && ` (${testScore}%)`}
+                              </span>
+                              <svg className="resume-test-result-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                              </svg>
+                            </>
+                          ) : (
+                            <span className="resume-test-result-pending">Not attempted</span>
+                          )}
                         </div>
                       </div>
 
@@ -536,6 +673,76 @@ const HRAdminView = ({
               <button
                 className="resume-close-btn"
                 onClick={() => setSelectedAssessment(null)}
+              >
+                Close Insights
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedTestResult && (
+        <div
+          className="resume-assessment-overlay"
+          onClick={() => setSelectedTestResult(null)}
+        >
+          <div
+            className="resume-assessment-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="resume-assessment-header">
+              <div className="resume-assessment-title-wrap">
+                <div className="resume-assessment-icon">✦</div>
+                <div>
+                  <h2>
+                    {selectedTestResult.candidate?.candidateName || "Candidate"}'s Screening Test Results
+                  </h2>
+                  <p>AI POWERED DEEP ANALYSIS</p>
+                </div>
+              </div>
+
+              <button
+                className="resume-assessment-close"
+                onClick={() => setSelectedTestResult(null)}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="resume-score-highlight">
+              <span>TECHNICAL ASSESSMENT SCORE</span>
+              <strong>
+                {selectedTestResult.candidate_test_score != null
+                  ? `${selectedTestResult.candidate_test_score}%`
+                  : "—"}
+              </strong>
+            </div>
+
+            <div className="resume-insight-list">
+              {(() => {
+                const items = [];
+                if (selectedTestResult.candidate_test_status) {
+                  const s = String(selectedTestResult.candidate_test_status);
+                  items.push(`Final Result: ${s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()}`);
+                }
+                const analysisItems = parseTestAnalysis(selectedTestResult.test_analysis);
+                analysisItems.forEach((line) => items.push(line));
+                if (items.length === 0) {
+                  items.push("No detailed analysis available for this submission.");
+                }
+                return items.map((line, idx) => (
+                  <div className="resume-insight-item" key={idx}>
+                    <span>{idx + 1}</span>
+                    <p>{line}</p>
+                  </div>
+                ));
+              })()}
+            </div>
+
+            <div className="resume-modal-footer">
+              <button
+                className="resume-close-btn"
+                onClick={() => setSelectedTestResult(null)}
               >
                 Close Insights
               </button>
