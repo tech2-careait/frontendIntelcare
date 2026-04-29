@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import "../Styles/UploaderPage.css";
 import BlackExpandIcon from "../../src/Images/BlackExpandIcon.png";
 import axios from "axios";
-import { FaMicrophone, FaPaperPlane } from "react-icons/fa";
+import { FaMicrophone, FaPaperPlane, FaPlus, FaTimes, FaFileAlt } from "react-icons/fa";
 import { FaCircleArrowRight } from "react-icons/fa6";
 import Modal from "./Modal";
 import SignIn from "./SignIn";
@@ -85,6 +85,13 @@ const HomePage = () => {
   // const [input, setInput] = useState("");
   const inputRef = useRef("");
   const textareaRef = useRef(null);
+  const isSendingRef = useRef(false);
+  const [isInputEmpty, setIsInputEmpty] = useState(true);
+  // Becomes true the moment the very first resume-screening send is fired.
+  // Once true, every follow-up send must carry a typed prompt — empty
+  // submissions are no longer allowed, even if jd/resume files are still
+  // present in state.
+  const [hasResumeRunStarted, setHasResumeRunStarted] = useState(false);
   const [messages, setMessages] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isModalLeftVisible, setLeftModalVisible] = useState(false);
@@ -170,6 +177,8 @@ const HomePage = () => {
   const [expandedIndex, setExpandedIndex] = useState(null);
   const [jdFiles, setJdFiles] = useState([]);
   const [resumeFiles, setResumeFiles] = useState([]);
+  const [askAiAttachedFiles, setAskAiAttachedFiles] = useState([]);
+  const askAiFileInputRef = useRef(null);
   const userEmail = user?.email;
   const userDomain = userEmail?.split("@")[1]?.toLowerCase();
   const [selectedCandidateForModal, setSelectedCandidateForModal] = useState(null);
@@ -177,7 +186,15 @@ const HomePage = () => {
   const [candidatesData, setCandidatesData] = useState([]);
   const [organizationId, setOrganizationId] = useState(null);
   const { isConnected, sendHRChat } = useHRChat();
+  const [hrScreenedCandidates, setHrScreenedCandidates] = useState([]);
   let eventQueue = [];
+  const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   let isShowingEvent = false;
   // Add useEffect to sync refs
   const blockedAutoTopupDomains = [
@@ -438,34 +455,34 @@ const HomePage = () => {
     }
   };
 
-const fetchAllCandidates = async () => {
-  try {
-    if (!user?.email || !organizationId) return;
+  const fetchAllCandidates = async () => {
+    try {
+      if (!user?.email || !organizationId) return;
 
-    console.log("Fetching all candidates for:", {
-      admin_email: user.email,
-      organization_id: organizationId
-    });
+      console.log("Fetching all candidates for:", {
+        admin_email: user.email,
+        organization_id: organizationId
+      });
 
-    const res = await axios.get(
-      "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/get-all-candidates",
-      {
-        params: {
-          admin_email: user.email,
-          organization_id: organizationId
+      const res = await axios.get(
+        "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/get-all-candidates",
+        {
+          params: {
+            admin_email: user.email,
+            organization_id: organizationId
+          }
         }
+      );
+
+      console.log("getAllCandidates response:", res.data);
+
+      if (res.data?.ok) {
+        setCandidatesData(res.data.candidates || []);
       }
-    );
-
-    console.log("getAllCandidates response:", res.data);
-
-    if (res.data?.ok) {
-      setCandidatesData(res.data.candidates || []);
+    } catch (error) {
+      console.log("fetchAllCandidates error:", error);
     }
-  } catch (error) {
-    console.log("fetchAllCandidates error:", error);
-  }
-};
+  };
   useEffect(() => {
     const handleTrialInit = (event) => {
       setIsTrialInitializing(event.detail);
@@ -714,6 +731,10 @@ const fetchAllCandidates = async () => {
         setScreenedResults(list);
         setSelectedCandidates(list.map((_, i) => i));
         setHrStep("RESULTS");
+        // Discard the uploaded JD + resumes once screening completes so
+        // the next run starts from a clean slate.
+        setJdFiles([]);
+        setResumeFiles([]);
 
         // Replace the processing message with results message
         setMessages((prev) => {
@@ -784,9 +805,64 @@ const fetchAllCandidates = async () => {
       ]);
     }
   }, [isHRAskAiPage, messages.length]);
+
+  // Inject the fancy Resume Screening toggle button into the askai label
+  useEffect(() => {
+    if (!showAIChat || !isHRAskAiPage) return;
+
+    const cb = document.getElementById('askai-mode-checkbox');
+    const label = document.getElementById('askai-mode-toggle-label');
+    if (!cb || !label || label.querySelector('.rs-fancy-btn')) return;
+
+    const span = label.querySelector('span');
+    if (span) span.style.display = 'none';
+
+    const btn = document.createElement('div');
+    btn.className = `rs-fancy-btn ${cb.checked ? 'rs-on' : 'rs-off'}`;
+
+    const icon = document.createElement('span');
+    icon.className = 'rs-fancy-icon';
+    const txt = document.createElement('span');
+    txt.textContent = 'Resume Screening';
+
+    btn.appendChild(icon);
+    btn.appendChild(txt);
+    label.insertBefore(btn, cb);
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      // cb.click() flips .checked AND fires a synthetic-event-compatible
+      // change so React's onChange (openResumeScreening / general fallback)
+      // actually runs. Direct .checked assignment bypasses React's tracker.
+      cb.click();
+      btn.classList.add('rs-burst');
+      setTimeout(() => btn.classList.remove('rs-burst'), 380);
+    });
+  }, [showAIChat, isHRAskAiPage]);
+
+  // Keep the fancy button's visual state in sync with hrMode
+  useEffect(() => {
+    const btn = document.querySelector('#askai-mode-toggle-label .rs-fancy-btn');
+    if (!btn) return;
+    const isOn = hrMode === 'resume_screening';
+    btn.classList.toggle('rs-on', isOn);
+    btn.classList.toggle('rs-off', !isOn);
+  }, [hrMode]);
+
+  // Release the send-guard once the previous response has finished streaming
+  // (i.e. no message bubble is still in its temp/generating state)
+  useEffect(() => {
+    if (!messages.some((m) => m.temp)) {
+      isSendingRef.current = false;
+    }
+  }, [messages]);
   const openResumeScreening = () => {
     setHrMode("resume_screening");
     setHrStep("UPLOAD");
+    // Fresh resume-screening session — restart the first-run gate so the
+    // initial send (with attached files) can go through without a typed prompt.
+    setHasResumeRunStarted(false);
+    setAskAiAttachedFiles([]);
 
     setMessages((prev) => [
       ...prev,
@@ -822,17 +898,65 @@ const fetchAllCandidates = async () => {
       );
     };
 
+    let attachments = [];
+    console.log("hrScreenedCandidates", hrScreenedCandidates)
+    if (hrMode === "resume_screening" && hrScreenedCandidates.length === 0) {
+      attachments = await Promise.all([
+        ...jdFiles.map(async (file) => ({
+          filename: file.name,
+          document_role: "job_description",
+          content_base64: await fileToBase64(file)
+        })),
+        ...resumeFiles.map(async (file) => ({
+          filename: file.name,
+          document_role: "resume",
+          content_base64: await fileToBase64(file)
+        }))
+      ]);
+    }
+
+    if (askAiAttachedFiles.length > 0) {
+      const generalAttachments = await Promise.all(
+        askAiAttachedFiles.map(async (file) => ({
+          filename: file.name,
+          document_role: "general",
+          content_base64: await fileToBase64(file)
+        }))
+      );
+      attachments = [...attachments, ...generalAttachments];
+      setAskAiAttachedFiles([]);
+    }
+
     const payload = {
       organisation_id: organizationId,
       message: finalQuery,
       api_key: "",
-      workflow_phase: hrMode === "resume_screening" ? "resume_screening" : "general",
-      screened_candidates: hrMode === "resume_screening" ? candidatesData : candidatesData,
-      conversation_history: messages.filter(m => !m.temp && m.sender === "user"), // Only user messages
+      workflow_phase:
+        hrMode === "resume_screening"
+          ? "resume_screening"
+          : "general",
+
+      ...(hrMode === "general" && {
+        screened_candidates: candidatesData
+      }),
+
+      attachments,
+
+      conversation_history: messages
+        .filter((m) => !m.temp)
+        .map((m) => ({
+          role: m.sender === "user" ? "user" : "assistant",
+          content: m.text
+        })),
+
       admin_name: user?.displayName || "HR Admin",
       admin_email: user?.email
     };
-
+    if (hrMode === "resume_screening" && attachments.length > 0) {
+      setJdFiles([]);
+      setResumeFiles([]);
+    }
+    console.log("payload for HR chat", payload);
     try {
       const sent = sendHRChat({
         payload,
@@ -878,11 +1002,47 @@ const fetchAllCandidates = async () => {
         },
 
         onComplete: (data) => {
-          console.log("[HR CHAT] Complete:", data);
+          const finalText = data?.message || "Done";
 
-          const finalText = data?.message || "Process completed!";
+          const tools = data?.payload?.tool_results || [];
+          console.log("tools main data", data);
+          console.log("[HR CHAT] Tools results:", tools);
 
-          // Final update - remove temp flag
+          const bulkScreen = tools.find(
+            (t) => t.tool === "shortlist_screened" && t.ok
+          );
+
+          console.log("[HR CHAT] Bulk screen result:", bulkScreen);
+
+          if (bulkScreen) {
+            let candidates = [];
+
+            // 1️⃣ If result already contains shortlisted
+            if (bulkScreen.result?.shortlisted) {
+              candidates = bulkScreen.result.shortlisted;
+            }
+
+            // 2️⃣ Else parse screened_json string
+            else if (bulkScreen.arguments?.screened_json) {
+              try {
+                candidates = JSON.parse(
+                  bulkScreen.arguments.screened_json
+                );
+              } catch (err) {
+                console.error("JSON parse failed:", err);
+              }
+            }
+
+            console.log("Parsed candidates:", candidates);
+
+            setHrScreenedCandidates(candidates);
+            setScreenedResults(candidates);
+            setHrStep("RESULTS");
+            setJdFiles([]);
+            setResumeFiles([]);
+            attachments = [];
+          }
+
           setMessages((prev) =>
             prev.map((msg) =>
               msg.tempId === tempMessageId
@@ -975,7 +1135,31 @@ const fetchAllCandidates = async () => {
         : inputRef.current || "";
 
     const finalQuery = rawQuery.trim();
-    if (!finalQuery && !eventName) return;
+
+    const allowEmptyPromptForResumeScreening =
+      isHRAskAiPage &&
+      hrMode === "resume_screening" &&
+      jdFiles.length > 0 &&
+      resumeFiles.length > 0 &&
+      // Only the FIRST screening pass may go through without a typed prompt.
+      // Once a resume-screening send has been initiated, every follow-up
+      // submission must carry an actual question.
+      !hasResumeRunStarted;
+
+    if (!finalQuery && !eventName && !allowEmptyPromptForResumeScreening) {
+      return;
+    }
+
+    // Block duplicate sends while a previous response is still generating
+    if (isSendingRef.current) {
+      return;
+    }
+    isSendingRef.current = true;
+
+    // Lock the empty-prompt allowance after the first resume-screening send.
+    if (isHRAskAiPage && hrMode === "resume_screening" && !hasResumeRunStarted) {
+      setHasResumeRunStarted(true);
+    }
 
     // show user message and temp bot message
     if (finalQuery) {
@@ -1148,7 +1332,13 @@ const fetchAllCandidates = async () => {
 
         return;
       }
-      if (isHRAskAiPage && (hrMode === "general" || (hrMode === "resume_screening" && hrStep !== "UPLOAD" && hrStep !== "RESULTS"))) {
+      if (
+        isHRAskAiPage &&
+        (
+          hrMode === "general" ||
+          hrMode === "resume_screening"
+        )
+      ) {
         try {
           setHrSending(true);
           await handleHRChatWithSocket(finalQuery, tempMessageId);
@@ -1834,7 +2024,7 @@ const fetchAllCandidates = async () => {
                       </div>
 
                       <div style={{ display: selectedRole === "Smart Onboarding (Staff)" ? "block" : "none" }}>
-                        <HRAnalysis handleClick={handleClick} selectedRole="Smart Onboarding (Staff)" setShowFeedbackPopup={setShowFeedbackPopup} user={user} setManualResumeZip={setManualResumeZip} smartCandidates={candidatesData} setShowAIChat={setShowAIChat}
+                        <HRAnalysis handleClick={handleClick} selectedRole="Smart Onboarding (Staff)" setShowFeedbackPopup={setShowFeedbackPopup} user={user} setManualResumeZip={setManualResumeZip} setShowAIChat={setShowAIChat}
                           setMessages={setMessages} setHrMode={setHrMode} setHrStep={setHrStep} organizationId={organizationId} />
                       </div>
                       <div style={{ display: selectedRole === "Care Voice" ? "block" : "none" }}>
@@ -1886,6 +2076,7 @@ const fetchAllCandidates = async () => {
                       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "44px" }}>
                         {isHRAskAiPage && (
                           <label
+                            id="askai-mode-toggle-label"
                             style={{
                               display: "flex",
                               alignItems: "center",
@@ -1899,6 +2090,7 @@ const fetchAllCandidates = async () => {
                             <span>Resume Screening:</span>
 
                             <input
+                              id="askai-mode-checkbox"
                               type="checkbox"
                               checked={hrMode === "resume_screening"}
                               onChange={(e) => {
@@ -1911,6 +2103,7 @@ const fetchAllCandidates = async () => {
                                   setResumeFiles([]);
                                   setScreenedResults([]);
                                   setSelectedCandidates([]);
+                                  setHasResumeRunStarted(false);
 
                                   setMessages((prev) => [
                                     ...prev,
@@ -1940,6 +2133,7 @@ const fetchAllCandidates = async () => {
                             setResumeFiles([]);
                             setScreenedResults([]);
                             setSelectedCandidates([]);
+                            setHasResumeRunStarted(false);
                           }}
                           style={{
                             display: "flex",
@@ -2052,6 +2246,7 @@ const fetchAllCandidates = async () => {
                                   <img
                                     src={aksAiPurpleStar}
                                     alt="ai star"
+                                    className={msg.temp ? "askai-sparkle-icon" : ""}
                                     style={{
                                       width: "32px",
                                       height: "32px"
@@ -2080,7 +2275,16 @@ const fetchAllCandidates = async () => {
                                   >
                                     {msg.temp ? (
                                       isHRAskAiPage ? (
-                                        <div style={{ color: "#666" }}>{msg.text || "Processing..."}<span className="hr-loading-dots"></span></div>
+                                        <div className="hr-generating-wrap">
+                                          <span className="hr-generating-text">
+                                            {msg.text || "Generating response"}
+                                          </span>
+                                          <span className="hr-generating-dots" aria-hidden="true">
+                                            <span></span>
+                                            <span></span>
+                                            <span></span>
+                                          </span>
+                                        </div>
                                       ) : (
                                         <div className="askai-loader">
                                           <span></span>
@@ -2129,7 +2333,7 @@ const fetchAllCandidates = async () => {
                                                 />
                                               </div>
 
-                                              <div style={{ display: "flex", gap: "12px", marginTop: "18px" }}>
+                                              {/* <div style={{ display: "flex", gap: "12px", marginTop: "18px" }}>
                                                 <button
                                                   className="hr-primary-btn"
                                                   onClick={handleBulkScreening}
@@ -2173,7 +2377,7 @@ const fetchAllCandidates = async () => {
                                                 >
                                                   Cancel
                                                 </button>
-                                              </div>
+                                              </div> */}
                                             </div>
                                           </div>
                                         )}
@@ -2785,116 +2989,341 @@ const fetchAllCandidates = async () => {
                         </div>
                       }
 
-                      {(!isCareVoicePage || careVoiceStarted) && <div style={{ position: "relative", marginTop: "10px", marginBottom: "18px", width: "100%", display: "flex", alignSelf: "center" }}>
-                        <img
-                          src={askAiSearchIcon}
-                          alt="search"
-                          style={{
-                            position: "absolute",
-                            left: "32px",              // ✅ was 14px → more gap like screenshot
-                            top: "32px",
-                            bottom: "75px",               // ✅ center vertically
-                            transform: "translateY(-50%)",
-                            width: "18px",
-                            height: "18px",
-                            opacity: 0.7
-                          }}
-                        />
-
-                        <textarea
-                          rows={1}
-                          placeholder={feedbackMode ? "Please submit your feedback here..." : "Ask me anything..."}
-                          ref={textareaRef}
-                          defaultValue=""
-                          onChange={(e) => {
-                            inputRef.current = e.target.value;
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              handleSend();
-                            }
-                          }}
-                          style={{
-                            width: "100%",
-                            resize: "none",
-                            padding: "22px 56px 16px 63px", // ✅ KEY CHANGE (more left space)
-                            borderRadius: "14px",
-                            border: "none",
-                            outline: "none",
-                            lineHeight: "22px",
-                            backgroundColor: "#F0EDF6",
-                            height: "120px",
-                            maxHeight: "120px",
-                            color: "#000",
-                            overflowY: "auto",
-                            scrollbarWidth: "none",
-                            msOverflowStyle: "none"
-                          }}
-
-
-                        />
-                        <div
-                          onClick={handleMicClick}
-                          style={{
-                            position: "absolute",
-                            right: "70px",
-                            top: "63%",
-                            transform: "translateY(-50%)",
-                            width: "32px",
-                            height: "32px",
-                            backgroundColor: isListening ? "#FF4D4F" : "#6C4CDC",
-                            borderRadius: "10px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <FaMicrophone size={16} color="#fff" />
-                        </div>
-                        {/* <FaCircleArrowRight onClick={handleSend} size={22} style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#6C4CDC" }} /> */}
-                        <div
-                          onClick={() => {
-
-                            if (isSTTActive || (isCareVoicePage && !careVoiceStarted)) return;
-
-                            handleSend();
-
-                            if (textareaRef.current) {
-                              textareaRef.current.value = "";
-                            }
-
-                            inputRef.current = "";
-
-                          }}
-                          style={{
-                            position: "absolute",
-                            right: "32px",
-                            top: "63%",
-                            transform: "translateY(-50%)",
-                            width: "32px",
-                            height: "32px",
-                            borderRadius: "10px",         // rounded square
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: "pointer",
-                            backgroundColor: isSTTActive ? "#C9C4E3" : "#6C4CDC",
-                            opacity: isSTTActive ? 0.5 : 1
-                          }}
-                        >
-                          <img
-                            src={askAiSendBtn}
-                            alt="send"
+                      {(!isCareVoicePage || careVoiceStarted) && <div style={{ marginTop: "10px", marginBottom: "18px", width: "100%", display: "flex", flexDirection: "column", alignSelf: "center" }}>
+                        {isHRAskAiPage && hrMode === "general" && askAiAttachedFiles.length > 0 && (
+                          <div
                             style={{
-                              width: "16px",
-                              height: "16px",
-                              pointerEvents: "none", // click handled by parent div
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: "10px",
+                              padding: "14px 16px",
+                              background: "linear-gradient(180deg, #F6F3FC 0%, #F0EDF6 100%)",
+                              borderTopLeftRadius: "16px",
+                              borderTopRightRadius: "16px",
+                              borderBottom: "1px solid rgba(108, 76, 220, 0.12)"
                             }}
-                          />
-                        </div>
+                          >
+                            {askAiAttachedFiles.map((file, idx) => {
+                              const formatSize = (bytes) => {
+                                if (!bytes && bytes !== 0) return "";
+                                if (bytes < 1024) return `${bytes} B`;
+                                if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+                                return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+                              };
+                              const ext = (file.name.split(".").pop() || "").toUpperCase();
+                              return (
+                                <div
+                                  key={`${file.name}-${idx}`}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "10px",
+                                    padding: "8px 10px 8px 8px",
+                                    backgroundColor: "#FFFFFF",
+                                    border: "1px solid rgba(108, 76, 220, 0.15)",
+                                    borderRadius: "12px",
+                                    fontSize: "12px",
+                                    color: "#1F1B2E",
+                                    maxWidth: "260px",
+                                    boxShadow: "0 2px 6px rgba(108, 76, 220, 0.10)",
+                                    transition: "transform 0.15s ease, box-shadow 0.15s ease"
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = "translateY(-1px)";
+                                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(108, 76, 220, 0.18)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = "translateY(0)";
+                                    e.currentTarget.style.boxShadow = "0 2px 6px rgba(108, 76, 220, 0.10)";
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "32px",
+                                      height: "32px",
+                                      borderRadius: "8px",
+                                      background: "linear-gradient(135deg, #7B5BE6 0%, #6C4CDC 100%)",
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      flexShrink: 0,
+                                      color: "#fff"
+                                    }}
+                                  >
+                                    {ext && ext.length <= 4 ? (
+                                      <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.3px" }}>
+                                        {ext}
+                                      </span>
+                                    ) : (
+                                      <FaFileAlt size={14} color="#fff" />
+                                    )}
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      minWidth: 0,
+                                      gap: "2px"
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        maxWidth: "160px",
+                                        fontSize: "13px",
+                                        fontWeight: 600,
+                                        color: "#1F1B2E"
+                                      }}
+                                      title={file.name}
+                                    >
+                                      {file.name}
+                                    </span>
+                                    {file.size != null && (
+                                      <span
+                                        style={{
+                                          fontSize: "11px",
+                                          color: "#7A748F",
+                                          fontWeight: 500
+                                        }}
+                                      >
+                                        {formatSize(file.size)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div
+                                    onClick={() =>
+                                      setAskAiAttachedFiles((prev) =>
+                                        prev.filter((_, i) => i !== idx)
+                                      )
+                                    }
+                                    title="Remove file"
+                                    style={{
+                                      width: "22px",
+                                      height: "22px",
+                                      borderRadius: "50%",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      cursor: "pointer",
+                                      backgroundColor: "#F0EDF6",
+                                      flexShrink: 0,
+                                      transition: "background-color 0.15s ease"
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = "#E2DBF5";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = "#F0EDF6";
+                                    }}
+                                  >
+                                    <FaTimes size={10} color="#6C4CDC" />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <div style={{ position: "relative", width: "100%", display: "flex" }}>
+                          {isHRAskAiPage && hrMode === "general" ? (
+                            <>
+                              <input
+                                type="file"
+                                ref={askAiFileInputRef}
+                                multiple
+                                accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.png,.jpg,.jpeg"
+                                style={{ display: "none" }}
+                                onChange={(e) => {
+                                  const files = Array.from(e.target.files || []);
+                                  if (files.length > 0) {
+                                    setAskAiAttachedFiles((prev) => [...prev, ...files]);
+                                  }
+                                  e.target.value = "";
+                                }}
+                              />
+                              <div
+                                onClick={() => askAiFileInputRef.current?.click()}
+                                title="Attach files"
+                                style={{
+                                  position: "absolute",
+                                  left: "20px",
+                                  bottom: "17px",
+                                  width: "32px",
+                                  height: "32px",
+                                  borderRadius: "10px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  cursor: "pointer",
+                                  border: "1px solid #6C4CDC",
+                                  backgroundColor: "#FFFFFF",
+                                  zIndex: 2
+                                }}
+                              >
+                                <FaPlus size={14} color="#6C4CDC" />
+                              </div>
+                            </>
+                          ) : (
+                            <img
+                              src={askAiSearchIcon}
+                              alt="search"
+                              style={{
+                                position: "absolute",
+                                left: "32px",              // ✅ was 14px → more gap like screenshot
+                                top: "32px",
+                                bottom: "75px",               // ✅ center vertically
+                                transform: "translateY(-50%)",
+                                width: "18px",
+                                height: "18px",
+                                opacity: 0.7
+                              }}
+                            />
+                          )}
 
+                          <textarea
+                            rows={1}
+                            placeholder={feedbackMode ? "Please submit your feedback here..." : "Ask me anything..."}
+                            ref={textareaRef}
+                            defaultValue=""
+                            onChange={(e) => {
+                              inputRef.current = e.target.value;
+                              setIsInputEmpty(!e.target.value.trim());
+                              // Auto-grow the textarea up to its max-height
+                              // (ChatGPT-style). Reset to "auto" first so it can
+                              // also shrink when the user deletes content.
+                              const el = e.target;
+                              el.style.height = "auto";
+                              const next = Math.min(el.scrollHeight, 200);
+                              el.style.height = next + "px";
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                if (messages.some((m) => m.temp)) return;
+                                handleSend();
+                                // Snap back to the default size after sending
+                                if (textareaRef.current) {
+                                  textareaRef.current.style.height = "66px";
+                                }
+                                setIsInputEmpty(true);
+                              }
+                            }}
+                            style={{
+                              width: "100%",
+                              resize: "none",
+                              // right padding accounts for the absolute-positioned
+                              // mic (right:70 + width:32 = 102) + send button + ~16px gap
+                              padding: "22px 120px 16px 63px",
+                              borderRadius: "14px",
+                              border: "none",
+                              outline: "none",
+                              lineHeight: "22px",
+                              backgroundColor: "#F0EDF6",
+                              minHeight: "66px",
+                              maxHeight: "200px",
+                              height: "66px",
+                              color: "#000",
+                              overflowY: "auto",
+                              scrollbarWidth: "none",
+                              msOverflowStyle: "none",
+                              wordBreak: "break-word",
+                              overflowWrap: "anywhere",
+                              transition: "height 0.12s ease"
+                            }}
+
+
+                          />
+                          <div
+                            onClick={handleMicClick}
+                            style={{
+                              position: "absolute",
+                              right: "70px",
+                              bottom: "17px",
+                              width: "32px",
+                              height: "32px",
+                              backgroundColor: isListening ? "#FF4D4F" : "#6C4CDC",
+                              borderRadius: "10px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <FaMicrophone size={16} color="#fff" />
+                          </div>
+                          {/* <FaCircleArrowRight onClick={handleSend} size={22} style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#6C4CDC" }} /> */}
+                          {(() => {
+                            const isAwaitingResponse = messages.some((m) => m.temp);
+                            // Empty prompts are only allowed on the very first
+                            // resume-screening pass (when JD + resumes are
+                            // attached and the first send hasn't fired yet).
+                            // After that, every send must carry a typed prompt.
+                            const allowEmptyPromptForResumeScreeningNow =
+                              isHRAskAiPage &&
+                              hrMode === "resume_screening" &&
+                              jdFiles.length > 0 &&
+                              resumeFiles.length > 0 &&
+                              !hasResumeRunStarted;
+                            const allowEmptyPromptForGeneralWithFiles =
+                              isHRAskAiPage &&
+                              hrMode === "general" &&
+                              askAiAttachedFiles.length > 0;
+                            const isEmptyAndBlocked =
+                              isInputEmpty &&
+                              !allowEmptyPromptForResumeScreeningNow &&
+                              !allowEmptyPromptForGeneralWithFiles;
+                            const isSendDisabled =
+                              isSTTActive || isAwaitingResponse || isEmptyAndBlocked;
+                            return (
+                              <div
+                                onClick={() => {
+                                  if (isSTTActive || (isCareVoicePage && !careVoiceStarted)) return;
+                                  if (isAwaitingResponse) return;
+                                  if (isEmptyAndBlocked) return;
+
+                                  handleSend();
+
+                                  if (textareaRef.current) {
+                                    textareaRef.current.value = "";
+                                    // Snap the auto-grown textarea back to its default height
+                                    textareaRef.current.style.height = "66px";
+                                  }
+
+                                  inputRef.current = "";
+                                  setIsInputEmpty(true);
+                                }}
+                                style={{
+                                  position: "absolute",
+                                  right: "32px",
+                                  bottom: "17px",
+                                  width: "32px",
+                                  height: "32px",
+                                  borderRadius: "10px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  cursor: isSendDisabled ? "not-allowed" : "pointer",
+                                  backgroundColor: isSendDisabled ? "#C9C4E3" : "#6C4CDC",
+                                  opacity: isSendDisabled ? 0.5 : 1,
+                                  pointerEvents: isSendDisabled ? "none" : "auto"
+                                }}
+                              >
+                                <img
+                                  src={askAiSendBtn}
+                                  alt="send"
+                                  style={{
+                                    width: "16px",
+                                    height: "16px",
+                                    pointerEvents: "none",
+                                  }}
+                                />
+                              </div>
+                            );
+                          })()}
+
+                        </div>
                       </div>}
                     </div>
                   </div>

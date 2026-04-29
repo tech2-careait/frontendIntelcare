@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import "../../../Styles/SmartOnboarding.enhanced.css";
 import "../../../Styles/ResumeScreening.css";
 import ScreeningTest from "./ScreeningTest";
 import StaffOnboarding from "./StaffOnboarding";
