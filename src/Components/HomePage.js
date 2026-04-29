@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import "../Styles/UploaderPage.css";
 import BlackExpandIcon from "../../src/Images/BlackExpandIcon.png";
 import axios from "axios";
-import { FaMicrophone, FaPaperPlane, FaPlus, FaTimes, FaFileAlt } from "react-icons/fa";
+import { FaMicrophone, FaPaperPlane, FaPlus, FaTimes, FaFileAlt, FaStop } from "react-icons/fa";
 import { FaCircleArrowRight } from "react-icons/fa6";
 import Modal from "./Modal";
 import SignIn from "./SignIn";
@@ -3235,24 +3235,35 @@ const HomePage = () => {
 
 
                           />
-                          <div
-                            onClick={handleMicClick}
-                            style={{
-                              position: "absolute",
-                              right: "70px",
-                              bottom: "17px",
-                              width: "32px",
-                              height: "32px",
-                              backgroundColor: isListening ? "#FF4D4F" : "#6C4CDC",
-                              borderRadius: "10px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              cursor: "pointer",
-                            }}
-                          >
-                            <FaMicrophone size={16} color="#fff" />
-                          </div>
+                          {(() => {
+                            const isAwaitingResponseForMic = messages.some((m) => m.temp);
+                            return (
+                              <div
+                                onClick={isAwaitingResponseForMic ? undefined : handleMicClick}
+                                style={{
+                                  position: "absolute",
+                                  right: "70px",
+                                  bottom: "17px",
+                                  width: "32px",
+                                  height: "32px",
+                                  backgroundColor: isAwaitingResponseForMic
+                                    ? "#C9C4E3"
+                                    : isListening
+                                      ? "#FF4D4F"
+                                      : "#6C4CDC",
+                                  borderRadius: "10px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  cursor: isAwaitingResponseForMic ? "not-allowed" : "pointer",
+                                  opacity: isAwaitingResponseForMic ? 0.5 : 1,
+                                  pointerEvents: isAwaitingResponseForMic ? "none" : "auto",
+                                }}
+                              >
+                                <FaMicrophone size={16} color="#fff" />
+                              </div>
+                            );
+                          })()}
                           {/* <FaCircleArrowRight onClick={handleSend} size={22} style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#6C4CDC" }} /> */}
                           {(() => {
                             const isAwaitingResponse = messages.some((m) => m.temp);
@@ -3304,21 +3315,33 @@ const HomePage = () => {
                                   display: "flex",
                                   alignItems: "center",
                                   justifyContent: "center",
-                                  cursor: isSendDisabled ? "not-allowed" : "pointer",
-                                  backgroundColor: isSendDisabled ? "#C9C4E3" : "#6C4CDC",
-                                  opacity: isSendDisabled ? 0.5 : 1,
+                                  cursor: isAwaitingResponse
+                                    ? "default"
+                                    : isSendDisabled
+                                      ? "not-allowed"
+                                      : "pointer",
+                                  backgroundColor: isAwaitingResponse
+                                    ? "#6C4CDC"
+                                    : isSendDisabled
+                                      ? "#C9C4E3"
+                                      : "#6C4CDC",
+                                  opacity: isAwaitingResponse ? 1 : isSendDisabled ? 0.5 : 1,
                                   pointerEvents: isSendDisabled ? "none" : "auto"
                                 }}
                               >
-                                <img
-                                  src={askAiSendBtn}
-                                  alt="send"
-                                  style={{
-                                    width: "16px",
-                                    height: "16px",
-                                    pointerEvents: "none",
-                                  }}
-                                />
+                                {isAwaitingResponse ? (
+                                  <FaStop size={12} color="#fff" />
+                                ) : (
+                                  <img
+                                    src={askAiSendBtn}
+                                    alt="send"
+                                    style={{
+                                      width: "16px",
+                                      height: "16px",
+                                      pointerEvents: "none",
+                                    }}
+                                  />
+                                )}
                               </div>
                             );
                           })()}
