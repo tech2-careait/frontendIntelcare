@@ -30,18 +30,19 @@ html,
   -ms-overflow-style: none;
 }
 
-.sidebar-scroll-content{
+.sidebar-scroll-content {
   overflow-y: auto;
   overflow-x: auto;
   margin: 0;
   padding: 0;
   font-family: 'Inter', sans-serif;
   background-color: transparent;
-  
+
   /* Standard Scrollbar Properties (Firefox) */
   scrollbar-color: white transparent !important;
   scrollbar-width: auto
 }
+
 .sidebar-scroll-content::-webkit-scrollbar {
   width: 12px;
 }
@@ -56,12 +57,12 @@ html,
   background-color: white;
   border-radius: 10px;
   /* The transparent border creates 'padding' around the thumb */
-  border: 2px solid transparent; 
+  border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 .sidebar-scroll-content::-webkit-scrollbar-thumb:hover {
-   background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.8);
 }
 
 /* Firefox */
@@ -637,7 +638,7 @@ html,
 
 .ask-ai-res-div span {
   font-weight: bold;
-  color: orange;
+  color: #6C4CDC;
 }
 
 .ask-ai-res-div ul {
@@ -687,6 +688,7 @@ html,
   background: linear-gradient(180deg, #2A1E5C 0%, #1C153F 100%);
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
+
 .profile-button.active-profile-button {
   background: #ffffff;
 }
@@ -702,6 +704,7 @@ html,
 .profile-button.active-profile-button svg {
   color: #000;
 }
+
 .profile-button-left {
   display: flex;
   align-items: center;
@@ -1026,6 +1029,7 @@ html,
   justify-content: center;
   gap: 3px;
 }
+
 .api-key-help-btn {
   display: flex;
   align-items: center;
@@ -1062,6 +1066,7 @@ html,
   width: 24px;
   height: 24px;
 }
+
 .askai-loader {
   display: flex;
   align-items: center;
@@ -1086,12 +1091,575 @@ html,
 }
 
 @keyframes askai-bounce {
-  0%, 80%, 100% {
+
+  0%,
+  80%,
+  100% {
     transform: scale(0);
     opacity: 0.3;
   }
+
   40% {
     transform: scale(1);
     opacity: 1;
   }
+}
+
+.hr-action-btn,
+.hr-primary-btn,
+.hr-secondary-btn {
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* REPLACE WITH THIS ENHANCED VERSION */
+
+.hr-action-btn,
+.hr-primary-btn,
+.hr-secondary-btn {
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.hr-action-btn,
+.hr-primary-btn {
+  background: #6C4CDC;
+  color: #fff;
+}
+
+.hr-primary-btn:disabled {
+  background: #CCC;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.hr-secondary-btn {
+  background: #ECE8FF;
+  color: #6C4CDC;
+}
+
+.hr-upload-wrap {
+  background: #fff;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid #eee;
+}
+
+.hr-upload-boxes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ENHANCED RESULTS SECTION */
+.hr-results-wrap {
+  padding: 8px 4px 8px 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* Custom scrollbar for results */
+.hr-results-wrap::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hr-results-wrap::-webkit-scrollbar-track {
+  background: #F0EDF6;
+  border-radius: 10px;
+}
+
+.hr-results-wrap::-webkit-scrollbar-thumb {
+  background: #6C4CDC;
+  border-radius: 10px;
+}
+
+.hr-result-heading {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: #F9F8FF;
+  border-radius: 12px;
+  border: 1px solid #E8ECEF;
+}
+
+/* ENHANCED CARD STYLES - Like individual messages */
+.hr-card {
+  background: #fff;
+  border: 1px solid #E8ECEF;
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Card hover effect */
+.hr-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #D0C8F0;
+  transform: translateY(-2px);
+}
+
+/* Selected card state */
+.hr-card.selected {
+  border: 2px solid #6C4CDC;
+  background: #F8F6FF;
+  box-shadow: 0 4px 12px rgba(108, 76, 220, 0.15);
+}
+
+/* Selection checkmark indicator */
+.hr-card.selected::before {
+  content: "✓";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background-color: #6C4CDC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Card header layout */
+.hr-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-right: 32px;
+}
+
+/* Candidate name */
+.hr-name {
+  font-weight: 700;
+  font-size: 18px;
+  color: #1A1A1A;
+  margin-bottom: 4px;
+}
+
+/* Candidate email */
+.hr-email {
+  font-size: 14px;
+  color: #666;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Score badge */
+.hr-score {
+  font-size: 24px;
+  font-weight: 700;
+  background: #F9F8FF;
+  padding: 8px 16px;
+  border-radius: 30px;
+  min-width: 70px;
+  text-align: center;
+}
+
+/* Score color variations (to be applied inline via React) */
+.hr-score.high {
+  color: #4FD46E;
+}
+
+.hr-score.medium {
+  color: #FFB347;
+}
+
+.hr-score.low {
+  color: #FF6B6B;
+}
+
+/* Resume summary text */
+.hr-summary {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-top: 8px;
+  color: #444;
+}
+
+/* Read more/less button */
+.hr-readmore-btn {
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: #6C4CDC;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 4px 0;
+  transition: opacity 0.2s ease;
+}
+
+.hr-readmore-btn:hover {
+  opacity: 0.8;
+}
+
+/* Mode toggle button */
+.hr-mode-toggle {
+  border: none;
+  padding: 12px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  background: #ECE8FF;
+  color: #6C4CDC;
+  transition: all .2s ease;
+}
+
+.hr-mode-toggle.active {
+  background: #6C4CDC;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(108, 76, 220, .25);
+}
+
+/* Animation for cards */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hr-card {
+    padding: 16px;
+  }
+  
+  .hr-name {
+    font-size: 16px;
+  }
+  
+  .hr-score {
+    font-size: 18px;
+    padding: 4px 12px;
+    min-width: 55px;
+  }
+  
+  .hr-card-top {
+    flex-wrap: wrap;
+  }
+  
+  .hr-upload-boxes {
+    flex-direction: column;
+  }
+}
+/* Modal fade-in animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hr-loading-dots::after {
+  content: '...';
+  animation: hrDots 1.5s steps(4, end) infinite;
+  display: inline-block;
+  width: 24px;
+  text-align: left;
+}
+
+@keyframes hrDots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+
+
+/* ================================================================
+   ASKAI SPARKLE STAR ICON — ANIMATION
+   Target: IMG elements that are siblings of .ask-ai-res-div
+   Apply class "askai-sparkle-icon" to those IMG elements in JSX
+   ================================================================ */
+
+@keyframes sparkle_float {
+  0%, 100% { transform: translateY(0px)  rotate(0deg)   scale(1);    }
+  20%       { transform: translateY(-4px) rotate(12deg)  scale(1.18); }
+  40%       { transform: translateY(-2px) rotate(-6deg)  scale(1.1);  }
+  60%       { transform: translateY(-5px) rotate(8deg)   scale(1.2);  }
+  80%       { transform: translateY(-1px) rotate(-10deg) scale(1.05); }
+}
+
+@keyframes sparkle_glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px rgba(124, 58, 237, 0.4))
+            drop-shadow(0 0 6px rgba(139, 92, 246, 0.2));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px  rgba(124, 58, 237, 0.9))
+            drop-shadow(0 0 16px rgba(167, 139, 250, 0.6))
+            drop-shadow(0 0 24px rgba(196, 181, 253, 0.3));
+  }
+}
+
+@keyframes sparkle_burst {
+  0%   { transform: rotate(0deg)   scale(1); }
+  25%  { transform: rotate(15deg)  scale(1.15); }
+  50%  { transform: rotate(0deg)   scale(1.25); }
+  75%  { transform: rotate(-15deg) scale(1.15); }
+  100% { transform: rotate(0deg)   scale(1); }
+}
+
+/* The star icon */
+.askai-sparkle-icon {
+  width: 32px !important;
+  height: 32px !important;
+  display: block !important;
+  flex-shrink: 0 !important;
+  transform-origin: center center !important;
+  will-change: transform, filter !important;
+  animation:
+    sparkle_float 3.5s ease-in-out infinite,
+    sparkle_glow  2.8s ease-in-out infinite !important;
+}
+
+/* Stagger each icon so they move independently */
+.askai-sparkle-icon:nth-of-type(1) { animation-delay: 0s,    0s   !important; }
+.askai-sparkle-icon:nth-of-type(2) { animation-delay: 0.6s,  0.4s !important; }
+.askai-sparkle-icon:nth-of-type(3) { animation-delay: 1.2s,  0.8s !important; }
+.askai-sparkle-icon:nth-of-type(4) { animation-delay: 1.8s,  1.2s !important; }
+.askai-sparkle-icon:nth-of-type(5) { animation-delay: 2.4s,  1.6s !important; }
+
+/* On hover — burst spin */
+.askai-sparkle-icon:hover {
+  animation:
+    sparkle_burst 0.6s cubic-bezier(0.34, 1.56, 0.64, 1),
+    sparkle_glow  0.6s ease-out !important;
+  cursor: pointer !important;
+}
+
+
+/* ================================================================
+   HR ASKAI GENERATING STATE — shimmer text + bouncing dots
+   ================================================================ */
+
+@keyframes hr_gen_shimmer {
+  0%   { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes hr_gen_bounce {
+  0%, 80%, 100% { transform: scale(0.55); opacity: 0.4; }
+  40%           { transform: scale(1);    opacity: 1;   }
+}
+
+.hr-generating-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 2px;
+}
+
+.hr-generating-text {
+  font-size: 14px;
+  font-weight: 600;
+  font-family: Inter, sans-serif;
+  letter-spacing: 0.1px;
+  background: linear-gradient(90deg, #6c4cdc 0%, #c4b5fd 35%, #6c4cdc 70%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+          background-clip: text;
+  -webkit-text-fill-color: transparent;
+          color: transparent;
+  animation: hr_gen_shimmer 1.8s linear infinite;
+}
+
+.hr-generating-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.hr-generating-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6c4cdc;
+  animation: hr_gen_bounce 1s infinite ease-in-out;
+}
+
+.hr-generating-dots span:nth-child(2) { animation-delay: 0.15s; }
+.hr-generating-dots span:nth-child(3) { animation-delay: 0.30s; }
+
+
+/* ================================================================
+   ASKAI RESUME SCREENING — FANCY TOGGLE BUTTON
+   Injected into #askai-mode-toggle-label by useEffect.
+   States: .rs-off (inactive), .rs-on (active), .rs-burst (click pulse)
+   ================================================================ */
+
+/* Hide the native checkbox + the redundant prefix span — only the
+   fancy button should be visible inside the toggle label */
+#askai-mode-checkbox {
+  display: none !important;
+}
+
+#askai-mode-toggle-label > span:not(.rs-fancy-btn):not(.rs-fancy-icon) {
+  display: none !important;
+}
+
+@keyframes rs_entrance {
+  from { opacity: 0; transform: translateY(-6px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+
+@keyframes rs_shimmer {
+  0%   { background-position: -150% 0; }
+  100% { background-position:  250% 0; }
+}
+
+@keyframes rs_onGlow {
+  0%, 100% {
+    box-shadow:
+      0 4px 14px rgba(124, 58, 237, 0.32),
+      0 0 0 0    rgba(167, 139, 250, 0.45);
+  }
+  50% {
+    box-shadow:
+      0 6px 20px rgba(124, 58, 237, 0.45),
+      0 0 0 6px  rgba(167, 139, 250, 0.18);
+  }
+}
+
+@keyframes rs_clickBurst {
+  0%   { transform: scale(1);    }
+  35%  { transform: scale(0.94); }
+  70%  { transform: scale(1.05); }
+  100% { transform: scale(1);    }
+}
+
+.rs-fancy-btn {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 8px 18px !important;
+  border-radius: 999px !important;
+  border: 1.5px solid transparent !important;
+  font-family: Inter, sans-serif !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.01em !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  overflow: hidden !important;
+  will-change: transform, box-shadow !important;
+  animation: rs_entrance 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both !important;
+  transition:
+    background 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    transform 0.2s ease !important;
+}
+
+.rs-fancy-btn::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  border-radius: inherit !important;
+  pointer-events: none !important;
+  background: linear-gradient(
+    110deg,
+    transparent 0%,
+    transparent 38%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 62%,
+    transparent 100%
+  ) !important;
+  background-size: 200% 100% !important;
+  opacity: 0 !important;
+  transition: opacity 0.3s ease !important;
+}
+
+.rs-fancy-icon {
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+  flex-shrink: 0 !important;
+  background: currentColor !important;
+  transition: background 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease !important;
+}
+
+/* OFF — neutral pill */
+.rs-fancy-btn.rs-off {
+  background: #ffffff !important;
+  color: #6c4cdc !important;
+  border-color: rgba(108, 76, 220, 0.28) !important;
+  box-shadow: 0 1px 4px rgba(108, 76, 220, 0.08) !important;
+}
+
+.rs-fancy-btn.rs-off .rs-fancy-icon {
+  background: #c4b5fd !important;
+  box-shadow: inset 0 0 0 2px rgba(108, 76, 220, 0.20) !important;
+}
+
+.rs-fancy-btn.rs-off:hover {
+  border-color: #6c4cdc !important;
+  background: #f8f6ff !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ON — gradient pill, glow + shimmer */
+.rs-fancy-btn.rs-on {
+  background: linear-gradient(135deg, #7c3aed 0%, #6c4cdc 60%, #8b5cf6 100%) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  animation:
+    rs_entrance 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+    rs_onGlow   2.4s ease-in-out infinite !important;
+}
+
+.rs-fancy-btn.rs-on::after {
+  opacity: 1 !important;
+  animation: rs_shimmer 2.6s linear infinite !important;
+}
+
+.rs-fancy-btn.rs-on .rs-fancy-icon {
+  background: #ffffff !important;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.25),
+    0 0 10px  rgba(255, 255, 255, 0.65) !important;
+  transform: scale(1.10) !important;
+}
+
+/* CLICK BURST — applied briefly by JS on each toggle */
+.rs-fancy-btn.rs-burst {
+  animation: rs_clickBurst 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+.rs-fancy-btn:focus-visible {
+  outline: 2px solid #6c4cdc !important;
+  outline-offset: 2px !important;
 }

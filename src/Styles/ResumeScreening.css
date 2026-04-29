@@ -65,6 +65,10 @@
   padding: 0 20px;
 }
 
+.content-area.resume-screening-full {
+  max-width: none;
+}
+
 .content-areasss {
   width: 100%;
 }
@@ -542,5 +546,228 @@
     width: 24px;
     height: 24px;
     font-size: 12px;
+  }
+}
+/* ===================================================
+   ADD BELOW EXISTING MEDIA QUERY IN HRAnalysis.css
+=================================================== */
+
+/* Large Desktop */
+@media (min-width: 1600px) {
+  .content-area,
+  .results-container {
+    max-width: 1400px;
+  }
+
+  .page-title {
+    font-size: 42px;
+  }
+
+  .page-subtitle {
+    font-size: 18px;
+  }
+}
+
+/* Laptop */
+@media (max-width: 1200px) {
+  .content-area {
+    max-width: 100%;
+    padding: 0 16px;
+  }
+
+  .top-nav {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .nav-tab {
+    flex: unset;
+    min-width: 180px;
+  }
+
+  .results-container {
+    max-width: 100%;
+  }
+}
+
+/* Tablet */
+@media (max-width: 992px) {
+  .page-title {
+    font-size: 30px;
+  }
+
+  .page-subtitle {
+    font-size: 15px;
+    margin-bottom: 32px;
+  }
+
+  .candidate-card {
+    padding: 20px;
+  }
+
+  .candidate-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .candidate-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .screening-test-btn {
+    position: static;
+    width: 100%;
+    margin-top: 14px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .hr-analysis-container {
+    padding: 16px 10px;
+  }
+
+  .top-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .nav-tab {
+    min-width: max-content;
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+
+  .page-title {
+    font-size: 26px;
+    line-height: 1.3;
+  }
+
+  .upload-section,
+  .candidate-card,
+  .coming-soon-message {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .upload-areass {
+    padding: 28px 16px;
+  }
+
+  .upload-textss {
+    font-size: 16px;
+  }
+
+  .upload-subtext {
+    font-size: 13px;
+  }
+
+  .candidate-name {
+    font-size: 18px;
+  }
+
+  .score-label,
+  .score-value {
+    font-size: 15px;
+  }
+
+  .floating-btn-container {
+    left: 10px;
+    right: 10px;
+    transform: none;
+    bottom: 14px;
+  }
+
+  .floating-screening-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 14px 16px;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 576px) {
+  .page-title {
+    font-size: 22px;
+  }
+
+  .page-subtitle {
+    font-size: 14px;
+  }
+
+  .upload-labels {
+    flex-wrap: wrap;
+    text-align: center;
+  }
+
+  .candidate-card.selected::before {
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    top: 12px;
+    right: 12px;
+  }
+
+  .skill-tag {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  .sent-test-btn,
+  .analyze-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .resume-screening-progress-text {
+    font-size: 14px;
+  }
+}
+
+/* Very Small Screens */
+@media (max-width: 380px) {
+  .nav-tab {
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  .page-title {
+    font-size: 20px;
+  }
+
+  .upload-iconss {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .candidate-name {
+    font-size: 16px;
+  }
+
+  .selection-count {
+    width: 22px;
+    height: 22px;
+    font-size: 11px;
+  }
+}
+
+/* Short Height Screens */
+@media (max-height: 700px) {
+  .top-nav {
+    margin-bottom: 30px;
+  }
+
+  .page-subtitle {
+    margin-bottom: 20px;
+  }
+
+  .floating-btn-container {
+    bottom: 8px;
   }
 }

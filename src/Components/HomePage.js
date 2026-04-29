@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import "../Styles/UploaderPage.css";
 import BlackExpandIcon from "../../src/Images/BlackExpandIcon.png";
 import axios from "axios";
-import { FaMicrophone, FaPaperPlane } from "react-icons/fa";
+import { FaMicrophone, FaPaperPlane, FaPlus, FaTimes, FaFileAlt } from "react-icons/fa";
 import { FaCircleArrowRight } from "react-icons/fa6";
 import Modal from "./Modal";
 import SignIn from "./SignIn";
@@ -74,6 +74,8 @@ import { FiFileText } from "react-icons/fi";
 import { IoChevronForward, IoChevronDown } from "react-icons/io5";
 import { BiDislike, BiLike, BiSolidDislike, BiSolidLike } from "react-icons/bi";
 import incrementCareVoiceAnalysisCount from "./Modules/SupportAtHomeModule/careVoiceCostAnalysis";
+import TlcUploadBox from "./Modules/FinancialModule/TlcUploadBox";
+import { useHRChat } from "./Modules/SupportAtHomeModule/hrAssistantStream";
 const HomePage = () => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [documentString, setDocumentString] = useState("");
@@ -83,6 +85,13 @@ const HomePage = () => {
   // const [input, setInput] = useState("");
   const inputRef = useRef("");
   const textareaRef = useRef(null);
+  const isSendingRef = useRef(false);
+  const [isInputEmpty, setIsInputEmpty] = useState(true);
+  // Becomes true the moment the very first resume-screening send is fired.
+  // Once true, every follow-up send must carry a typed prompt — empty
+  // submissions are no longer allowed, even if jd/resume files are still
+  // present in state.
+  const [hasResumeRunStarted, setHasResumeRunStarted] = useState(false);
   const [messages, setMessages] = useState([]);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isModalLeftVisible, setLeftModalVisible] = useState(false);
@@ -156,8 +165,38 @@ const HomePage = () => {
   const handleLeftModalClose = () => setLeftModalVisible(false);
   const [feedbackMode, setFeedbackMode] = useState(null);
   const [isCareVoiceLocked, setIsCareVoiceLocked] = useState(true);
+  const [hrStep, setHrStep] = useState("IDLE");
+  const [hrMode, setHrMode] = useState("general");
+  const [hrSending, setHrSending] = useState(false);
+
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [screenedResults, setScreenedResults] = useState([]);
+  const [selectedCandidates, setSelectedCandidates] = useState([]);
+  const [shortlistLoading, setShortlistLoading] = useState(false);
+  const [screeningLoading, setScreeningLoading] = useState(false);
+  const [expandedIndex, setExpandedIndex] = useState(null);
+  const [jdFiles, setJdFiles] = useState([]);
+  const [resumeFiles, setResumeFiles] = useState([]);
+  const [askAiAttachedFiles, setAskAiAttachedFiles] = useState([]);
+  const askAiFileInputRef = useRef(null);
   const userEmail = user?.email;
   const userDomain = userEmail?.split("@")[1]?.toLowerCase();
+  const [selectedCandidateForModal, setSelectedCandidateForModal] = useState(null);
+  const [showCandidateModal, setShowCandidateModal] = useState(false);
+  const [candidatesData, setCandidatesData] = useState([]);
+  const [organizationId, setOrganizationId] = useState(null);
+  const { isConnected, sendHRChat } = useHRChat();
+  const [hrScreenedCandidates, setHrScreenedCandidates] = useState([]);
+  let eventQueue = [];
+  const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(",")[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  let isShowingEvent = false;
+  // Add useEffect to sync refs
   const blockedAutoTopupDomains = [
     "curki.ai",
     "tenderlovingcaredisability.com.au",
@@ -388,6 +427,62 @@ const HomePage = () => {
     ],
     default: []
   };
+  // Add this function inside HomePage component
+  const fetchOrganizationId = async (email) => {
+    try {
+      if (!email) return;
+
+      console.log("Fetching organizationId for:", email);
+
+      const res = await fetch(
+        `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/teamMembers/hierarchy?email=${encodeURIComponent(email)}`
+      );
+
+      const data = await res.json();
+
+      console.log("Hierarchy response:", data);
+
+      if (res.ok && data?.groupData?.id) {
+        setOrganizationId(data.groupData.id);
+        console.log("organizationId set:", data.groupData.id);
+      } else {
+        setOrganizationId(email);
+        console.log("Fallback organizationId:", email);
+      }
+    } catch (error) {
+      console.error("fetchOrganizationId error:", error);
+      setOrganizationId(email);
+    }
+  };
+
+  const fetchAllCandidates = async () => {
+    try {
+      if (!user?.email || !organizationId) return;
+
+      console.log("Fetching all candidates for:", {
+        admin_email: user.email,
+        organization_id: organizationId
+      });
+
+      const res = await axios.get(
+        "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/get-all-candidates",
+        {
+          params: {
+            admin_email: user.email,
+            organization_id: organizationId
+          }
+        }
+      );
+
+      console.log("getAllCandidates response:", res.data);
+
+      if (res.data?.ok) {
+        setCandidatesData(res.data.candidates || []);
+      }
+    } catch (error) {
+      console.log("fetchAllCandidates error:", error);
+    }
+  };
   useEffect(() => {
     const handleTrialInit = (event) => {
       setIsTrialInitializing(event.detail);
@@ -399,6 +494,16 @@ const HomePage = () => {
       window.removeEventListener("trial-initializing", handleTrialInit);
     };
   }, []);
+  useEffect(() => {
+    if (user?.email) {
+      fetchOrganizationId(user?.email);
+    }
+  }, [user]);
+  useEffect(() => {
+    if (isHRAskAiPage && user?.email) {
+      fetchAllCandidates();
+    }
+  }, [selectedRole, user]);
   useEffect(() => {
     if (
       !subscriptionInfo ||
@@ -578,7 +683,407 @@ const HomePage = () => {
     }
   };
 
+  const toggleCandidate = (index) => {
+    setSelectedCandidates((prev) => {
+      if (prev.includes(index)) {
+        return prev.filter((item) => item !== index);
+      }
+      return [...prev, index];
+    });
+  };
 
+  const handleBulkScreening = async () => {
+    if (jdFiles.length === 0 || resumeFiles.length === 0) return;
+
+    try {
+      setScreeningLoading(true);
+
+      // Add a processing message
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "Processing your documents... Please wait.",
+          temp: true
+        }
+      ]);
+
+      const formData = new FormData();
+      formData.append("organisation_id", organizationId);
+      formData.append("jd_file", jdFiles[0]);
+
+      resumeFiles.forEach((file) => {
+        formData.append("resume_files", file);
+      });
+
+      const res = await axios.post(
+        "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/screen-bulk",
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      console.log("Bulk screening response", res.data);
+      if (res.data?.ok) {
+        const list = (res.data.candidates || []).map((item) => ({
+          ...item.screener,
+          index: item.index
+        }));
+
+        setScreenedResults(list);
+        setSelectedCandidates(list.map((_, i) => i));
+        setHrStep("RESULTS");
+        // Discard the uploaded JD + resumes once screening completes so
+        // the next run starts from a clean slate.
+        setJdFiles([]);
+        setResumeFiles([]);
+
+        // Replace the processing message with results message
+        setMessages((prev) => {
+          const filtered = prev.filter(msg => !msg.temp);
+          return [
+            ...filtered,
+            {
+              sender: "bot",
+              text: `✅ Screening complete! Found ${list.length} candidates. Here are the results:`,
+              showResults: true,
+              resultsCount: list.length
+            }
+          ];
+        });
+      }
+    } catch (err) {
+      console.log(err);
+      setMessages((prev) => [
+        ...prev.filter(msg => !msg.temp),
+        {
+          sender: "bot",
+          text: "❌ Sorry, something went wrong while screening. Please try again."
+        }
+      ]);
+    } finally {
+      setScreeningLoading(false);
+    }
+  };
+
+  const handleShortlist = async () => {
+    try {
+      setShortlistLoading(true);
+
+      const data = await axios.post(
+        "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/shortlist-screened",
+        {
+          organisation_id: organizationId,
+          admin_email: user?.email,
+          screened: screenedResults,
+          selected_indices: selectedCandidates
+        }
+      );
+      console.log("Shortlist response", data);
+      setScreenedResults(data.data.shortlisted || []);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: `${selectedCandidates.length} candidates shortlisted successfully.`
+        }
+      ]);
+
+      setHrStep("IDLE");
+      await fetchAllCandidates();
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setShortlistLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (isHRAskAiPage && messages.length === 0) {
+      setMessages([
+        {
+          sender: "bot",
+          text: "Hello! I'm Alex, your AI recruitment partner. How can I help you streamline the staff onboarding today?"
+        }
+      ]);
+    }
+  }, [isHRAskAiPage, messages.length]);
+
+  // Inject the fancy Resume Screening toggle button into the askai label
+  useEffect(() => {
+    if (!showAIChat || !isHRAskAiPage) return;
+
+    const cb = document.getElementById('askai-mode-checkbox');
+    const label = document.getElementById('askai-mode-toggle-label');
+    if (!cb || !label || label.querySelector('.rs-fancy-btn')) return;
+
+    const span = label.querySelector('span');
+    if (span) span.style.display = 'none';
+
+    const btn = document.createElement('div');
+    btn.className = `rs-fancy-btn ${cb.checked ? 'rs-on' : 'rs-off'}`;
+
+    const icon = document.createElement('span');
+    icon.className = 'rs-fancy-icon';
+    const txt = document.createElement('span');
+    txt.textContent = 'Resume Screening';
+
+    btn.appendChild(icon);
+    btn.appendChild(txt);
+    label.insertBefore(btn, cb);
+
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      // cb.click() flips .checked AND fires a synthetic-event-compatible
+      // change so React's onChange (openResumeScreening / general fallback)
+      // actually runs. Direct .checked assignment bypasses React's tracker.
+      cb.click();
+      btn.classList.add('rs-burst');
+      setTimeout(() => btn.classList.remove('rs-burst'), 380);
+    });
+  }, [showAIChat, isHRAskAiPage]);
+
+  // Keep the fancy button's visual state in sync with hrMode
+  useEffect(() => {
+    const btn = document.querySelector('#askai-mode-toggle-label .rs-fancy-btn');
+    if (!btn) return;
+    const isOn = hrMode === 'resume_screening';
+    btn.classList.toggle('rs-on', isOn);
+    btn.classList.toggle('rs-off', !isOn);
+  }, [hrMode]);
+
+  // Release the send-guard once the previous response has finished streaming
+  // (i.e. no message bubble is still in its temp/generating state)
+  useEffect(() => {
+    if (!messages.some((m) => m.temp)) {
+      isSendingRef.current = false;
+    }
+  }, [messages]);
+  const openResumeScreening = () => {
+    setHrMode("resume_screening");
+    setHrStep("UPLOAD");
+    // Fresh resume-screening session — restart the first-run gate so the
+    // initial send (with attached files) can go through without a typed prompt.
+    setHasResumeRunStarted(false);
+    setAskAiAttachedFiles([]);
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: "user",
+        text: "Resume Screening"
+      },
+      {
+        sender: "bot",
+        text: "Please upload the Job Description and candidate resumes to start screening.",
+        isUploadPrompt: true  // Add flag to identify upload prompt
+      }
+    ]);
+  };
+  const handleHRChatWithSocket = async (finalQuery, tempMessageId) => {
+    console.log("[HomePage] Starting HR Chat", finalQuery);
+
+    // Function to update the temp message - USE FUNCTIONAL UPDATE
+    const updateTempMessage = (newText, isStreaming = true) => {
+      console.log("[HR CHAT] Updating message:", newText);
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.tempId === tempMessageId
+            ? {
+              ...msg,
+              text: newText,
+              isStreaming: isStreaming,
+              temp: isStreaming  // Keep temp true until complete
+            }
+            : msg
+        )
+      );
+    };
+
+    let attachments = [];
+    console.log("hrScreenedCandidates", hrScreenedCandidates)
+    if (hrMode === "resume_screening" && hrScreenedCandidates.length === 0) {
+      attachments = await Promise.all([
+        ...jdFiles.map(async (file) => ({
+          filename: file.name,
+          document_role: "job_description",
+          content_base64: await fileToBase64(file)
+        })),
+        ...resumeFiles.map(async (file) => ({
+          filename: file.name,
+          document_role: "resume",
+          content_base64: await fileToBase64(file)
+        }))
+      ]);
+    }
+
+    if (askAiAttachedFiles.length > 0) {
+      const generalAttachments = await Promise.all(
+        askAiAttachedFiles.map(async (file) => ({
+          filename: file.name,
+          document_role: "general",
+          content_base64: await fileToBase64(file)
+        }))
+      );
+      attachments = [...attachments, ...generalAttachments];
+      setAskAiAttachedFiles([]);
+    }
+
+    const payload = {
+      organisation_id: organizationId,
+      message: finalQuery,
+      api_key: "",
+      workflow_phase:
+        hrMode === "resume_screening"
+          ? "resume_screening"
+          : "general",
+
+      ...(hrMode === "general" && {
+        screened_candidates: candidatesData
+      }),
+
+      attachments,
+
+      conversation_history: messages
+        .filter((m) => !m.temp)
+        .map((m) => ({
+          role: m.sender === "user" ? "user" : "assistant",
+          content: m.text
+        })),
+
+      admin_name: user?.displayName || "HR Admin",
+      admin_email: user?.email
+    };
+    if (hrMode === "resume_screening" && attachments.length > 0) {
+      setJdFiles([]);
+      setResumeFiles([]);
+    }
+    console.log("payload for HR chat", payload);
+    try {
+      const sent = sendHRChat({
+        payload,
+
+        onEvent: (type, data) => {
+          console.log("[HR CHAT] Event received:", type, data);
+
+          let newText = "";
+
+          if (type === "status") {
+            // This is what you need! Display the message from status event
+            newText = data?.message || "Processing...";
+            console.log("[HR CHAT] Setting status message:", newText);
+            updateTempMessage(newText, true);
+          }
+          else if (type === "event") {
+            if (data?.payload?.message) {
+              newText = data.payload.message;
+            } else if (data?.payload?.status) {
+              newText = data.payload.status;
+            } else if (data?.event) {
+              const eventName = data.event;
+              if (eventName.includes("session_ready")) {
+                newText = "🎯 Session ready, analyzing...";
+              } else if (eventName.includes("thinking")) {
+                newText = "🤔 AI is thinking...";
+              } else if (eventName.includes("processing")) {
+                newText = "⚙️ Processing your request...";
+              } else {
+                newText = `📡 ${eventName.split('.').pop()}`;
+              }
+            }
+            if (newText) updateTempMessage(newText, true);
+          }
+          else if (type === "email_prepared") {
+            newText = `📧 ${data?.message || "Preparing email..."}`;
+            updateTempMessage(newText, true);
+          }
+          else if (type === "email_sent") {
+            newText = `✅ ${data?.message || "Email sent successfully!"}`;
+            updateTempMessage(newText, true);
+          }
+        },
+
+        onComplete: (data) => {
+          const finalText = data?.message || "Done";
+
+          const tools = data?.payload?.tool_results || [];
+          console.log("tools main data", data);
+          console.log("[HR CHAT] Tools results:", tools);
+
+          const bulkScreen = tools.find(
+            (t) => t.tool === "shortlist_screened" && t.ok
+          );
+
+          console.log("[HR CHAT] Bulk screen result:", bulkScreen);
+
+          if (bulkScreen) {
+            let candidates = [];
+
+            // 1️⃣ If result already contains shortlisted
+            if (bulkScreen.result?.shortlisted) {
+              candidates = bulkScreen.result.shortlisted;
+            }
+
+            // 2️⃣ Else parse screened_json string
+            else if (bulkScreen.arguments?.screened_json) {
+              try {
+                candidates = JSON.parse(
+                  bulkScreen.arguments.screened_json
+                );
+              } catch (err) {
+                console.error("JSON parse failed:", err);
+              }
+            }
+
+            console.log("Parsed candidates:", candidates);
+
+            setHrScreenedCandidates(candidates);
+            setScreenedResults(candidates);
+            setHrStep("RESULTS");
+            setJdFiles([]);
+            setResumeFiles([]);
+            attachments = [];
+          }
+
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.tempId === tempMessageId
+                ? {
+                  sender: "bot",
+                  text: finalText,
+                  temp: false,
+                  isStreaming: false
+                }
+                : msg
+            )
+          );
+        },
+
+        onError: (err) => {
+          console.error("[HR CHAT] Error:", err);
+
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.tempId === tempMessageId
+                ? {
+                  sender: "bot",
+                  text: `❌ Error: ${err?.message || "Something went wrong"}`,
+                  temp: false,
+                  isError: true
+                }
+                : msg
+            )
+          );
+        }
+      });
+
+      if (!sent) {
+        updateTempMessage("❌ Connection failed. Please try again.", false);
+      }
+
+    } catch (error) {
+      console.error("[HR CHAT] Exception:", error);
+      updateTempMessage(`❌ ${error.message}`, false);
+    }
+  };
   const handleSend = async (customText, eventName = null) => {
     // 🚨 FEEDBACK MODE HANDLER (ADD THIS AT TOP)
     if (feedbackMode) {
@@ -630,13 +1135,43 @@ const HomePage = () => {
         : inputRef.current || "";
 
     const finalQuery = rawQuery.trim();
-    if (!finalQuery && !eventName) return;
+
+    const allowEmptyPromptForResumeScreening =
+      isHRAskAiPage &&
+      hrMode === "resume_screening" &&
+      jdFiles.length > 0 &&
+      resumeFiles.length > 0 &&
+      // Only the FIRST screening pass may go through without a typed prompt.
+      // Once a resume-screening send has been initiated, every follow-up
+      // submission must carry an actual question.
+      !hasResumeRunStarted;
+
+    if (!finalQuery && !eventName && !allowEmptyPromptForResumeScreening) {
+      return;
+    }
+
+    // Block duplicate sends while a previous response is still generating
+    if (isSendingRef.current) {
+      return;
+    }
+    isSendingRef.current = true;
+
+    // Lock the empty-prompt allowance after the first resume-screening send.
+    if (isHRAskAiPage && hrMode === "resume_screening" && !hasResumeRunStarted) {
+      setHasResumeRunStarted(true);
+    }
 
     // show user message and temp bot message
     if (finalQuery) {
       setMessages((prev) => [...prev, { sender: "user", text: finalQuery }]);
     }
-    const tempBotMessage = { sender: "bot", text: "Generating response...", temp: true };
+    const tempMessageId = Date.now();
+    const tempBotMessage = {
+      sender: "bot",
+      text: "Generating response...",
+      temp: true,
+      tempId: tempMessageId
+    };
     setMessages((prev) => [...prev, tempBotMessage]);
 
     // clear input only when the user typed (not when suggestion clicked)
@@ -797,47 +1332,28 @@ const HomePage = () => {
 
         return;
       }
-      if (isHRAskAiPage) {
+      if (
+        isHRAskAiPage &&
+        (
+          hrMode === "general" ||
+          hrMode === "resume_screening"
+        )
+      ) {
         try {
-          const form = new FormData();
-          form.append("resume_zip_file", manualResumeZip);
-          form.append("question", finalQuery);
-
-          const response = await axios.post(
-            "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/askAi",
-            form,
-            { headers: { "Content-Type": "multipart/form-data" } }
-          );
-
-          // console.log("Resume Ask-AI Response: ", response.data);
-
-          const botReply =
-            response.data?.results?.answer ||
-            response.data?.answer ||
-            JSON.stringify(response.data, null, 2);
-
-          setMessages(prev =>
-            prev.map(msg => (msg.temp ? { sender: "bot", text: botReply } : msg))
-          );
-          await incrementCareVoiceAnalysisCount(
-            user?.email?.trim().toLowerCase(),
-            "askai",
-            0,
-            "smart-onboarding",
-            0
-          );
-          return;
+          setHrSending(true);
+          await handleHRChatWithSocket(finalQuery, tempMessageId);
         } catch (error) {
-          console.error("Resume Ask-AI Error:", error);
-          setMessages(prev =>
-            prev.map(msg =>
-              msg.temp ? { sender: "bot", text: "Ask-AI for resumes failed." } : msg
-            )
-          );
-          return;
+          console.error("HR Chat error:", error);
+          setMessages(prev => prev.map(msg =>
+            msg.temp && msg.tempId === tempMessageId
+              ? { ...msg, text: `❌ Error: ${error.message}` }
+              : msg
+          ));
+        } finally {
+          setHrSending(false);
         }
+        return;
       }
-
       if (isSmartRosteringPage) {
         if (manualAskAiFile) {
           const form = new FormData();
@@ -949,7 +1465,7 @@ const HomePage = () => {
           if (user?.email) {
             try {
               const email = user.email.trim().toLowerCase();
-              await incrementCareVoiceAnalysisCount(email, "askai", response?.data?.llm_cost?.total_usd,"client-profitability",response?.data?.llm_cost?.token_usage);
+              await incrementCareVoiceAnalysisCount(email, "askai", response?.data?.llm_cost?.total_usd, "client-profitability", response?.data?.llm_cost?.token_usage);
             } catch (err) {
               console.error("❌ Failed to increment Client Profitability AskAI count:", err.message);
             }
@@ -1114,7 +1630,11 @@ const HomePage = () => {
     if (textareaRef.current) {
       textareaRef.current.value = "";
     }
-
+    setHrStep("IDLE");
+    setJdFiles([]);
+    setResumeFiles([]);
+    setScreenedResults([]);
+    setSelectedCandidates([]);
     inputRef.current = "";
   }, [selectedRole]);
 
@@ -1504,7 +2024,8 @@ const HomePage = () => {
                       </div>
 
                       <div style={{ display: selectedRole === "Smart Onboarding (Staff)" ? "block" : "none" }}>
-                        <HRAnalysis handleClick={handleClick} selectedRole="Smart Onboarding (Staff)" setShowFeedbackPopup={setShowFeedbackPopup} user={user} setManualResumeZip={setManualResumeZip} />
+                        <HRAnalysis handleClick={handleClick} selectedRole="Smart Onboarding (Staff)" setShowFeedbackPopup={setShowFeedbackPopup} user={user} setManualResumeZip={setManualResumeZip} setShowAIChat={setShowAIChat}
+                          setMessages={setMessages} setHrMode={setHrMode} setHrStep={setHrStep} organizationId={organizationId} />
                       </div>
                       <div style={{ display: selectedRole === "Care Voice" ? "block" : "none" }}>
                         <VoiceModule user={user} isMobileOrTablet={isMobileOrTablet} setCareVoiceFiles={setCareVoiceFiles} setIsCareVoiceGeneratingDocs={setIsCareVoiceGeneratingDocs}
@@ -1553,11 +2074,66 @@ const HomePage = () => {
                   <div style={{ position: "fixed", bottom: "20px", right: "21px", width: "76%", height: isSoftwareConnectPage ? "86%" : "80%", backgroundColor: "#FFFEFF", borderRadius: "24px", zIndex: 999, display: "flex", flexDirection: "column", justifyContent: "space-between", border: '1.09px solid #6C4CDC', boxShadow: '0px 4.36px 65.42px 0px #FFFFFF03', padding: ' 14px 30px', marginBottom: "8px" }}>
                     <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", borderTopRightRadius: "24px", borderTopLeftRadius: "24px", }}>
                       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "44px" }}>
+                        {isHRAskAiPage && (
+                          <label
+                            id="askai-mode-toggle-label"
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              color: "#333",
+                              cursor: "pointer"
+                            }}
+                          >
+                            <span>Resume Screening:</span>
+
+                            <input
+                              id="askai-mode-checkbox"
+                              type="checkbox"
+                              checked={hrMode === "resume_screening"}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  openResumeScreening();
+                                } else {
+                                  setHrMode("general");
+                                  setHrStep("IDLE");
+                                  setJdFiles([]);
+                                  setResumeFiles([]);
+                                  setScreenedResults([]);
+                                  setSelectedCandidates([]);
+                                  setHasResumeRunStarted(false);
+
+                                  setMessages((prev) => [
+                                    ...prev,
+                                    {
+                                      sender: "bot",
+                                      text: "Switched back to General mode."
+                                    }
+                                  ]);
+                                }
+                              }}
+                              style={{
+                                width: "18px",
+                                height: "18px",
+                                accentColor: "#6C4CDC",
+                                cursor: "pointer"
+                              }}
+                            />
+                          </label>
+                        )}
                         {messages.length > 0 && <div
                           onClick={() => {
                             setMessages([]);
                             setFeedbackState({});
                             setFeedbackMode(null);
+                            setHrStep("IDLE");
+                            setJdFiles([]);
+                            setResumeFiles([]);
+                            setScreenedResults([]);
+                            setSelectedCandidates([]);
+                            setHasResumeRunStarted(false);
                           }}
                           style={{
                             display: "flex",
@@ -1670,6 +2246,7 @@ const HomePage = () => {
                                   <img
                                     src={aksAiPurpleStar}
                                     alt="ai star"
+                                    className={msg.temp ? "askai-sparkle-icon" : ""}
                                     style={{
                                       width: "32px",
                                       height: "32px"
@@ -1697,11 +2274,24 @@ const HomePage = () => {
                                     className="ask-ai-res-div"
                                   >
                                     {msg.temp ? (
-                                      <div className="askai-loader">
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                      </div>
+                                      isHRAskAiPage ? (
+                                        <div className="hr-generating-wrap">
+                                          <span className="hr-generating-text">
+                                            {msg.text || "Generating response"}
+                                          </span>
+                                          <span className="hr-generating-dots" aria-hidden="true">
+                                            <span></span>
+                                            <span></span>
+                                            <span></span>
+                                          </span>
+                                        </div>
+                                      ) : (
+                                        <div className="askai-loader">
+                                          <span></span>
+                                          <span></span>
+                                          <span></span>
+                                        </div>
+                                      )
                                     ) : (
                                       <>
                                         <ReactMarkdown
@@ -1716,6 +2306,217 @@ const HomePage = () => {
                                           remarkPlugins={[remarkGfm]}
                                           rehypePlugins={[rehypeRaw, rehypeHighlight]}
                                         />
+                                        {msg.isUploadPrompt && hrStep === "UPLOAD" && (
+                                          <div style={{ marginTop: "16px" }}>
+                                            <div className="hr-upload-wrap">
+                                              <div className="hr-upload-boxes">
+                                                <TlcUploadBox
+                                                  id="jd-upload"
+                                                  title="Upload Job Description"
+                                                  subtitle="Upload single JD file"
+                                                  files={jdFiles}
+                                                  setFiles={setJdFiles}
+                                                  accept=".pdf,.doc,.docx,.txt"
+                                                  multiple={false}
+                                                />
+
+                                                <div style={{ height: "14px" }} />
+
+                                                <TlcUploadBox
+                                                  id="resume-upload"
+                                                  title="Upload Candidate Resumes"
+                                                  subtitle="Upload multiple resume files"
+                                                  files={resumeFiles}
+                                                  setFiles={setResumeFiles}
+                                                  accept=".pdf,.doc,.docx,.txt"
+                                                  multiple={true}
+                                                />
+                                              </div>
+
+                                              {/* <div style={{ display: "flex", gap: "12px", marginTop: "18px" }}>
+                                                <button
+                                                  className="hr-primary-btn"
+                                                  onClick={handleBulkScreening}
+                                                  disabled={screeningLoading || jdFiles.length === 0 || resumeFiles.length === 0}
+                                                  style={{
+                                                    padding: "12px 24px",
+                                                    borderRadius: "12px",
+                                                    border: "none",
+                                                    backgroundColor: (screeningLoading || jdFiles.length === 0 || resumeFiles.length === 0) ? "#CCC" : "#6C4CDC",
+                                                    color: "white",
+                                                    fontSize: "14px",
+                                                    fontWeight: 600,
+                                                    cursor: (screeningLoading || jdFiles.length === 0 || resumeFiles.length === 0) ? "not-allowed" : "pointer"
+                                                  }}
+                                                >
+                                                  {screeningLoading ? "Processing..." : "Start Screening"}
+                                                </button>
+
+                                                <button
+                                                  className="hr-secondary-btn"
+                                                  onClick={() => {
+                                                    setHrStep("IDLE");
+                                                    setJdFiles([]);
+                                                    setResumeFiles([]);
+                                                    setHrMode("general");
+                                                    setMessages((prev) => [
+                                                      ...prev,
+                                                      { sender: "bot", text: "Switched back to General mode." }
+                                                    ]);
+                                                  }}
+                                                  style={{
+                                                    padding: "12px 24px",
+                                                    borderRadius: "12px",
+                                                    border: "1px solid #CCC",
+                                                    backgroundColor: "white",
+                                                    color: "#666",
+                                                    fontSize: "14px",
+                                                    fontWeight: 500,
+                                                    cursor: "pointer"
+                                                  }}
+                                                >
+                                                  Cancel
+                                                </button>
+                                              </div> */}
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {/* Show results when showResults is true */}
+                                        {msg.showResults && hrStep === "RESULTS" && screenedResults.length > 0 && (
+                                          <div style={{ marginTop: "16px" }}>
+                                            <div className="hr-results-wrap" style={{
+                                              display: "flex",
+                                              flexDirection: "column",
+                                              maxHeight: "400px",
+                                              overflow: "hidden"
+                                            }}>
+                                              <div style={{
+                                                fontSize: "16px",
+                                                fontWeight: 600,
+                                                marginBottom: "12px",
+                                                padding: "10px 12px",
+                                                background: "#F9F8FF",
+                                                borderRadius: "10px",
+                                                border: "1px solid #E8ECEF"
+                                              }}>
+                                                {screenedResults.length} Candidates Found
+                                              </div>
+
+                                              <div style={{
+                                                flex: 1,
+                                                overflowY: "auto",
+                                                maxHeight: "250px",
+                                                marginBottom: "12px"
+                                              }}>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                                  {screenedResults.map((item, idx) => {
+                                                    const isSelected = selectedCandidates.includes(idx);
+                                                    return (
+                                                      <div
+                                                        key={idx}
+                                                        onClick={() => {
+                                                          setSelectedCandidateForModal({ ...item, index: idx });
+                                                          setShowCandidateModal(true);
+                                                        }}
+                                                        style={{
+                                                          border: isSelected ? "1px solid #6C4CDC" : "1px solid #E5E7EB",
+                                                          borderRadius: "10px",
+                                                          padding: "10px 12px",
+                                                          cursor: "pointer",
+                                                          background: isSelected ? "#F8F6FF" : "transparent"
+                                                        }}
+                                                      >
+                                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
+                                                            <div
+                                                              onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleCandidate(idx);
+                                                              }}
+                                                              style={{
+                                                                width: "16px",
+                                                                height: "16px",
+                                                                borderRadius: "3px",
+                                                                backgroundColor: isSelected ? "#6C4CDC" : "#FFF",
+                                                                border: isSelected ? "none" : "1.5px solid #CCC",
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                                cursor: "pointer"
+                                                              }}
+                                                            >
+                                                              {isSelected && (
+                                                                <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                                                                  <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                              )}
+                                                            </div>
+                                                            <div>
+                                                              <div style={{ fontSize: "13px", fontWeight: 500 }}>{item.candidate_name || "Unknown"}</div>
+                                                              <div style={{ fontSize: "10px", color: "#888" }}>{item.candidate_email || "No email"}</div>
+                                                            </div>
+                                                          </div>
+                                                          <span style={{
+                                                            fontSize: "14px",
+                                                            fontWeight: 700,
+                                                            color: item.candidate_resume_score >= 80 ? "#4FD46E" : item.candidate_resume_score >= 60 ? "#FFB347" : "#FF6B6B"
+                                                          }}>
+                                                            {item.candidate_resume_score}%
+                                                          </span>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  })}
+                                                </div>
+                                              </div>
+
+                                              <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+                                                <button
+                                                  onClick={handleShortlist}
+                                                  disabled={shortlistLoading || selectedCandidates.length === 0}
+                                                  style={{
+                                                    flex: 1,
+                                                    padding: "10px",
+                                                    borderRadius: "8px",
+                                                    border: "none",
+                                                    backgroundColor: (shortlistLoading || selectedCandidates.length === 0) ? "#CCC" : "#6C4CDC",
+                                                    color: "white",
+                                                    fontSize: "13px",
+                                                    fontWeight: 600,
+                                                    cursor: (shortlistLoading || selectedCandidates.length === 0) ? "not-allowed" : "pointer"
+                                                  }}
+                                                >
+                                                  {shortlistLoading ? "Shortlisting..." : `Proceed (${selectedCandidates.length} Selected)`}
+                                                </button>
+                                                <button
+                                                  onClick={() => {
+                                                    setHrStep("IDLE");
+                                                    setJdFiles([]);
+                                                    setResumeFiles([]);
+                                                    setScreenedResults([]);
+                                                    setSelectedCandidates([]);
+                                                    setMessages((prev) => [
+                                                      ...prev,
+                                                      { sender: "bot", text: "Returned to general mode." }
+                                                    ]);
+                                                  }}
+                                                  style={{
+                                                    padding: "10px 16px",
+                                                    borderRadius: "8px",
+                                                    border: "1px solid #CCC",
+                                                    backgroundColor: "white",
+                                                    color: "#666",
+                                                    fontSize: "13px",
+                                                    cursor: "pointer"
+                                                  }}
+                                                >
+                                                  Back
+                                                </button>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
                                         {/* {feedbackState[`${selectedRole}_${index}`]?.submitted &&
                                           feedbackState[`${selectedRole}_${index}`]?.text && (
                                             <div
@@ -2132,10 +2933,9 @@ const HomePage = () => {
                           </div>
                         )
                       })}
-
                     </div>
                     <div>
-                      {messages.length === 0 &&
+                      {hrStep !== "RESULTS" && messages.length === 0 &&
                         <div>
                           {Suggestions.length !== 0 &&
                             <div style={{ textAlign: 'left', marginBottom: '9px', fontSize: '14px', fontWeight: '500', fontFamily: 'Inter' }}>
@@ -2188,116 +2988,342 @@ const HomePage = () => {
 
                         </div>
                       }
-                      {(!isCareVoicePage || careVoiceStarted) && <div style={{ position: "relative", marginTop: "10px", marginBottom: "18px", width: "100%", display: "flex", alignSelf: "center" }}>
-                        <img
-                          src={askAiSearchIcon}
-                          alt="search"
-                          style={{
-                            position: "absolute",
-                            left: "32px",              // ✅ was 14px → more gap like screenshot
-                            top: "32px",
-                            bottom: "75px",               // ✅ center vertically
-                            transform: "translateY(-50%)",
-                            width: "18px",
-                            height: "18px",
-                            opacity: 0.7
-                          }}
-                        />
 
-                        <textarea
-                          rows={1}
-                          placeholder={feedbackMode ? "Please submit your feedback here..." : "Ask me anything..."}
-                          ref={textareaRef}
-                          defaultValue=""
-                          onChange={(e) => {
-                            inputRef.current = e.target.value;
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                              e.preventDefault();
-                              handleSend();
-                            }
-                          }}
-                          style={{
-                            width: "100%",
-                            resize: "none",
-                            padding: "22px 56px 16px 63px", // ✅ KEY CHANGE (more left space)
-                            borderRadius: "14px",
-                            border: "none",
-                            outline: "none",
-                            lineHeight: "22px",
-                            backgroundColor: "#F0EDF6",
-                            height: "120px",
-                            maxHeight: "120px",
-                            color: "#000",
-                            overflowY: "auto",
-                            scrollbarWidth: "none",
-                            msOverflowStyle: "none"
-                          }}
-
-
-                        />
-                        <div
-                          onClick={handleMicClick}
-                          style={{
-                            position: "absolute",
-                            right: "70px",
-                            top: "63%",
-                            transform: "translateY(-50%)",
-                            width: "32px",
-                            height: "32px",
-                            backgroundColor: isListening ? "#FF4D4F" : "#6C4CDC",
-                            borderRadius: "10px",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: "pointer",
-                          }}
-                        >
-                          <FaMicrophone size={16} color="#fff" />
-                        </div>
-                        {/* <FaCircleArrowRight onClick={handleSend} size={22} style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#6C4CDC" }} /> */}
-                        <div
-                          onClick={() => {
-
-                            if (isSTTActive || (isCareVoicePage && !careVoiceStarted)) return;
-
-                            handleSend();
-
-                            if (textareaRef.current) {
-                              textareaRef.current.value = "";
-                            }
-
-                            inputRef.current = "";
-
-                          }}
-                          style={{
-                            position: "absolute",
-                            right: "32px",
-                            top: "63%",
-                            transform: "translateY(-50%)",
-                            width: "32px",
-                            height: "32px",
-                            borderRadius: "10px",         // rounded square
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            cursor: "pointer",
-                            backgroundColor: isSTTActive ? "#C9C4E3" : "#6C4CDC",
-                            opacity: isSTTActive ? 0.5 : 1
-                          }}
-                        >
-                          <img
-                            src={askAiSendBtn}
-                            alt="send"
+                      {(!isCareVoicePage || careVoiceStarted) && <div style={{ marginTop: "10px", marginBottom: "18px", width: "100%", display: "flex", flexDirection: "column", alignSelf: "center" }}>
+                        {isHRAskAiPage && hrMode === "general" && askAiAttachedFiles.length > 0 && (
+                          <div
                             style={{
-                              width: "16px",
-                              height: "16px",
-                              pointerEvents: "none", // click handled by parent div
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: "10px",
+                              padding: "14px 16px",
+                              background: "linear-gradient(180deg, #F6F3FC 0%, #F0EDF6 100%)",
+                              borderTopLeftRadius: "16px",
+                              borderTopRightRadius: "16px",
+                              borderBottom: "1px solid rgba(108, 76, 220, 0.12)"
                             }}
-                          />
-                        </div>
+                          >
+                            {askAiAttachedFiles.map((file, idx) => {
+                              const formatSize = (bytes) => {
+                                if (!bytes && bytes !== 0) return "";
+                                if (bytes < 1024) return `${bytes} B`;
+                                if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+                                return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+                              };
+                              const ext = (file.name.split(".").pop() || "").toUpperCase();
+                              return (
+                                <div
+                                  key={`${file.name}-${idx}`}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "10px",
+                                    padding: "8px 10px 8px 8px",
+                                    backgroundColor: "#FFFFFF",
+                                    border: "1px solid rgba(108, 76, 220, 0.15)",
+                                    borderRadius: "12px",
+                                    fontSize: "12px",
+                                    color: "#1F1B2E",
+                                    maxWidth: "260px",
+                                    boxShadow: "0 2px 6px rgba(108, 76, 220, 0.10)",
+                                    transition: "transform 0.15s ease, box-shadow 0.15s ease"
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = "translateY(-1px)";
+                                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(108, 76, 220, 0.18)";
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = "translateY(0)";
+                                    e.currentTarget.style.boxShadow = "0 2px 6px rgba(108, 76, 220, 0.10)";
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      width: "32px",
+                                      height: "32px",
+                                      borderRadius: "8px",
+                                      background: "linear-gradient(135deg, #7B5BE6 0%, #6C4CDC 100%)",
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      flexShrink: 0,
+                                      color: "#fff"
+                                    }}
+                                  >
+                                    {ext && ext.length <= 4 ? (
+                                      <span style={{ fontSize: "9px", fontWeight: 700, letterSpacing: "0.3px" }}>
+                                        {ext}
+                                      </span>
+                                    ) : (
+                                      <FaFileAlt size={14} color="#fff" />
+                                    )}
+                                  </div>
+                                  <div
+                                    style={{
+                                      display: "flex",
+                                      flexDirection: "column",
+                                      minWidth: 0,
+                                      gap: "2px"
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        whiteSpace: "nowrap",
+                                        overflow: "hidden",
+                                        textOverflow: "ellipsis",
+                                        maxWidth: "160px",
+                                        fontSize: "13px",
+                                        fontWeight: 600,
+                                        color: "#1F1B2E"
+                                      }}
+                                      title={file.name}
+                                    >
+                                      {file.name}
+                                    </span>
+                                    {file.size != null && (
+                                      <span
+                                        style={{
+                                          fontSize: "11px",
+                                          color: "#7A748F",
+                                          fontWeight: 500
+                                        }}
+                                      >
+                                        {formatSize(file.size)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div
+                                    onClick={() =>
+                                      setAskAiAttachedFiles((prev) =>
+                                        prev.filter((_, i) => i !== idx)
+                                      )
+                                    }
+                                    title="Remove file"
+                                    style={{
+                                      width: "22px",
+                                      height: "22px",
+                                      borderRadius: "50%",
+                                      display: "flex",
+                                      alignItems: "center",
+                                      justifyContent: "center",
+                                      cursor: "pointer",
+                                      backgroundColor: "#F0EDF6",
+                                      flexShrink: 0,
+                                      transition: "background-color 0.15s ease"
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = "#E2DBF5";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = "#F0EDF6";
+                                    }}
+                                  >
+                                    <FaTimes size={10} color="#6C4CDC" />
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                        <div style={{ position: "relative", width: "100%", display: "flex" }}>
+                          {isHRAskAiPage && hrMode === "general" ? (
+                            <>
+                              <input
+                                type="file"
+                                ref={askAiFileInputRef}
+                                multiple
+                                accept=".pdf,.doc,.docx,.txt,.csv,.xls,.xlsx,.png,.jpg,.jpeg"
+                                style={{ display: "none" }}
+                                onChange={(e) => {
+                                  const files = Array.from(e.target.files || []);
+                                  if (files.length > 0) {
+                                    setAskAiAttachedFiles((prev) => [...prev, ...files]);
+                                  }
+                                  e.target.value = "";
+                                }}
+                              />
+                              <div
+                                onClick={() => askAiFileInputRef.current?.click()}
+                                title="Attach files"
+                                style={{
+                                  position: "absolute",
+                                  left: "20px",
+                                  bottom: "17px",
+                                  width: "32px",
+                                  height: "32px",
+                                  borderRadius: "10px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  cursor: "pointer",
+                                  border: "1px solid #6C4CDC",
+                                  backgroundColor: "#FFFFFF",
+                                  zIndex: 2
+                                }}
+                              >
+                                <FaPlus size={14} color="#6C4CDC" />
+                              </div>
+                            </>
+                          ) : (
+                            <img
+                              src={askAiSearchIcon}
+                              alt="search"
+                              style={{
+                                position: "absolute",
+                                left: "32px",              // ✅ was 14px → more gap like screenshot
+                                top: "32px",
+                                bottom: "75px",               // ✅ center vertically
+                                transform: "translateY(-50%)",
+                                width: "18px",
+                                height: "18px",
+                                opacity: 0.7
+                              }}
+                            />
+                          )}
 
+                          <textarea
+                            rows={1}
+                            placeholder={feedbackMode ? "Please submit your feedback here..." : "Ask me anything..."}
+                            ref={textareaRef}
+                            defaultValue=""
+                            onChange={(e) => {
+                              inputRef.current = e.target.value;
+                              setIsInputEmpty(!e.target.value.trim());
+                              // Auto-grow the textarea up to its max-height
+                              // (ChatGPT-style). Reset to "auto" first so it can
+                              // also shrink when the user deletes content.
+                              const el = e.target;
+                              el.style.height = "auto";
+                              const next = Math.min(el.scrollHeight, 200);
+                              el.style.height = next + "px";
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                if (messages.some((m) => m.temp)) return;
+                                handleSend();
+                                // Snap back to the default size after sending
+                                if (textareaRef.current) {
+                                  textareaRef.current.style.height = "66px";
+                                }
+                                setIsInputEmpty(true);
+                              }
+                            }}
+                            style={{
+                              width: "100%",
+                              resize: "none",
+                              // right padding accounts for the absolute-positioned
+                              // mic (right:70 + width:32 = 102) + send button + ~16px gap
+                              padding: "22px 120px 16px 63px",
+                              borderRadius: "14px",
+                              border: "none",
+                              outline: "none",
+                              lineHeight: "22px",
+                              backgroundColor: "#F0EDF6",
+                              minHeight: "66px",
+                              maxHeight: "200px",
+                              height: "66px",
+                              color: "#000",
+                              overflowY: "auto",
+                              scrollbarWidth: "none",
+                              msOverflowStyle: "none",
+                              wordBreak: "break-word",
+                              overflowWrap: "anywhere",
+                              transition: "height 0.12s ease"
+                            }}
+
+
+                          />
+                          <div
+                            onClick={handleMicClick}
+                            style={{
+                              position: "absolute",
+                              right: "70px",
+                              bottom: "17px",
+                              width: "32px",
+                              height: "32px",
+                              backgroundColor: isListening ? "#FF4D4F" : "#6C4CDC",
+                              borderRadius: "10px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: "pointer",
+                            }}
+                          >
+                            <FaMicrophone size={16} color="#fff" />
+                          </div>
+                          {/* <FaCircleArrowRight onClick={handleSend} size={22} style={{ position: "absolute", right: "14px", top: "50%", transform: "translateY(-50%)", cursor: "pointer", color: "#6C4CDC" }} /> */}
+                          {(() => {
+                            const isAwaitingResponse = messages.some((m) => m.temp);
+                            // Empty prompts are only allowed on the very first
+                            // resume-screening pass (when JD + resumes are
+                            // attached and the first send hasn't fired yet).
+                            // After that, every send must carry a typed prompt.
+                            const allowEmptyPromptForResumeScreeningNow =
+                              isHRAskAiPage &&
+                              hrMode === "resume_screening" &&
+                              jdFiles.length > 0 &&
+                              resumeFiles.length > 0 &&
+                              !hasResumeRunStarted;
+                            const allowEmptyPromptForGeneralWithFiles =
+                              isHRAskAiPage &&
+                              hrMode === "general" &&
+                              askAiAttachedFiles.length > 0;
+                            const isEmptyAndBlocked =
+                              isInputEmpty &&
+                              !allowEmptyPromptForResumeScreeningNow &&
+                              !allowEmptyPromptForGeneralWithFiles;
+                            const isSendDisabled =
+                              isSTTActive || isAwaitingResponse || isEmptyAndBlocked;
+                            return (
+                              <div
+                                onClick={() => {
+                                  if (isSTTActive || (isCareVoicePage && !careVoiceStarted)) return;
+                                  if (isAwaitingResponse) return;
+                                  if (isEmptyAndBlocked) return;
+
+                                  handleSend();
+
+                                  if (textareaRef.current) {
+                                    textareaRef.current.value = "";
+                                    // Snap the auto-grown textarea back to its default height
+                                    textareaRef.current.style.height = "66px";
+                                  }
+
+                                  inputRef.current = "";
+                                  setIsInputEmpty(true);
+                                }}
+                                style={{
+                                  position: "absolute",
+                                  right: "32px",
+                                  bottom: "17px",
+                                  width: "32px",
+                                  height: "32px",
+                                  borderRadius: "10px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  cursor: isSendDisabled ? "not-allowed" : "pointer",
+                                  backgroundColor: isSendDisabled ? "#C9C4E3" : "#6C4CDC",
+                                  opacity: isSendDisabled ? 0.5 : 1,
+                                  pointerEvents: isSendDisabled ? "none" : "auto"
+                                }}
+                              >
+                                <img
+                                  src={askAiSendBtn}
+                                  alt="send"
+                                  style={{
+                                    width: "16px",
+                                    height: "16px",
+                                    pointerEvents: "none",
+                                  }}
+                                />
+                              </div>
+                            );
+                          })()}
+
+                        </div>
                       </div>}
                     </div>
                   </div>
@@ -2403,6 +3429,212 @@ const HomePage = () => {
                 📄 {src.document_name}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {/* Candidate Detail Modal - Styled like expanded source */}
+      {showCandidateModal && selectedCandidateForModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(4px)"
+          }}
+          onClick={() => setShowCandidateModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: "#FFF",
+              borderRadius: "14px",
+              width: "90%",
+              maxWidth: "650px",
+              maxHeight: "85vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.2)",
+              border: "1px solid #E8ECEF"
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "16px 20px",
+                borderBottom: "1px solid #E8ECEF",
+                backgroundColor: "#F9F8FF",
+                borderRadius: "14px 14px 0 0"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <FiFileText size={20} color="#6C4CDC" />
+                <h2 style={{ fontSize: "18px", fontWeight: 600, color: "#1A1A1A", margin: 0 }}>
+                  Candidate Details
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowCandidateModal(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: "#999",
+                  padding: "0 6px",
+                  lineHeight: 1
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "20px",
+                scrollbarWidth: "thin"
+              }}
+            >
+              {/* Score Section */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "20px",
+                  padding: "16px",
+                  background: "#F9F8FF",
+                  borderRadius: "12px",
+                  border: "1px solid #E8ECEF"
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: "13px", color: "#666", marginBottom: "4px", fontWeight: 500 }}>
+                    Match Score
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "42px",
+                      fontWeight: 700,
+                      color: selectedCandidateForModal.candidate_resume_score >= 80 ? "#4FD46E" :
+                        selectedCandidateForModal.candidate_resume_score >= 60 ? "#FFB347" : "#FF6B6B"
+                    }}
+                  >
+                    {selectedCandidateForModal.candidate_resume_score}%
+                  </div>
+                </div>
+                <div
+                  style={{
+                    width: "70px",
+                    height: "70px",
+                    borderRadius: "35px",
+                    background: "#E8ECEF",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "28px"
+                  }}
+                >
+                  📄
+                </div>
+              </div>
+
+              {/* Basic Info */}
+              <div style={{ marginBottom: "20px" }}>
+                <h3 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "10px", color: "#333" }}>
+                  Basic Information
+                </h3>
+                <div style={{ padding: "12px", background: "#F5F5F5", borderRadius: "10px" }}>
+                  <p style={{ marginBottom: "6px", fontSize: "13px" }}>
+                    <strong>Name:</strong> {selectedCandidateForModal.candidate_name || "N/A"}
+                  </p>
+                  <p style={{ marginBottom: "6px", fontSize: "13px" }}>
+                    <strong>Email:</strong> {selectedCandidateForModal.candidate_email || "N/A"}
+                  </p>
+                  <p style={{ fontSize: "13px" }}>
+                    <strong>Resume Score:</strong> {selectedCandidateForModal.candidate_resume_score}%
+                  </p>
+                </div>
+              </div>
+
+              {/* Full Resume Summary */}
+              <div>
+                <h3 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "10px", color: "#333" }}>
+                  Resume Summary
+                </h3>
+                <div
+                  style={{
+                    padding: "16px",
+                    background: "#FAFAFF",
+                    borderRadius: "10px",
+                    border: "1px solid #E8ECEF",
+                    lineHeight: "1.6",
+                    fontSize: "13px",
+                    color: "#444",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word"
+                  }}
+                >
+                  {selectedCandidateForModal.resume_summary || "No summary available"}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: "14px 20px",
+                borderTop: "1px solid #E8ECEF",
+                display: "flex",
+                gap: "12px",
+                justifyContent: "flex-end",
+                backgroundColor: "#FFF",
+                borderRadius: "0 0 14px 14px"
+              }}
+            >
+              <button
+                onClick={() => {
+                  toggleCandidate(selectedCandidateForModal.index);
+                  setShowCandidateModal(false);
+                }}
+                style={{
+                  padding: "8px 18px",
+                  borderRadius: "8px",
+                  border: "1px solid #6C4CDC",
+                  backgroundColor: selectedCandidates.includes(selectedCandidateForModal.index) ? "#6C4CDC" : "#FFF",
+                  color: selectedCandidates.includes(selectedCandidateForModal.index) ? "#FFF" : "#6C4CDC",
+                  cursor: "pointer",
+                  fontWeight: 500,
+                  fontSize: "13px"
+                }}
+              >
+                {selectedCandidates.includes(selectedCandidateForModal.index) ? "✓ Selected" : "Select Candidate"}
+              </button>
+              <button
+                onClick={() => setShowCandidateModal(false)}
+                style={{
+                  padding: "8px 18px",
+                  borderRadius: "8px",
+                  border: "1px solid #CCC",
+                  backgroundColor: "#FFF",
+                  color: "#666",
+                  cursor: "pointer",
+                  fontWeight: 500,
+                  fontSize: "13px"
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

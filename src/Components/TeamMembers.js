@@ -112,6 +112,7 @@ const TeamMembers = ({ onBack, loggedInUserEmail }) => {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          groupId: member.groupId,
           userEmail: member.userEmail,
           status: newStatus,
         }),
