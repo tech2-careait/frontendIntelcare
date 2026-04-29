@@ -293,15 +293,18 @@ const fetchTests = async () => {
           </div>
 
           <div className="stc_questions_container">
-            <div style={{ marginBottom: '16px', textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h4>Test Questions</h4>
-              <span style={{ fontSize: '12px', color: '#666' }}>💡 Mix of Single & Multiple Answer questions allowed</span>
+            <div className="stc_questions_header">
+              <h4>
+                Test Questions
+                <span className="stc_question_count_badge">{questions.length}</span>
+              </h4>
+              <span className="stc_hint_text">Mix of Single & Multiple Answer questions allowed</span>
             </div>
 
             {questions.map((item, index) => (
               <div className="stc_question_card" key={index}>
                 <div className="stc_question_top">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="stc_question_top_left">
                     <h4>Question {index + 1}</h4>
 
                     {/* Question Type Toggle */}
@@ -406,7 +409,7 @@ const fetchTests = async () => {
             <FiPlus /> Add Another Question
           </button>
 
-          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end', gap: '16px' }}>
+          <div className="stc_action_bar">
             <button
               className="stc_save_btn"
               onClick={handleCreateAndSend}
@@ -432,17 +435,23 @@ const fetchTests = async () => {
               <h3>Test Library</h3>
               <p className="stc_section_sub">Previously generated screening tests</p>
             </div>
+            {!loadingTests && previousTests.length > 0 && (
+              <span className="stc_lib_stats">
+                <FiFileText /> {previousTests.length} {previousTests.length === 1 ? 'Test' : 'Tests'}
+              </span>
+            )}
           </div>
 
           {loadingTests ? (
             <div className="stc_loading_box">
-              <FiLoader className="stc_spin_icon" />
+              <FiLoader className="stc_spin_icon" size={28} />
               <span>Fetching tests...</span>
             </div>
           ) : previousTests.length === 0 ? (
             <div className="stc_empty_state">
               <div className="stc_empty_icon"><FiFileText /></div>
               <p>No screening tests have been created yet.</p>
+              <span style={{ fontSize: '13px', color: '#9ca3af' }}>Create your first test above to get started.</span>
             </div>
           ) : (
             <div className="stc_candidate_grid">
