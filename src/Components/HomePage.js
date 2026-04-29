@@ -74,6 +74,8 @@ import { FiFileText } from "react-icons/fi";
 import { IoChevronForward, IoChevronDown } from "react-icons/io5";
 import { BiDislike, BiLike, BiSolidDislike, BiSolidLike } from "react-icons/bi";
 import incrementCareVoiceAnalysisCount from "./Modules/SupportAtHomeModule/careVoiceCostAnalysis";
+import TlcUploadBox from "./Modules/FinancialModule/TlcUploadBox";
+import { useHRChat } from "./Modules/SupportAtHomeModule/hrAssistantStream";
 const HomePage = () => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [documentString, setDocumentString] = useState("");
@@ -156,8 +158,28 @@ const HomePage = () => {
   const handleLeftModalClose = () => setLeftModalVisible(false);
   const [feedbackMode, setFeedbackMode] = useState(null);
   const [isCareVoiceLocked, setIsCareVoiceLocked] = useState(true);
+  const [hrStep, setHrStep] = useState("IDLE");
+  const [hrMode, setHrMode] = useState("general");
+  const [hrSending, setHrSending] = useState(false);
+
+  const [uploadedFiles, setUploadedFiles] = useState([]);
+  const [screenedResults, setScreenedResults] = useState([]);
+  const [selectedCandidates, setSelectedCandidates] = useState([]);
+  const [shortlistLoading, setShortlistLoading] = useState(false);
+  const [screeningLoading, setScreeningLoading] = useState(false);
+  const [expandedIndex, setExpandedIndex] = useState(null);
+  const [jdFiles, setJdFiles] = useState([]);
+  const [resumeFiles, setResumeFiles] = useState([]);
   const userEmail = user?.email;
   const userDomain = userEmail?.split("@")[1]?.toLowerCase();
+  const [selectedCandidateForModal, setSelectedCandidateForModal] = useState(null);
+  const [showCandidateModal, setShowCandidateModal] = useState(false);
+  const [candidatesData, setCandidatesData] = useState([]);
+  const [organizationId, setOrganizationId] = useState(null);
+  const { isConnected, sendHRChat } = useHRChat();
+  let eventQueue = [];
+  let isShowingEvent = false;
+  // Add useEffect to sync refs
   const blockedAutoTopupDomains = [
     "curki.ai",
     "tenderlovingcaredisability.com.au",
@@ -388,6 +410,62 @@ const HomePage = () => {
     ],
     default: []
   };
+  // Add this function inside HomePage component
+  const fetchOrganizationId = async (email) => {
+    try {
+      if (!email) return;
+
+      console.log("Fetching organizationId for:", email);
+
+      const res = await fetch(
+        `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/teamMembers/hierarchy?email=${encodeURIComponent(email)}`
+      );
+
+      const data = await res.json();
+
+      console.log("Hierarchy response:", data);
+
+      if (res.ok && data?.groupData?.id) {
+        setOrganizationId(data.groupData.id);
+        console.log("organizationId set:", data.groupData.id);
+      } else {
+        setOrganizationId(email);
+        console.log("Fallback organizationId:", email);
+      }
+    } catch (error) {
+      console.error("fetchOrganizationId error:", error);
+      setOrganizationId(email);
+    }
+  };
+
+const fetchAllCandidates = async () => {
+  try {
+    if (!user?.email || !organizationId) return;
+
+    console.log("Fetching all candidates for:", {
+      admin_email: user.email,
+      organization_id: organizationId
+    });
+
+    const res = await axios.get(
+      "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/get-all-candidates",
+      {
+        params: {
+          admin_email: user.email,
+          organization_id: organizationId
+        }
+      }
+    );
+
+    console.log("getAllCandidates response:", res.data);
+
+    if (res.data?.ok) {
+      setCandidatesData(res.data.candidates || []);
+    }
+  } catch (error) {
+    console.log("fetchAllCandidates error:", error);
+  }
+};
   useEffect(() => {
     const handleTrialInit = (event) => {
       setIsTrialInitializing(event.detail);
@@ -399,6 +477,16 @@ const HomePage = () => {
       window.removeEventListener("trial-initializing", handleTrialInit);
     };
   }, []);
+  useEffect(() => {
+    if (user?.email) {
+      fetchOrganizationId(user?.email);
+    }
+  }, [user]);
+  useEffect(() => {
+    if (isHRAskAiPage && user?.email) {
+      fetchAllCandidates();
+    }
+  }, [selectedRole, user]);
   useEffect(() => {
     if (
       !subscriptionInfo ||
@@ -578,7 +666,264 @@ const HomePage = () => {
     }
   };
 
+  const toggleCandidate = (index) => {
+    setSelectedCandidates((prev) => {
+      if (prev.includes(index)) {
+        return prev.filter((item) => item !== index);
+      }
+      return [...prev, index];
+    });
+  };
 
+  const handleBulkScreening = async () => {
+    if (jdFiles.length === 0 || resumeFiles.length === 0) return;
+
+    try {
+      setScreeningLoading(true);
+
+      // Add a processing message
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "Processing your documents... Please wait.",
+          temp: true
+        }
+      ]);
+
+      const formData = new FormData();
+      formData.append("organisation_id", organizationId);
+      formData.append("jd_file", jdFiles[0]);
+
+      resumeFiles.forEach((file) => {
+        formData.append("resume_files", file);
+      });
+
+      const res = await axios.post(
+        "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/screen-bulk",
+        formData,
+        { headers: { "Content-Type": "multipart/form-data" } }
+      );
+      console.log("Bulk screening response", res.data);
+      if (res.data?.ok) {
+        const list = (res.data.candidates || []).map((item) => ({
+          ...item.screener,
+          index: item.index
+        }));
+
+        setScreenedResults(list);
+        setSelectedCandidates(list.map((_, i) => i));
+        setHrStep("RESULTS");
+
+        // Replace the processing message with results message
+        setMessages((prev) => {
+          const filtered = prev.filter(msg => !msg.temp);
+          return [
+            ...filtered,
+            {
+              sender: "bot",
+              text: `✅ Screening complete! Found ${list.length} candidates. Here are the results:`,
+              showResults: true,
+              resultsCount: list.length
+            }
+          ];
+        });
+      }
+    } catch (err) {
+      console.log(err);
+      setMessages((prev) => [
+        ...prev.filter(msg => !msg.temp),
+        {
+          sender: "bot",
+          text: "❌ Sorry, something went wrong while screening. Please try again."
+        }
+      ]);
+    } finally {
+      setScreeningLoading(false);
+    }
+  };
+
+  const handleShortlist = async () => {
+    try {
+      setShortlistLoading(true);
+
+      const data = await axios.post(
+        "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/shortlist-screened",
+        {
+          organisation_id: organizationId,
+          admin_email: user?.email,
+          screened: screenedResults,
+          selected_indices: selectedCandidates
+        }
+      );
+      console.log("Shortlist response", data);
+      setScreenedResults(data.data.shortlisted || []);
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: `${selectedCandidates.length} candidates shortlisted successfully.`
+        }
+      ]);
+
+      setHrStep("IDLE");
+      await fetchAllCandidates();
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setShortlistLoading(false);
+    }
+  };
+  useEffect(() => {
+    if (isHRAskAiPage && messages.length === 0) {
+      setMessages([
+        {
+          sender: "bot",
+          text: "Hello! I'm Alex, your AI recruitment partner. How can I help you streamline the staff onboarding today?"
+        }
+      ]);
+    }
+  }, [isHRAskAiPage, messages.length]);
+  const openResumeScreening = () => {
+    setHrMode("resume_screening");
+    setHrStep("UPLOAD");
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: "user",
+        text: "Resume Screening"
+      },
+      {
+        sender: "bot",
+        text: "Please upload the Job Description and candidate resumes to start screening.",
+        isUploadPrompt: true  // Add flag to identify upload prompt
+      }
+    ]);
+  };
+  const handleHRChatWithSocket = async (finalQuery, tempMessageId) => {
+    console.log("[HomePage] Starting HR Chat", finalQuery);
+
+    // Function to update the temp message - USE FUNCTIONAL UPDATE
+    const updateTempMessage = (newText, isStreaming = true) => {
+      console.log("[HR CHAT] Updating message:", newText);
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.tempId === tempMessageId
+            ? {
+              ...msg,
+              text: newText,
+              isStreaming: isStreaming,
+              temp: isStreaming  // Keep temp true until complete
+            }
+            : msg
+        )
+      );
+    };
+
+    const payload = {
+      organisation_id: organizationId,
+      message: finalQuery,
+      api_key: "",
+      workflow_phase: hrMode === "resume_screening" ? "resume_screening" : "general",
+      screened_candidates: hrMode === "resume_screening" ? candidatesData : candidatesData,
+      conversation_history: messages.filter(m => !m.temp && m.sender === "user"), // Only user messages
+      admin_name: user?.displayName || "HR Admin",
+      admin_email: user?.email
+    };
+
+    try {
+      const sent = sendHRChat({
+        payload,
+
+        onEvent: (type, data) => {
+          console.log("[HR CHAT] Event received:", type, data);
+
+          let newText = "";
+
+          if (type === "status") {
+            // This is what you need! Display the message from status event
+            newText = data?.message || "Processing...";
+            console.log("[HR CHAT] Setting status message:", newText);
+            updateTempMessage(newText, true);
+          }
+          else if (type === "event") {
+            if (data?.payload?.message) {
+              newText = data.payload.message;
+            } else if (data?.payload?.status) {
+              newText = data.payload.status;
+            } else if (data?.event) {
+              const eventName = data.event;
+              if (eventName.includes("session_ready")) {
+                newText = "🎯 Session ready, analyzing...";
+              } else if (eventName.includes("thinking")) {
+                newText = "🤔 AI is thinking...";
+              } else if (eventName.includes("processing")) {
+                newText = "⚙️ Processing your request...";
+              } else {
+                newText = `📡 ${eventName.split('.').pop()}`;
+              }
+            }
+            if (newText) updateTempMessage(newText, true);
+          }
+          else if (type === "email_prepared") {
+            newText = `📧 ${data?.message || "Preparing email..."}`;
+            updateTempMessage(newText, true);
+          }
+          else if (type === "email_sent") {
+            newText = `✅ ${data?.message || "Email sent successfully!"}`;
+            updateTempMessage(newText, true);
+          }
+        },
+
+        onComplete: (data) => {
+          console.log("[HR CHAT] Complete:", data);
+
+          const finalText = data?.message || "Process completed!";
+
+          // Final update - remove temp flag
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.tempId === tempMessageId
+                ? {
+                  sender: "bot",
+                  text: finalText,
+                  temp: false,
+                  isStreaming: false
+                }
+                : msg
+            )
+          );
+        },
+
+        onError: (err) => {
+          console.error("[HR CHAT] Error:", err);
+
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.tempId === tempMessageId
+                ? {
+                  sender: "bot",
+                  text: `❌ Error: ${err?.message || "Something went wrong"}`,
+                  temp: false,
+                  isError: true
+                }
+                : msg
+            )
+          );
+        }
+      });
+
+      if (!sent) {
+        updateTempMessage("❌ Connection failed. Please try again.", false);
+      }
+
+    } catch (error) {
+      console.error("[HR CHAT] Exception:", error);
+      updateTempMessage(`❌ ${error.message}`, false);
+    }
+  };
   const handleSend = async (customText, eventName = null) => {
     // 🚨 FEEDBACK MODE HANDLER (ADD THIS AT TOP)
     if (feedbackMode) {
@@ -636,7 +981,13 @@ const HomePage = () => {
     if (finalQuery) {
       setMessages((prev) => [...prev, { sender: "user", text: finalQuery }]);
     }
-    const tempBotMessage = { sender: "bot", text: "Generating response...", temp: true };
+    const tempMessageId = Date.now();
+    const tempBotMessage = {
+      sender: "bot",
+      text: "Generating response...",
+      temp: true,
+      tempId: tempMessageId
+    };
     setMessages((prev) => [...prev, tempBotMessage]);
 
     // clear input only when the user typed (not when suggestion clicked)
@@ -797,47 +1148,22 @@ const HomePage = () => {
 
         return;
       }
-      if (isHRAskAiPage) {
+      if (isHRAskAiPage && (hrMode === "general" || (hrMode === "resume_screening" && hrStep !== "UPLOAD" && hrStep !== "RESULTS"))) {
         try {
-          const form = new FormData();
-          form.append("resume_zip_file", manualResumeZip);
-          form.append("question", finalQuery);
-
-          const response = await axios.post(
-            "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/askAi",
-            form,
-            { headers: { "Content-Type": "multipart/form-data" } }
-          );
-
-          // console.log("Resume Ask-AI Response: ", response.data);
-
-          const botReply =
-            response.data?.results?.answer ||
-            response.data?.answer ||
-            JSON.stringify(response.data, null, 2);
-
-          setMessages(prev =>
-            prev.map(msg => (msg.temp ? { sender: "bot", text: botReply } : msg))
-          );
-          await incrementCareVoiceAnalysisCount(
-            user?.email?.trim().toLowerCase(),
-            "askai",
-            0,
-            "smart-onboarding",
-            0
-          );
-          return;
+          setHrSending(true);
+          await handleHRChatWithSocket(finalQuery, tempMessageId);
         } catch (error) {
-          console.error("Resume Ask-AI Error:", error);
-          setMessages(prev =>
-            prev.map(msg =>
-              msg.temp ? { sender: "bot", text: "Ask-AI for resumes failed." } : msg
-            )
-          );
-          return;
+          console.error("HR Chat error:", error);
+          setMessages(prev => prev.map(msg =>
+            msg.temp && msg.tempId === tempMessageId
+              ? { ...msg, text: `❌ Error: ${error.message}` }
+              : msg
+          ));
+        } finally {
+          setHrSending(false);
         }
+        return;
       }
-
       if (isSmartRosteringPage) {
         if (manualAskAiFile) {
           const form = new FormData();
@@ -949,7 +1275,7 @@ const HomePage = () => {
           if (user?.email) {
             try {
               const email = user.email.trim().toLowerCase();
-              await incrementCareVoiceAnalysisCount(email, "askai", response?.data?.llm_cost?.total_usd,"client-profitability",response?.data?.llm_cost?.token_usage);
+              await incrementCareVoiceAnalysisCount(email, "askai", response?.data?.llm_cost?.total_usd, "client-profitability", response?.data?.llm_cost?.token_usage);
             } catch (err) {
               console.error("❌ Failed to increment Client Profitability AskAI count:", err.message);
             }
@@ -1114,7 +1440,11 @@ const HomePage = () => {
     if (textareaRef.current) {
       textareaRef.current.value = "";
     }
-
+    setHrStep("IDLE");
+    setJdFiles([]);
+    setResumeFiles([]);
+    setScreenedResults([]);
+    setSelectedCandidates([]);
     inputRef.current = "";
   }, [selectedRole]);
 
@@ -1504,7 +1834,8 @@ const HomePage = () => {
                       </div>
 
                       <div style={{ display: selectedRole === "Smart Onboarding (Staff)" ? "block" : "none" }}>
-                        <HRAnalysis handleClick={handleClick} selectedRole="Smart Onboarding (Staff)" setShowFeedbackPopup={setShowFeedbackPopup} user={user} setManualResumeZip={setManualResumeZip} />
+                        <HRAnalysis handleClick={handleClick} selectedRole="Smart Onboarding (Staff)" setShowFeedbackPopup={setShowFeedbackPopup} user={user} setManualResumeZip={setManualResumeZip} smartCandidates={candidatesData} setShowAIChat={setShowAIChat}
+                          setMessages={setMessages} setHrMode={setHrMode} setHrStep={setHrStep} organizationId={organizationId} />
                       </div>
                       <div style={{ display: selectedRole === "Care Voice" ? "block" : "none" }}>
                         <VoiceModule user={user} isMobileOrTablet={isMobileOrTablet} setCareVoiceFiles={setCareVoiceFiles} setIsCareVoiceGeneratingDocs={setIsCareVoiceGeneratingDocs}
@@ -1553,11 +1884,62 @@ const HomePage = () => {
                   <div style={{ position: "fixed", bottom: "20px", right: "21px", width: "76%", height: isSoftwareConnectPage ? "86%" : "80%", backgroundColor: "#FFFEFF", borderRadius: "24px", zIndex: 999, display: "flex", flexDirection: "column", justifyContent: "space-between", border: '1.09px solid #6C4CDC', boxShadow: '0px 4.36px 65.42px 0px #FFFFFF03', padding: ' 14px 30px', marginBottom: "8px" }}>
                     <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", borderTopRightRadius: "24px", borderTopLeftRadius: "24px", }}>
                       <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: "44px" }}>
+                        {isHRAskAiPage && (
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: "8px",
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              color: "#333",
+                              cursor: "pointer"
+                            }}
+                          >
+                            <span>Resume Screening:</span>
+
+                            <input
+                              type="checkbox"
+                              checked={hrMode === "resume_screening"}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  openResumeScreening();
+                                } else {
+                                  setHrMode("general");
+                                  setHrStep("IDLE");
+                                  setJdFiles([]);
+                                  setResumeFiles([]);
+                                  setScreenedResults([]);
+                                  setSelectedCandidates([]);
+
+                                  setMessages((prev) => [
+                                    ...prev,
+                                    {
+                                      sender: "bot",
+                                      text: "Switched back to General mode."
+                                    }
+                                  ]);
+                                }
+                              }}
+                              style={{
+                                width: "18px",
+                                height: "18px",
+                                accentColor: "#6C4CDC",
+                                cursor: "pointer"
+                              }}
+                            />
+                          </label>
+                        )}
                         {messages.length > 0 && <div
                           onClick={() => {
                             setMessages([]);
                             setFeedbackState({});
                             setFeedbackMode(null);
+                            setHrStep("IDLE");
+                            setJdFiles([]);
+                            setResumeFiles([]);
+                            setScreenedResults([]);
+                            setSelectedCandidates([]);
                           }}
                           style={{
                             display: "flex",
@@ -1697,11 +2079,15 @@ const HomePage = () => {
                                     className="ask-ai-res-div"
                                   >
                                     {msg.temp ? (
-                                      <div className="askai-loader">
-                                        <span></span>
-                                        <span></span>
-                                        <span></span>
-                                      </div>
+                                      isHRAskAiPage ? (
+                                        <div style={{ color: "#666" }}>{msg.text || "Processing..."}<span className="hr-loading-dots"></span></div>
+                                      ) : (
+                                        <div className="askai-loader">
+                                          <span></span>
+                                          <span></span>
+                                          <span></span>
+                                        </div>
+                                      )
                                     ) : (
                                       <>
                                         <ReactMarkdown
@@ -1716,6 +2102,217 @@ const HomePage = () => {
                                           remarkPlugins={[remarkGfm]}
                                           rehypePlugins={[rehypeRaw, rehypeHighlight]}
                                         />
+                                        {msg.isUploadPrompt && hrStep === "UPLOAD" && (
+                                          <div style={{ marginTop: "16px" }}>
+                                            <div className="hr-upload-wrap">
+                                              <div className="hr-upload-boxes">
+                                                <TlcUploadBox
+                                                  id="jd-upload"
+                                                  title="Upload Job Description"
+                                                  subtitle="Upload single JD file"
+                                                  files={jdFiles}
+                                                  setFiles={setJdFiles}
+                                                  accept=".pdf,.doc,.docx,.txt"
+                                                  multiple={false}
+                                                />
+
+                                                <div style={{ height: "14px" }} />
+
+                                                <TlcUploadBox
+                                                  id="resume-upload"
+                                                  title="Upload Candidate Resumes"
+                                                  subtitle="Upload multiple resume files"
+                                                  files={resumeFiles}
+                                                  setFiles={setResumeFiles}
+                                                  accept=".pdf,.doc,.docx,.txt"
+                                                  multiple={true}
+                                                />
+                                              </div>
+
+                                              <div style={{ display: "flex", gap: "12px", marginTop: "18px" }}>
+                                                <button
+                                                  className="hr-primary-btn"
+                                                  onClick={handleBulkScreening}
+                                                  disabled={screeningLoading || jdFiles.length === 0 || resumeFiles.length === 0}
+                                                  style={{
+                                                    padding: "12px 24px",
+                                                    borderRadius: "12px",
+                                                    border: "none",
+                                                    backgroundColor: (screeningLoading || jdFiles.length === 0 || resumeFiles.length === 0) ? "#CCC" : "#6C4CDC",
+                                                    color: "white",
+                                                    fontSize: "14px",
+                                                    fontWeight: 600,
+                                                    cursor: (screeningLoading || jdFiles.length === 0 || resumeFiles.length === 0) ? "not-allowed" : "pointer"
+                                                  }}
+                                                >
+                                                  {screeningLoading ? "Processing..." : "Start Screening"}
+                                                </button>
+
+                                                <button
+                                                  className="hr-secondary-btn"
+                                                  onClick={() => {
+                                                    setHrStep("IDLE");
+                                                    setJdFiles([]);
+                                                    setResumeFiles([]);
+                                                    setHrMode("general");
+                                                    setMessages((prev) => [
+                                                      ...prev,
+                                                      { sender: "bot", text: "Switched back to General mode." }
+                                                    ]);
+                                                  }}
+                                                  style={{
+                                                    padding: "12px 24px",
+                                                    borderRadius: "12px",
+                                                    border: "1px solid #CCC",
+                                                    backgroundColor: "white",
+                                                    color: "#666",
+                                                    fontSize: "14px",
+                                                    fontWeight: 500,
+                                                    cursor: "pointer"
+                                                  }}
+                                                >
+                                                  Cancel
+                                                </button>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {/* Show results when showResults is true */}
+                                        {msg.showResults && hrStep === "RESULTS" && screenedResults.length > 0 && (
+                                          <div style={{ marginTop: "16px" }}>
+                                            <div className="hr-results-wrap" style={{
+                                              display: "flex",
+                                              flexDirection: "column",
+                                              maxHeight: "400px",
+                                              overflow: "hidden"
+                                            }}>
+                                              <div style={{
+                                                fontSize: "16px",
+                                                fontWeight: 600,
+                                                marginBottom: "12px",
+                                                padding: "10px 12px",
+                                                background: "#F9F8FF",
+                                                borderRadius: "10px",
+                                                border: "1px solid #E8ECEF"
+                                              }}>
+                                                {screenedResults.length} Candidates Found
+                                              </div>
+
+                                              <div style={{
+                                                flex: 1,
+                                                overflowY: "auto",
+                                                maxHeight: "250px",
+                                                marginBottom: "12px"
+                                              }}>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                                                  {screenedResults.map((item, idx) => {
+                                                    const isSelected = selectedCandidates.includes(idx);
+                                                    return (
+                                                      <div
+                                                        key={idx}
+                                                        onClick={() => {
+                                                          setSelectedCandidateForModal({ ...item, index: idx });
+                                                          setShowCandidateModal(true);
+                                                        }}
+                                                        style={{
+                                                          border: isSelected ? "1px solid #6C4CDC" : "1px solid #E5E7EB",
+                                                          borderRadius: "10px",
+                                                          padding: "10px 12px",
+                                                          cursor: "pointer",
+                                                          background: isSelected ? "#F8F6FF" : "transparent"
+                                                        }}
+                                                      >
+                                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                                          <div style={{ display: "flex", alignItems: "center", gap: "8px", flex: 1 }}>
+                                                            <div
+                                                              onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                toggleCandidate(idx);
+                                                              }}
+                                                              style={{
+                                                                width: "16px",
+                                                                height: "16px",
+                                                                borderRadius: "3px",
+                                                                backgroundColor: isSelected ? "#6C4CDC" : "#FFF",
+                                                                border: isSelected ? "none" : "1.5px solid #CCC",
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "center",
+                                                                cursor: "pointer"
+                                                              }}
+                                                            >
+                                                              {isSelected && (
+                                                                <svg width="10" height="10" viewBox="0 0 12 12" fill="none">
+                                                                  <path d="M10 3L4.5 8.5L2 6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                                                </svg>
+                                                              )}
+                                                            </div>
+                                                            <div>
+                                                              <div style={{ fontSize: "13px", fontWeight: 500 }}>{item.candidate_name || "Unknown"}</div>
+                                                              <div style={{ fontSize: "10px", color: "#888" }}>{item.candidate_email || "No email"}</div>
+                                                            </div>
+                                                          </div>
+                                                          <span style={{
+                                                            fontSize: "14px",
+                                                            fontWeight: 700,
+                                                            color: item.candidate_resume_score >= 80 ? "#4FD46E" : item.candidate_resume_score >= 60 ? "#FFB347" : "#FF6B6B"
+                                                          }}>
+                                                            {item.candidate_resume_score}%
+                                                          </span>
+                                                        </div>
+                                                      </div>
+                                                    );
+                                                  })}
+                                                </div>
+                                              </div>
+
+                                              <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+                                                <button
+                                                  onClick={handleShortlist}
+                                                  disabled={shortlistLoading || selectedCandidates.length === 0}
+                                                  style={{
+                                                    flex: 1,
+                                                    padding: "10px",
+                                                    borderRadius: "8px",
+                                                    border: "none",
+                                                    backgroundColor: (shortlistLoading || selectedCandidates.length === 0) ? "#CCC" : "#6C4CDC",
+                                                    color: "white",
+                                                    fontSize: "13px",
+                                                    fontWeight: 600,
+                                                    cursor: (shortlistLoading || selectedCandidates.length === 0) ? "not-allowed" : "pointer"
+                                                  }}
+                                                >
+                                                  {shortlistLoading ? "Shortlisting..." : `Proceed (${selectedCandidates.length} Selected)`}
+                                                </button>
+                                                <button
+                                                  onClick={() => {
+                                                    setHrStep("IDLE");
+                                                    setJdFiles([]);
+                                                    setResumeFiles([]);
+                                                    setScreenedResults([]);
+                                                    setSelectedCandidates([]);
+                                                    setMessages((prev) => [
+                                                      ...prev,
+                                                      { sender: "bot", text: "Returned to general mode." }
+                                                    ]);
+                                                  }}
+                                                  style={{
+                                                    padding: "10px 16px",
+                                                    borderRadius: "8px",
+                                                    border: "1px solid #CCC",
+                                                    backgroundColor: "white",
+                                                    color: "#666",
+                                                    fontSize: "13px",
+                                                    cursor: "pointer"
+                                                  }}
+                                                >
+                                                  Back
+                                                </button>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
                                         {/* {feedbackState[`${selectedRole}_${index}`]?.submitted &&
                                           feedbackState[`${selectedRole}_${index}`]?.text && (
                                             <div
@@ -2132,10 +2729,9 @@ const HomePage = () => {
                           </div>
                         )
                       })}
-
                     </div>
                     <div>
-                      {messages.length === 0 &&
+                      {hrStep !== "RESULTS" && messages.length === 0 &&
                         <div>
                           {Suggestions.length !== 0 &&
                             <div style={{ textAlign: 'left', marginBottom: '9px', fontSize: '14px', fontWeight: '500', fontFamily: 'Inter' }}>
@@ -2188,6 +2784,7 @@ const HomePage = () => {
 
                         </div>
                       }
+
                       {(!isCareVoicePage || careVoiceStarted) && <div style={{ position: "relative", marginTop: "10px", marginBottom: "18px", width: "100%", display: "flex", alignSelf: "center" }}>
                         <img
                           src={askAiSearchIcon}
@@ -2403,6 +3000,212 @@ const HomePage = () => {
                 📄 {src.document_name}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {/* Candidate Detail Modal - Styled like expanded source */}
+      {showCandidateModal && selectedCandidateForModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            zIndex: 10000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            backdropFilter: "blur(4px)"
+          }}
+          onClick={() => setShowCandidateModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: "#FFF",
+              borderRadius: "14px",
+              width: "90%",
+              maxWidth: "650px",
+              maxHeight: "85vh",
+              display: "flex",
+              flexDirection: "column",
+              boxShadow: "0 20px 40px rgba(0, 0, 0, 0.2)",
+              border: "1px solid #E8ECEF"
+            }}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "16px 20px",
+                borderBottom: "1px solid #E8ECEF",
+                backgroundColor: "#F9F8FF",
+                borderRadius: "14px 14px 0 0"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <FiFileText size={20} color="#6C4CDC" />
+                <h2 style={{ fontSize: "18px", fontWeight: 600, color: "#1A1A1A", margin: 0 }}>
+                  Candidate Details
+                </h2>
+              </div>
+              <button
+                onClick={() => setShowCandidateModal(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: "#999",
+                  padding: "0 6px",
+                  lineHeight: 1
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div
+              style={{
+                flex: 1,
+                overflowY: "auto",
+                padding: "20px",
+                scrollbarWidth: "thin"
+              }}
+            >
+              {/* Score Section */}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: "20px",
+                  padding: "16px",
+                  background: "#F9F8FF",
+                  borderRadius: "12px",
+                  border: "1px solid #E8ECEF"
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: "13px", color: "#666", marginBottom: "4px", fontWeight: 500 }}>
+                    Match Score
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "42px",
+                      fontWeight: 700,
+                      color: selectedCandidateForModal.candidate_resume_score >= 80 ? "#4FD46E" :
+                        selectedCandidateForModal.candidate_resume_score >= 60 ? "#FFB347" : "#FF6B6B"
+                    }}
+                  >
+                    {selectedCandidateForModal.candidate_resume_score}%
+                  </div>
+                </div>
+                <div
+                  style={{
+                    width: "70px",
+                    height: "70px",
+                    borderRadius: "35px",
+                    background: "#E8ECEF",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "28px"
+                  }}
+                >
+                  📄
+                </div>
+              </div>
+
+              {/* Basic Info */}
+              <div style={{ marginBottom: "20px" }}>
+                <h3 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "10px", color: "#333" }}>
+                  Basic Information
+                </h3>
+                <div style={{ padding: "12px", background: "#F5F5F5", borderRadius: "10px" }}>
+                  <p style={{ marginBottom: "6px", fontSize: "13px" }}>
+                    <strong>Name:</strong> {selectedCandidateForModal.candidate_name || "N/A"}
+                  </p>
+                  <p style={{ marginBottom: "6px", fontSize: "13px" }}>
+                    <strong>Email:</strong> {selectedCandidateForModal.candidate_email || "N/A"}
+                  </p>
+                  <p style={{ fontSize: "13px" }}>
+                    <strong>Resume Score:</strong> {selectedCandidateForModal.candidate_resume_score}%
+                  </p>
+                </div>
+              </div>
+
+              {/* Full Resume Summary */}
+              <div>
+                <h3 style={{ fontSize: "14px", fontWeight: 600, marginBottom: "10px", color: "#333" }}>
+                  Resume Summary
+                </h3>
+                <div
+                  style={{
+                    padding: "16px",
+                    background: "#FAFAFF",
+                    borderRadius: "10px",
+                    border: "1px solid #E8ECEF",
+                    lineHeight: "1.6",
+                    fontSize: "13px",
+                    color: "#444",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word"
+                  }}
+                >
+                  {selectedCandidateForModal.resume_summary || "No summary available"}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div
+              style={{
+                padding: "14px 20px",
+                borderTop: "1px solid #E8ECEF",
+                display: "flex",
+                gap: "12px",
+                justifyContent: "flex-end",
+                backgroundColor: "#FFF",
+                borderRadius: "0 0 14px 14px"
+              }}
+            >
+              <button
+                onClick={() => {
+                  toggleCandidate(selectedCandidateForModal.index);
+                  setShowCandidateModal(false);
+                }}
+                style={{
+                  padding: "8px 18px",
+                  borderRadius: "8px",
+                  border: "1px solid #6C4CDC",
+                  backgroundColor: selectedCandidates.includes(selectedCandidateForModal.index) ? "#6C4CDC" : "#FFF",
+                  color: selectedCandidates.includes(selectedCandidateForModal.index) ? "#FFF" : "#6C4CDC",
+                  cursor: "pointer",
+                  fontWeight: 500,
+                  fontSize: "13px"
+                }}
+              >
+                {selectedCandidates.includes(selectedCandidateForModal.index) ? "✓ Selected" : "Select Candidate"}
+              </button>
+              <button
+                onClick={() => setShowCandidateModal(false)}
+                style={{
+                  padding: "8px 18px",
+                  borderRadius: "8px",
+                  border: "1px solid #CCC",
+                  backgroundColor: "#FFF",
+                  color: "#666",
+                  cursor: "pointer",
+                  fontWeight: 500,
+                  fontSize: "13px"
+                }}
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

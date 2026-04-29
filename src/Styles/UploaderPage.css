@@ -30,18 +30,19 @@ html,
   -ms-overflow-style: none;
 }
 
-.sidebar-scroll-content{
+.sidebar-scroll-content {
   overflow-y: auto;
   overflow-x: auto;
   margin: 0;
   padding: 0;
   font-family: 'Inter', sans-serif;
   background-color: transparent;
-  
+
   /* Standard Scrollbar Properties (Firefox) */
   scrollbar-color: white transparent !important;
   scrollbar-width: auto
 }
+
 .sidebar-scroll-content::-webkit-scrollbar {
   width: 12px;
 }
@@ -56,12 +57,12 @@ html,
   background-color: white;
   border-radius: 10px;
   /* The transparent border creates 'padding' around the thumb */
-  border: 2px solid transparent; 
+  border: 2px solid transparent;
   background-clip: padding-box;
 }
 
 .sidebar-scroll-content::-webkit-scrollbar-thumb:hover {
-   background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.8);
 }
 
 /* Firefox */
@@ -637,7 +638,7 @@ html,
 
 .ask-ai-res-div span {
   font-weight: bold;
-  color: orange;
+  color: #6C4CDC;
 }
 
 .ask-ai-res-div ul {
@@ -687,6 +688,7 @@ html,
   background: linear-gradient(180deg, #2A1E5C 0%, #1C153F 100%);
   border: 1px solid rgba(255, 255, 255, 0.15);
 }
+
 .profile-button.active-profile-button {
   background: #ffffff;
 }
@@ -702,6 +704,7 @@ html,
 .profile-button.active-profile-button svg {
   color: #000;
 }
+
 .profile-button-left {
   display: flex;
   align-items: center;
@@ -1026,6 +1029,7 @@ html,
   justify-content: center;
   gap: 3px;
 }
+
 .api-key-help-btn {
   display: flex;
   align-items: center;
@@ -1062,6 +1066,7 @@ html,
   width: 24px;
   height: 24px;
 }
+
 .askai-loader {
   display: flex;
   align-items: center;
@@ -1086,12 +1091,307 @@ html,
 }
 
 @keyframes askai-bounce {
-  0%, 80%, 100% {
+
+  0%,
+  80%,
+  100% {
     transform: scale(0);
     opacity: 0.3;
   }
+
   40% {
     transform: scale(1);
     opacity: 1;
   }
+}
+
+.hr-action-btn,
+.hr-primary-btn,
+.hr-secondary-btn {
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* REPLACE WITH THIS ENHANCED VERSION */
+
+.hr-action-btn,
+.hr-primary-btn,
+.hr-secondary-btn {
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.hr-action-btn,
+.hr-primary-btn {
+  background: #6C4CDC;
+  color: #fff;
+}
+
+.hr-primary-btn:disabled {
+  background: #CCC;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.hr-secondary-btn {
+  background: #ECE8FF;
+  color: #6C4CDC;
+}
+
+.hr-upload-wrap {
+  background: #fff;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid #eee;
+}
+
+.hr-upload-boxes {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ENHANCED RESULTS SECTION */
+.hr-results-wrap {
+  padding: 8px 4px 8px 8px;
+  max-height: 60vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+/* Custom scrollbar for results */
+.hr-results-wrap::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hr-results-wrap::-webkit-scrollbar-track {
+  background: #F0EDF6;
+  border-radius: 10px;
+}
+
+.hr-results-wrap::-webkit-scrollbar-thumb {
+  background: #6C4CDC;
+  border-radius: 10px;
+}
+
+.hr-result-heading {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  padding: 12px 16px;
+  background: #F9F8FF;
+  border-radius: 12px;
+  border: 1px solid #E8ECEF;
+}
+
+/* ENHANCED CARD STYLES - Like individual messages */
+.hr-card {
+  background: #fff;
+  border: 1px solid #E8ECEF;
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  animation: fadeInUp 0.3s ease-out;
+}
+
+/* Card hover effect */
+.hr-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #D0C8F0;
+  transform: translateY(-2px);
+}
+
+/* Selected card state */
+.hr-card.selected {
+  border: 2px solid #6C4CDC;
+  background: #F8F6FF;
+  box-shadow: 0 4px 12px rgba(108, 76, 220, 0.15);
+}
+
+/* Selection checkmark indicator */
+.hr-card.selected::before {
+  content: "✓";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background-color: #6C4CDC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Card header layout */
+.hr-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-right: 32px;
+}
+
+/* Candidate name */
+.hr-name {
+  font-weight: 700;
+  font-size: 18px;
+  color: #1A1A1A;
+  margin-bottom: 4px;
+}
+
+/* Candidate email */
+.hr-email {
+  font-size: 14px;
+  color: #666;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Score badge */
+.hr-score {
+  font-size: 24px;
+  font-weight: 700;
+  background: #F9F8FF;
+  padding: 8px 16px;
+  border-radius: 30px;
+  min-width: 70px;
+  text-align: center;
+}
+
+/* Score color variations (to be applied inline via React) */
+.hr-score.high {
+  color: #4FD46E;
+}
+
+.hr-score.medium {
+  color: #FFB347;
+}
+
+.hr-score.low {
+  color: #FF6B6B;
+}
+
+/* Resume summary text */
+.hr-summary {
+  font-size: 14px;
+  line-height: 1.6;
+  margin-top: 8px;
+  color: #444;
+}
+
+/* Read more/less button */
+.hr-readmore-btn {
+  margin-top: 12px;
+  background: none;
+  border: none;
+  color: #6C4CDC;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  padding: 4px 0;
+  transition: opacity 0.2s ease;
+}
+
+.hr-readmore-btn:hover {
+  opacity: 0.8;
+}
+
+/* Mode toggle button */
+.hr-mode-toggle {
+  border: none;
+  padding: 12px 18px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  background: #ECE8FF;
+  color: #6C4CDC;
+  transition: all .2s ease;
+}
+
+.hr-mode-toggle.active {
+  background: #6C4CDC;
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(108, 76, 220, .25);
+}
+
+/* Animation for cards */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .hr-card {
+    padding: 16px;
+  }
+  
+  .hr-name {
+    font-size: 16px;
+  }
+  
+  .hr-score {
+    font-size: 18px;
+    padding: 4px 12px;
+    min-width: 55px;
+  }
+  
+  .hr-card-top {
+    flex-wrap: wrap;
+  }
+  
+  .hr-upload-boxes {
+    flex-direction: column;
+  }
+}
+/* Modal fade-in animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.hr-loading-dots::after {
+  content: '...';
+  animation: hrDots 1.5s steps(4, end) infinite;
+  display: inline-block;
+  width: 24px;
+  text-align: left;
+}
+
+@keyframes hrDots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
 }

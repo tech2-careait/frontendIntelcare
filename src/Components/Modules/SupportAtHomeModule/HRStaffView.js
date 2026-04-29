@@ -12,10 +12,10 @@ const HRStaffView = ({
 }) => {
   const [selectedFile, setSelectedFile] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [activeTab, setActiveTab] = useState("Screening Test");
+  const [activeTab, setActiveTab] = useState("Document Verfication");
   const [showResults, setShowResults] = useState(false);
   const [selectedCandidates, setSelectedCandidates] = useState(new Set());
-  
+
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
     if (file && (file.name.endsWith(".zip") || file.name.endsWith(".rar"))) {
@@ -140,13 +140,13 @@ const HRStaffView = ({
   return (
     <div className="hr-analysis-container">
       <div className="top-nav">
-        <button
+        {/* <button
           className={`nav-tab ${activeTab === "Screening Test" ? "active" : ""
             }`}
           onClick={() => handleTabClick("Screening Test")}
         >
           Screening Test
-        </button>
+        </button> */}
         <button
           className={`nav-tab ${activeTab === "Document Verfication" ? "active" : ""
             }`}
@@ -164,9 +164,9 @@ const HRStaffView = ({
       </div>
 
       <div className="content-area">
-        {activeTab === "Screening Test" && <ScreeningTest />}
-        {activeTab === "Staff Onboarding" && <StaffOnboarding user={user}/>}
-        {activeTab === "Document Verfication" && <DocumentVerification />}
+        {/* {activeTab === "Screening Test" && <ScreeningTest />} */}
+        {activeTab === "Staff Onboarding" && <StaffOnboarding user={user} />}
+        {activeTab === "Document Verfication" && <DocumentVerification user={user} />}
       </div>
     </div>
   );

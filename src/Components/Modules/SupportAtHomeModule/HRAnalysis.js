@@ -17,8 +17,9 @@ const HRAnalysis = (props) => {
     const isAllowedUsers = ALLOWED_USERS.includes(
         (userEmail || "").toLowerCase()
     );
-    const tlcDomainArray = ["tenderlovingcaredisability.com.au","tenderlovingcare.com.au"]
+    const tlcDomainArray = ["tenderlovingcaredisability.com.au", "tenderlovingcare.com.au"]
     const notAllowedDomain = tlcDomainArray.includes(userEmail?.split("@")[1]);
+    console.log("props?.smartCandidates", props?.smartCandidates);
     if (!isAllowedUsers && notAllowedDomain) {
         return (
             <div style={{
@@ -82,7 +83,7 @@ const HRAnalysis = (props) => {
                 </div>
             </div>
 
-            <div className="info-table">
+            {/* <div className="info-table">
                 <div className="table-headerss">
                     <span>If You Upload This...</span>
                     <span>Our AI Will Instantly...</span>
@@ -104,10 +105,11 @@ const HRAnalysis = (props) => {
                         </div>
                     </ul>
                 </div>
-            </div>
+            </div> */}
 
             <div>
-                {role === "Admin" ? <HRAdminView role={role} selectedRole={props.selectedRole} user={props?.user} setManualResumeZip={props?.setManualResumeZip} /> : <HRStaffView role={role} user={props?.user} />}
+                {role === "Admin" ? <HRAdminView role={role} selectedRole={props.selectedRole} user={props?.user} setManualResumeZip={props?.setManualResumeZip} smartCandidates={props?.smartCandidates}
+                    candidateLoading={props?.candidateLoading} setShowAIChat={props?.setShowAIChat} setMessages={props?.setMessages} setHrMode={props?.setHrMode} setHrStep={props?.setHrStep} organizationId={props?.organizationId}/> : <HRStaffView role={role} user={props?.user} />}
             </div>
         </div>
     );

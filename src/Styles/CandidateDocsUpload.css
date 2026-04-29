@@ -1,0 +1,167 @@
+.cdu_page_wrap {
+  min-height: 100vh;
+  /* background: linear-gradient(135deg, #f8fbff, #eef4ff); */
+  padding: 40px 16px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  font-family: Arial, sans-serif;
+}
+
+.dv_upload_card {
+  width: 100%;
+  max-width: 760px;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 34px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);
+  border: 1px solid #edf2f7;
+}
+
+.form-title {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  color: #111827;
+  text-align: center;
+}
+
+.form-subtitle {
+  margin: 10px 0 26px;
+  text-align: center;
+  font-size: 15px;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.dv_status_box {
+  padding: 16px;
+  border-radius: 14px;
+  background: #f3f6fb;
+  color: #374151;
+  text-align: center;
+  font-weight: 600;
+}
+
+.dv_upload_box {
+  display: block;
+  width: 100%;
+  border: 2px dashed #4f46e5;
+  background: linear-gradient(180deg, #f8faff, #eef2ff);
+  border-radius: 20px;
+  padding: 38px 20px;
+  cursor: pointer;
+  transition: 0.25s ease;
+  margin-bottom: 22px;
+}
+
+.dv_upload_box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(79, 70, 229, 0.08);
+  border-color: #4338ca;
+}
+
+.dv_upload_inner {
+  text-align: center;
+  color: #312e81;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+.dv_upload_inner::before {
+  content: "⬆";
+  display: block;
+  font-size: 36px;
+  margin-bottom: 10px;
+}
+
+.dv_file_list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.dv_file_item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.dv_file_item span {
+  font-size: 14px;
+  color: #111827;
+  word-break: break-word;
+}
+
+.dv_remove_btn {
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: 0.2s;
+}
+
+.dv_remove_btn:hover {
+  background: #fecaca;
+  transform: scale(1.06);
+}
+
+.dv_submit_btn {
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 15px 18px;
+  background: linear-gradient(90deg, #4f46e5, #2563eb);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.dv_submit_btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.18);
+}
+
+.dv_submit_btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.dv_message_box {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #eefbf3;
+  color: #166534;
+  font-weight: 600;
+  text-align: center;
+  border: 1px solid #d1fae5;
+}
+
+@media (max-width: 768px) {
+  .dv_upload_card {
+    padding: 22px;
+  }
+
+  .form-title {
+    font-size: 24px;
+  }
+
+  .dv_upload_inner {
+    font-size: 15px;
+  }
+}
