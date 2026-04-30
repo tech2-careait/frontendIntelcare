@@ -649,6 +649,35 @@ html,
   display: none;
 }
 
+/* Horizontal attached-files strip (ChatGPT-style) */
+.askai-attached-strip::-webkit-scrollbar {
+  height: 6px;
+}
+
+.askai-attached-strip::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 0 12px;
+}
+
+.askai-attached-strip::-webkit-scrollbar-thumb {
+  background-color: rgba(108, 76, 220, 0.30);
+  border-radius: 6px;
+}
+
+.askai-attached-strip::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(108, 76, 220, 0.55);
+}
+
+.askai-attached-strip::-webkit-scrollbar-button,
+.askai-attached-strip::-webkit-scrollbar-button:start,
+.askai-attached-strip::-webkit-scrollbar-button:end,
+.askai-attached-strip::-webkit-scrollbar-corner {
+  display: none;
+  width: 0;
+  height: 0;
+  background: transparent;
+}
+
 /* Hide scrollbar (already using, keep it) */
 .predefined-prompts-scroll::-webkit-scrollbar {
   display: none;
