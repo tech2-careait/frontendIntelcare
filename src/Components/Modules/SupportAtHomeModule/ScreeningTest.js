@@ -103,7 +103,7 @@ export default function CandidateScreeningTest() {
           }
         }
       );
-
+      console.log("fetchTestView response", res.data);
       if (res.data?.ok) {
         setTestData(res.data);
         setQuestions(
@@ -211,6 +211,13 @@ export default function CandidateScreeningTest() {
     });
   };
 
+  const setTextAnswer = (questionObj, value) => {
+    setAnswers((prev) => ({
+      ...prev,
+      [questionObj.question]: value
+    }));
+  };
+
   const goNext = () => {
     if (current < questions.length - 1) {
       setCurrent(current + 1);
@@ -237,6 +244,21 @@ export default function CandidateScreeningTest() {
           answer: (() => {
             const selected =
               answers[q.question];
+
+            const qType = (
+              q?.questionType ||
+              q?.type ||
+              "single"
+            )
+              .toString()
+              .trim()
+              .toLowerCase();
+
+            if (qType === "text") {
+              return typeof selected === "string"
+                ? selected
+                : "";
+            }
 
             if (
               Array.isArray(selected)
@@ -379,60 +401,73 @@ export default function CandidateScreeningTest() {
               </div>
             </div>
 
-            <div className="options-list">
-              {currentQuestion.options.map((opt, index) => {
-                const type = (
-                  currentQuestion?.questionType ||
-                  currentQuestion?.type ||
-                  "single"
-                )
-                  .toString()
-                  .trim()
-                  .toLowerCase();
+            {(() => {
+              const type = (
+                currentQuestion?.questionType ||
+                currentQuestion?.type ||
+                "single"
+              )
+                .toString()
+                .trim()
+                .toLowerCase();
 
-                const isMulti = type === "multiple";
-
-                const selected = isMulti
-                  ? (
-                    answers[
-                    currentQuestion.question
-                    ] || []
-                  ).includes(index)
-                  : answers[
-                  currentQuestion.question
-                  ] === index;
-
+              if (type === "text") {
+                const value =
+                  typeof answers[currentQuestion.question] === "string"
+                    ? answers[currentQuestion.question]
+                    : "";
                 return (
-                  <div
-                    key={index}
-                    className={`option-card ${selected ? "selected" : ""
-                      }`}
-                    onClick={() =>
-                      selectOption(
-                        currentQuestion,
-                        index
-                      )
-                    }
-                  >
-                    <div className="option-left-icon">
-                      <input
-                        type={
-                          isMulti
-                            ? "checkbox"
-                            : "radio"
-                        }
-                        checked={selected}
-                        readOnly
-                      />
-                    </div>
-
-                    <div className="option-text">
-                      {opt}
-                    </div>
+                  <div className="text-answer-wrap">
+                    <textarea
+                      className="text-answer-input"
+                      placeholder="Type your answer here..."
+                      rows={6}
+                      value={value}
+                      onChange={(e) =>
+                        setTextAnswer(
+                          currentQuestion,
+                          e.target.value
+                        )
+                      }
+                    />
                   </div>
                 );
-              })}
-            </div>
+              }
+
+              const isMulti = type === "multiple";
+
+              return (
+                <div className="options-list">
+                  {(currentQuestion.options || []).map((opt, index) => {
+                    const selected = isMulti
+                      ? (
+                        answers[currentQuestion.question] || []
+                      ).includes(index)
+                      : answers[currentQuestion.question] === index;
+
+                    return (
+                      <div
+                        key={index}
+                        className={`option-card ${selected ? "selected" : ""}`}
+                        onClick={() =>
+                          selectOption(currentQuestion, index)
+                        }
+                      >
+                        <div className="option-left-icon">
+                          <input
+                            type={isMulti ? "checkbox" : "radio"}
+                            checked={selected}
+                            readOnly
+                          />
+                        </div>
+
+                        <div className="option-text">{opt}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
             <div className="quiz-footer">
               {current > 0 && (

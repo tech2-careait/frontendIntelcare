@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import "../../../Styles/SmartOnboarding.enhanced.css";
 import "../../../Styles/ResumeScreening.css";
 import "../../../Styles/NewSmartOnboardingHrView.css"
@@ -37,6 +37,11 @@ const HRAdminView = ({
   const [testResultsById, setTestResultsById] = useState({});
   const [selectedTestResult, setSelectedTestResult] = useState(null);
   const [smartCandidates, setSmartCandidates] = useState([]);
+  const [isLoadingCandidates, setIsLoadingCandidates] = useState(true);
+  const hasFetchedCandidatesRef = useRef(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [isDeletingCandidate, setIsDeletingCandidate] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     const fetchOrganizationId = async () => {
@@ -88,30 +93,74 @@ const HRAdminView = ({
     fetchTestResults();
   }, [organizationId]);
 
-  useEffect(() => {
-    const fetchAllCandidates = async () => {
-      if (!user?.email || !organizationId) return;
+  const fetchAllCandidates = useCallback(async () => {
+    if (!user?.email || !organizationId) return;
 
-      try {
-        const params = new URLSearchParams({
-          admin_email: user.email,
-          organization_id: organizationId,
-        });
-        const res = await fetch(
-          `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/get-all-candidates?${params.toString()}`
-        );
-        const data = await res.json();
+    const isInitialFetch = !hasFetchedCandidatesRef.current;
+    if (isInitialFetch) {
+      setIsLoadingCandidates(true);
+    }
 
-        if (data?.ok) {
-          setSmartCandidates(data.candidates || []);
-        }
-      } catch (error) {
-        console.error("fetchAllCandidates error:", error);
+    try {
+      const params = new URLSearchParams({
+        admin_email: user.email,
+        organization_id: organizationId,
+      });
+      const res = await fetch(
+        `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/get-all-candidates?${params.toString()}`
+      );
+      const data = await res.json();
+
+      if (data?.ok) {
+        setSmartCandidates(data.candidates || []);
       }
+    } catch (error) {
+      console.error("fetchAllCandidates error:", error);
+    } finally {
+      hasFetchedCandidatesRef.current = true;
+      setIsLoadingCandidates(false);
+    }
+  }, [organizationId, user?.email]);
+
+  useEffect(() => {
+    fetchAllCandidates();
+  }, [fetchAllCandidates]);
+
+  useEffect(() => {
+    if (!organizationId) return;
+
+    const handleShortlisted = (event) => {
+      const detail = event?.detail || {};
+      const incomingOrg = detail.organisation_id || detail.organization_id;
+
+      if (incomingOrg && String(incomingOrg) !== String(organizationId)) {
+        return;
+      }
+
+      const incoming = Array.isArray(detail.candidates) ? detail.candidates : [];
+      if (incoming.length > 0) {
+        setSmartCandidates((prev) => {
+          const byId = new Map();
+          prev.forEach((c) => {
+            if (c?.candidateId) byId.set(String(c.candidateId), c);
+          });
+          incoming.forEach((c) => {
+            if (!c?.candidateId) return;
+            const id = String(c.candidateId);
+            byId.set(id, { ...(byId.get(id) || {}), ...c });
+          });
+          return Array.from(byId.values());
+        });
+      }
+
+      fetchAllCandidates();
     };
 
-    fetchAllCandidates();
-  }, [organizationId, user?.email]);
+    window.addEventListener("hr:candidates-shortlisted", handleShortlisted);
+    return () => {
+      window.removeEventListener("hr:candidates-shortlisted", handleShortlisted);
+    };
+  }, [organizationId, fetchAllCandidates]);
 
   const parseTestAnalysis = (analysis) => {
     if (!analysis) return [];
@@ -131,6 +180,8 @@ const HRAdminView = ({
       .map((s) => s.trim())
       .filter(Boolean);
   };
+
+  const showCandidatesSkeleton = isLoadingCandidates && smartCandidates.length === 0;
 
   const filteredCandidates = smartCandidates.filter((item) => {
     const query = searchTerm.toLowerCase().trim();
@@ -251,6 +302,70 @@ const HRAdminView = ({
     setSelectedCandidates(new Set());
   };
 
+  const handleDeleteCandidate = (candidate) => {
+    if (!candidate?.candidateId) return;
+    if (!organizationId) {
+      setDeleteError("Organisation not loaded yet. Please try again.");
+      setDeleteTarget(candidate);
+      return;
+    }
+    setDeleteError("");
+    setDeleteTarget(candidate);
+  };
+
+  const closeDeleteDialog = () => {
+    if (isDeletingCandidate) return;
+    setDeleteTarget(null);
+    setDeleteError("");
+  };
+
+  const confirmDeleteCandidate = async () => {
+    const candidate = deleteTarget;
+    if (!candidate?.candidateId || !organizationId) return;
+
+    setIsDeletingCandidate(true);
+    setDeleteError("");
+
+    const previous = smartCandidates;
+    setSmartCandidates((prev) =>
+      prev.filter((c) => c.candidateId !== candidate.candidateId)
+    );
+
+    try {
+      const res = await fetch(
+        "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/delete-candidate",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            organisation_id: organizationId,
+            candidate_id: candidate.candidateId,
+          }),
+        }
+      );
+      const data = await res.json();
+
+      if (!res.ok || data?.ok === false) {
+        throw new Error(data?.error || data?.message || "Failed to delete candidate");
+      }
+
+      setTestResultsById((prev) => {
+        if (!prev[candidate.candidateId]) return prev;
+        const next = { ...prev };
+        delete next[candidate.candidateId];
+        return next;
+      });
+
+      setDeleteTarget(null);
+    } catch (error) {
+      console.error("deleteCandidate error:", error);
+      setSmartCandidates(previous);
+      setDeleteError(error.message || "Failed to delete candidate. Please try again.");
+    } finally {
+      setIsDeletingCandidate(false);
+    }
+  };
+
 
 
   return (
@@ -298,7 +413,11 @@ const HRAdminView = ({
                   <div className="resume-icon blue">👥</div>
                   <div className="candidate-meta-data">
                     <p>OVERALL CANDIDATES</p>
-                    <h2>{smartCandidates.length}</h2>
+                    {showCandidatesSkeleton ? (
+                      <div className="resume-skeleton resume-skeleton-stat-num" />
+                    ) : (
+                      <h2>{smartCandidates.length}</h2>
+                    )}
                   </div>
                 </div>
 
@@ -306,13 +425,17 @@ const HRAdminView = ({
                   <div className="resume-icon purple">📊</div>
                   <div className="candidate-meta-data">
                     <p>ACTIVE PIPELINE</p>
-                    <h2>
-                      {
-                        smartCandidates.filter(
-                          item => item.docs_verification_status === "pending"
-                        ).length
-                      }
-                    </h2>
+                    {showCandidatesSkeleton ? (
+                      <div className="resume-skeleton resume-skeleton-stat-num" />
+                    ) : (
+                      <h2>
+                        {
+                          smartCandidates.filter(
+                            item => item.docs_verification_status === "pending"
+                          ).length
+                        }
+                      </h2>
+                    )}
                   </div>
                 </div>
 
@@ -320,13 +443,17 @@ const HRAdminView = ({
                   <div className="resume-icon orange">📋</div>
                   <div className="candidate-meta-data">
                     <p>IN TEST STAGE</p>
-                    <h2>
-                      {
-                        smartCandidates.filter(
-                          item => item.screening_test_status === "pending"
-                        ).length
-                      }
-                    </h2>
+                    {showCandidatesSkeleton ? (
+                      <div className="resume-skeleton resume-skeleton-stat-num" />
+                    ) : (
+                      <h2>
+                        {
+                          smartCandidates.filter(
+                            item => item.screening_test_status === "pending"
+                          ).length
+                        }
+                      </h2>
+                    )}
                   </div>
                 </div>
 
@@ -334,13 +461,17 @@ const HRAdminView = ({
                   <div className="resume-icon green">✔</div>
                   <div className="candidate-meta-data">
                     <p>VERIFIED READY</p>
-                    <h2>
-                      {
-                        smartCandidates.filter(
-                          item => item.docs_verification_status === "verified"
-                        ).length
-                      }
-                    </h2>
+                    {showCandidatesSkeleton ? (
+                      <div className="resume-skeleton resume-skeleton-stat-num" />
+                    ) : (
+                      <h2>
+                        {
+                          smartCandidates.filter(
+                            item => item.docs_verification_status === "verified"
+                          ).length
+                        }
+                      </h2>
+                    )}
                   </div>
                 </div>
               </div>
@@ -390,8 +521,30 @@ const HRAdminView = ({
               </div>
 
               {/* Candidate Cards */}
-              <div className="resume-candidate-grid">
-                {filteredCandidates.map((item) => {
+              <div className={`resume-candidate-grid ${showCandidatesSkeleton ? "is-loading" : "is-loaded"}`}>
+                {showCandidatesSkeleton && Array.from({ length: 4 }).map((_, idx) => (
+                  <div className="resume-candidate-card resume-skeleton-card" key={`skeleton-${idx}`} aria-hidden="true">
+                    <div className="resume-user-top">
+                      <div className="resume-skeleton resume-skeleton-avatar" />
+                      <div className="candidate-item-header resume-skeleton-header">
+                        <div className="resume-skeleton resume-skeleton-line w-60" />
+                        <div className="resume-skeleton resume-skeleton-line w-80" />
+                        <div className="resume-skeleton resume-skeleton-line w-40" />
+                      </div>
+                    </div>
+                    <div className="resume-middle-section">
+                      <div className="resume-skeleton resume-skeleton-summary" />
+                      <div className="resume-skeleton-progress-block">
+                        <div className="resume-skeleton resume-skeleton-line w-50" />
+                        <div className="resume-skeleton resume-skeleton-bar" />
+                        <div className="resume-skeleton resume-skeleton-line w-50" />
+                        <div className="resume-skeleton resume-skeleton-bar" />
+                      </div>
+                    </div>
+                    <div className="resume-skeleton resume-skeleton-test-row" />
+                  </div>
+                ))}
+                {!showCandidatesSkeleton && filteredCandidates.map((item) => {
                   const initials =
                     item.candidateName?.charAt(0)?.toUpperCase() || "U";
 
@@ -408,6 +561,33 @@ const HRAdminView = ({
 
                   return (
                     <div className="resume-candidate-card" key={item.candidateId}>
+                      <button
+                        type="button"
+                        className="resume-card-delete-btn"
+                        title="Delete candidate"
+                        aria-label="Delete candidate"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteCandidate(item);
+                        }}
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <polyline points="3 6 5 6 21 6"></polyline>
+                          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                          <path d="M10 11v6"></path>
+                          <path d="M14 11v6"></path>
+                          <path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>
+                        </svg>
+                      </button>
                       <div className="resume-user-top">
                         <div className="resume-avatar">{initials}</div>
 
@@ -745,6 +925,72 @@ const HRAdminView = ({
                 onClick={() => setSelectedTestResult(null)}
               >
                 Close Insights
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div
+          className="confirm-dialog-overlay"
+          onClick={closeDeleteDialog}
+          role="presentation"
+        >
+          <div
+            className="confirm-dialog"
+            onClick={(e) => e.stopPropagation()}
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="confirm-dialog-title"
+            aria-describedby="confirm-dialog-desc"
+          >
+            <div className="confirm-dialog-icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 6h18"></path>
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+              </svg>
+            </div>
+
+            <h3 id="confirm-dialog-title" className="confirm-dialog-title">
+              Delete candidate?
+            </h3>
+            <p id="confirm-dialog-desc" className="confirm-dialog-desc">
+              {`Are you sure you want to delete `}
+              <strong>
+                {deleteTarget.candidateName ||
+                  deleteTarget.candidateEmail ||
+                  "this candidate"}
+              </strong>
+              {`? This action cannot be undone.`}
+            </p>
+
+            {deleteError && (
+              <div className="confirm-dialog-error" role="alert">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="confirm-dialog-actions">
+              <button
+                type="button"
+                className="confirm-dialog-btn confirm-dialog-btn-secondary"
+                onClick={closeDeleteDialog}
+                disabled={isDeletingCandidate}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-dialog-btn confirm-dialog-btn-danger"
+                onClick={confirmDeleteCandidate}
+                disabled={isDeletingCandidate || !organizationId}
+                autoFocus
+              >
+                {isDeletingCandidate ? "Deleting..." : "Delete"}
               </button>
             </div>
           </div>
