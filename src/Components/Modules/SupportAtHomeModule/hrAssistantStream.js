@@ -34,8 +34,48 @@ export const useHRChat = () => {
       setIsConnected(false);
     });
 
+    // Idle / welcome / connection-lifecycle events from the upstream WS that
+    // should never surface in the chat UI. These get filtered out before the
+    // consumer's onEvent callback fires.
+    const IGNORED_MESSAGE_PATTERNS = [
+      /send a message or attach files to begin/i,
+      /^connected\.?\s*$/i,
+      /^connecting to hr server/i,
+      /^connected to hr server/i
+    ];
+
+    const IGNORED_EVENT_NAMES = new Set([
+      "staff_onboarding.ws_connected",
+      "staff_onboarding.ws_idle",
+      "staff_onboarding.ws_welcome",
+      "staff_onboarding.hr_ws_turn_done"
+    ]);
+
+    const isIgnorableEvent = (eventName, data) => {
+      const upstreamEvent = data?.event || "";
+      if (upstreamEvent && IGNORED_EVENT_NAMES.has(upstreamEvent)) {
+        return true;
+      }
+
+      const candidates = [
+        data?.message,
+        data?.payload?.message,
+        data?.payload?.status,
+        data?.payload?.text
+      ].filter(Boolean);
+
+      return candidates.some((text) =>
+        IGNORED_MESSAGE_PATTERNS.some((pattern) => pattern.test(text))
+      );
+    };
+
     const handleEvent = (eventName, data) => {
       console.log(`[HR CHAT] ${eventName}`, data);
+
+      if (isIgnorableEvent(eventName, data)) {
+        console.log(`[HR CHAT] Ignoring idle/welcome event`, eventName, data);
+        return;
+      }
 
       if (callbacksRef.current.onEvent) {
         callbacksRef.current.onEvent(eventName, data);

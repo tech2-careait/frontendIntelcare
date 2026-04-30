@@ -964,11 +964,27 @@ const HomePage = () => {
         onEvent: (type, data) => {
           console.log("[HR CHAT] Event received:", type, data);
 
+          // Defensive filter: drop idle/welcome chatter that can otherwise
+          // briefly flash in the chat (e.g. "Connected. Send a message or
+          // attach files to begin.").
+          const isIdleNoise = (text) => {
+            if (!text) return false;
+            const t = String(text).trim().toLowerCase();
+            return (
+              t === "connected" ||
+              t === "connected." ||
+              t.includes("send a message or attach files to begin") ||
+              t.startsWith("connecting to hr server") ||
+              t.startsWith("connected to hr server")
+            );
+          };
+
           let newText = "";
 
           if (type === "status") {
-            // This is what you need! Display the message from status event
-            newText = data?.message || "Processing...";
+            const candidate = data?.message || "Processing...";
+            if (isIdleNoise(candidate)) return;
+            newText = candidate;
             console.log("[HR CHAT] Setting status message:", newText);
             updateTempMessage(newText, true);
           }
@@ -989,6 +1005,7 @@ const HomePage = () => {
                 newText = `📡 ${eventName.split('.').pop()}`;
               }
             }
+            if (isIdleNoise(newText)) return;
             if (newText) updateTempMessage(newText, true);
           }
           else if (type === "email_prepared") {
@@ -2992,15 +3009,21 @@ const HomePage = () => {
                       {(!isCareVoicePage || careVoiceStarted) && <div style={{ marginTop: "10px", marginBottom: "18px", width: "100%", display: "flex", flexDirection: "column", alignSelf: "center" }}>
                         {isHRAskAiPage && hrMode === "general" && askAiAttachedFiles.length > 0 && (
                           <div
+                            className="askai-attached-strip"
                             style={{
                               display: "flex",
-                              flexWrap: "wrap",
+                              flexWrap: "nowrap",
                               gap: "10px",
-                              padding: "14px 16px",
+                              padding: "12px 14px",
                               background: "linear-gradient(180deg, #F6F3FC 0%, #F0EDF6 100%)",
                               borderTopLeftRadius: "16px",
                               borderTopRightRadius: "16px",
-                              borderBottom: "1px solid rgba(108, 76, 220, 0.12)"
+                              borderBottom: "1px solid rgba(108, 76, 220, 0.12)",
+                              overflowX: "auto",
+                              overflowY: "hidden",
+                              scrollbarWidth: "thin",
+                              scrollbarColor: "rgba(108, 76, 220, 0.35) transparent",
+                              WebkitOverflowScrolling: "touch"
                             }}
                           >
                             {askAiAttachedFiles.map((file, idx) => {
@@ -3018,13 +3041,16 @@ const HomePage = () => {
                                     display: "flex",
                                     alignItems: "center",
                                     gap: "10px",
-                                    padding: "8px 10px 8px 8px",
+                                    padding: "8px 8px 8px 8px",
+                                    paddingRight: "32px",
+                                    position: "relative",
                                     backgroundColor: "#FFFFFF",
                                     border: "1px solid rgba(108, 76, 220, 0.15)",
                                     borderRadius: "12px",
                                     fontSize: "12px",
                                     color: "#1F1B2E",
-                                    maxWidth: "260px",
+                                    width: "232px",
+                                    flexShrink: 0,
                                     boxShadow: "0 2px 6px rgba(108, 76, 220, 0.10)",
                                     transition: "transform 0.15s ease, box-shadow 0.15s ease"
                                   }}
@@ -3039,8 +3065,8 @@ const HomePage = () => {
                                 >
                                   <div
                                     style={{
-                                      width: "32px",
-                                      height: "32px",
+                                      width: "36px",
+                                      height: "36px",
                                       borderRadius: "8px",
                                       background: "linear-gradient(135deg, #7B5BE6 0%, #6C4CDC 100%)",
                                       display: "flex",
@@ -3064,6 +3090,7 @@ const HomePage = () => {
                                       display: "flex",
                                       flexDirection: "column",
                                       minWidth: 0,
+                                      flex: 1,
                                       gap: "2px"
                                     }}
                                   >
@@ -3072,7 +3099,6 @@ const HomePage = () => {
                                         whiteSpace: "nowrap",
                                         overflow: "hidden",
                                         textOverflow: "ellipsis",
-                                        maxWidth: "160px",
                                         fontSize: "13px",
                                         fontWeight: 600,
                                         color: "#1F1B2E"
@@ -3101,8 +3127,11 @@ const HomePage = () => {
                                     }
                                     title="Remove file"
                                     style={{
-                                      width: "22px",
-                                      height: "22px",
+                                      position: "absolute",
+                                      top: "6px",
+                                      right: "6px",
+                                      width: "20px",
+                                      height: "20px",
                                       borderRadius: "50%",
                                       display: "flex",
                                       alignItems: "center",
@@ -3119,7 +3148,7 @@ const HomePage = () => {
                                       e.currentTarget.style.backgroundColor = "#F0EDF6";
                                     }}
                                   >
-                                    <FaTimes size={10} color="#6C4CDC" />
+                                    <FaTimes size={9} color="#6C4CDC" />
                                   </div>
                                 </div>
                               );
