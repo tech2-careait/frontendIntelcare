@@ -46,7 +46,7 @@ const HRAnalysis = (props) => {
     }
     return (
         <div style={{ padding: "20px" }}>
-            <div id="so-who-row">
+            {/* <div id="so-who-row">
                 <div id="so-who-text">Who are you ?</div>
                 <div id="so-admin-staff-btns">
                     <button
@@ -64,7 +64,7 @@ const HRAnalysis = (props) => {
                         Staff
                     </button>
                 </div>
-            </div>
+            </div> */}
 
             {/* <div className="info-table">
                 <div className="table-headerss">

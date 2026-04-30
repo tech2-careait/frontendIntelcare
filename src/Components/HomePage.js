@@ -93,6 +93,7 @@ const HomePage = () => {
   // present in state.
   const [hasResumeRunStarted, setHasResumeRunStarted] = useState(false);
   const [messages, setMessages] = useState([]);
+  const messagesContainerRef = useRef(null);
   const [isModalVisible, setModalVisible] = useState(false);
   const [isModalLeftVisible, setLeftModalVisible] = useState(false);
   const [showSignIn, setShowSignIn] = useState(false);
@@ -178,6 +179,7 @@ const HomePage = () => {
   const [jdFiles, setJdFiles] = useState([]);
   const [resumeFiles, setResumeFiles] = useState([]);
   const [askAiAttachedFiles, setAskAiAttachedFiles] = useState([]);
+  const [askAiBtnHover, setAskAiBtnHover] = useState(false);
   const askAiFileInputRef = useRef(null);
   const userEmail = user?.email;
   const userDomain = userEmail?.split("@")[1]?.toLowerCase();
@@ -806,6 +808,15 @@ const HomePage = () => {
     }
   }, [isHRAskAiPage, messages.length]);
 
+  // Auto-scroll Ask AI chat to the bottom whenever messages change (new message
+  // arrives, streamed text updates, or temp/loading state flips).
+  useEffect(() => {
+    if (!showAIChat) return;
+    const el = messagesContainerRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [messages, showAIChat]);
+
   // Inject the fancy Resume Screening toggle button into the askai label
   useEffect(() => {
     if (!showAIChat || !isHRAskAiPage) return;
@@ -866,10 +877,6 @@ const HomePage = () => {
 
     setMessages((prev) => [
       ...prev,
-      {
-        sender: "user",
-        text: "Resume Screening"
-      },
       {
         sender: "bot",
         text: "Please upload the Job Description and candidate resumes to start screening.",
@@ -1636,7 +1643,17 @@ const HomePage = () => {
   }, [selectedRole]);
 
   useEffect(() => {
-    setMessages([]);
+    const isHRAsk = selectedRole === "Smart Onboarding (Staff)";
+    setMessages(
+      isHRAsk
+        ? [
+            {
+              sender: "bot",
+              text: "Hello! I'm Alex, your AI recruitment partner. How can I help you streamline the staff onboarding today?"
+            }
+          ]
+        : []
+    );
     setFinancialAiHistoryPayload([]);
     setClientProfitabilityAiHistoryPayload([]);
     setCareVoiceSessionId(null);
@@ -2082,9 +2099,58 @@ const HomePage = () => {
                   module={selectedRole}
                 />
 
-                {!isSoftwareConnectPage && <div className="ask-ai-button" onClick={() => setShowAIChat(!showAIChat)}>
+                {!isSoftwareConnectPage && <div
+                  className="ask-ai-button"
+                  onClick={() => setShowAIChat(!showAIChat)}
+                  onMouseEnter={() => setAskAiBtnHover(true)}
+                  onMouseLeave={() => setAskAiBtnHover(false)}
+                >
                   <img src={askAiStar} alt="askAiStar" style={{ width: "22px", height: "22px" }} />
                   <div style={{ fontFamily: "Inter", fontSize: "16px", color: "white" }}>Ask AI</div>
+                  {isHRAskAiPage && askAiBtnHover && !showAIChat && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        bottom: "calc(100% + 14px)",
+                        right: 0,
+                        width: "260px",
+                        padding: "16px 18px",
+                        backgroundColor: "#FFFFFF",
+                        borderRadius: "14px",
+                        boxShadow: "0 8px 24px rgba(108, 76, 220, 0.18)",
+                        border: "1px solid rgba(108, 76, 220, 0.15)",
+                        fontFamily: "Inter",
+                        textAlign: "center",
+                        cursor: "default",
+                        zIndex: 1000
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div style={{ fontSize: "14px", fontWeight: 600, color: "#1F1B2E", marginBottom: "4px" }}>
+                        <span role="img" aria-label="wave" style={{ marginRight: "6px" }}>👋</span>
+                        Hi, I'm Alex,
+                      </div>
+                      <div style={{ fontSize: "14px", fontWeight: 600, color: "#6C4CDC", marginBottom: "8px" }}>
+                        Your AI recruitment partner.
+                      </div>
+                      <div style={{ fontSize: "13px", color: "#555", lineHeight: "18px" }}>
+                        If you're unsure or need help, I'm here to assist.
+                      </div>
+                      <div
+                        style={{
+                          position: "absolute",
+                          bottom: "-7px",
+                          right: "30px",
+                          width: "14px",
+                          height: "14px",
+                          backgroundColor: "#FFFFFF",
+                          borderRight: "1px solid rgba(108, 76, 220, 0.15)",
+                          borderBottom: "1px solid rgba(108, 76, 220, 0.15)",
+                          transform: "rotate(45deg)"
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>}
 
                 {showAIChat && (
@@ -2121,14 +2187,7 @@ const HomePage = () => {
                                   setScreenedResults([]);
                                   setSelectedCandidates([]);
                                   setHasResumeRunStarted(false);
-
-                                  setMessages((prev) => [
-                                    ...prev,
-                                    {
-                                      sender: "bot",
-                                      text: "Switched back to General mode."
-                                    }
-                                  ]);
+                                  setMessages((prev) => prev.filter((m) => !m.isUploadPrompt));
                                 }
                               }}
                               style={{
@@ -2233,7 +2292,7 @@ const HomePage = () => {
                       </div>
                     }
 
-                    <div style={{ flex: 1, marginTop: "10px", overflowY: "auto", padding: "10px" }}>
+                    <div ref={messagesContainerRef} style={{ flex: 1, marginTop: "10px", overflowY: "auto", padding: "10px" }}>
                       {messages.map((msg, index) => {
                         const isThisMessageExpanded =
                           Object.entries(expandedSources).some(
@@ -2376,10 +2435,7 @@ const HomePage = () => {
                                                     setJdFiles([]);
                                                     setResumeFiles([]);
                                                     setHrMode("general");
-                                                    setMessages((prev) => [
-                                                      ...prev,
-                                                      { sender: "bot", text: "Switched back to General mode." }
-                                                    ]);
+                                                    setMessages((prev) => prev.filter((m) => !m.isUploadPrompt));
                                                   }}
                                                   style={{
                                                     padding: "12px 24px",

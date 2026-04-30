@@ -99,6 +99,15 @@ export const useHRChat = () => {
       callbacksRef.current.onError?.(data);
     });
 
+    newSocket.on("hr_candidates_shortlisted", (data) => {
+      console.log("[HR CHAT] hr_candidates_shortlisted", data);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("hr:candidates-shortlisted", { detail: data })
+        );
+      }
+    });
+
     setSocket(newSocket);
 
     return () => {
