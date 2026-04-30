@@ -3014,11 +3014,11 @@ const HomePage = () => {
                               display: "flex",
                               flexWrap: "nowrap",
                               gap: "10px",
-                              padding: "12px 14px",
-                              background: "linear-gradient(180deg, #F6F3FC 0%, #F0EDF6 100%)",
-                              borderTopLeftRadius: "16px",
-                              borderTopRightRadius: "16px",
-                              borderBottom: "1px solid rgba(108, 76, 220, 0.12)",
+                              padding: "12px 14px 0 14px",
+                              backgroundColor: "#F0EDF6",
+                              borderTopLeftRadius: "14px",
+                              borderTopRightRadius: "14px",
+                              marginBottom: "-8px",
                               overflowX: "auto",
                               overflowY: "hidden",
                               scrollbarWidth: "thin",
@@ -3246,6 +3246,9 @@ const HomePage = () => {
                               // mic (right:70 + width:32 = 102) + send button + ~16px gap
                               padding: "22px 120px 16px 63px",
                               borderRadius: "14px",
+                              ...(isHRAskAiPage && hrMode === "general" && askAiAttachedFiles.length > 0
+                                ? { borderTopLeftRadius: 0, borderTopRightRadius: 0 }
+                                : {}),
                               border: "none",
                               outline: "none",
                               lineHeight: "22px",
