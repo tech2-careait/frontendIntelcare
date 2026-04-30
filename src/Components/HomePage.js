@@ -3245,10 +3245,10 @@ const HomePage = () => {
                               // right padding accounts for the absolute-positioned
                               // mic (right:70 + width:32 = 102) + send button + ~16px gap
                               padding: "22px 120px 16px 63px",
-                              borderRadius: "14px",
-                              ...(isHRAskAiPage && hrMode === "general" && askAiAttachedFiles.length > 0
-                                ? { borderTopLeftRadius: 0, borderTopRightRadius: 0 }
-                                : {}),
+                              borderRadius:
+                                isHRAskAiPage && hrMode === "general" && askAiAttachedFiles.length > 0
+                                  ? "0 0 14px 14px"
+                                  : "14px",
                               border: "none",
                               outline: "none",
                               lineHeight: "22px",
