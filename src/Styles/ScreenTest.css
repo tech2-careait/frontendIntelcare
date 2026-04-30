@@ -433,3 +433,39 @@
   background: #c4b5fd;
   border-radius: 10px;
 }
+
+/* short-answer textarea (text-type questions) */
+.text-answer-wrap {
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+
+.text-answer-input {
+  width: 100%;
+  min-height: 140px;
+  padding: 16px 18px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 16px;
+  font-size: 15px;
+  font-family: inherit;
+  color: #1e1b3a;
+  background: #ffffff;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  line-height: 1.5;
+}
+
+.text-answer-input::placeholder {
+  color: #9ca3af;
+}
+
+.text-answer-input:hover {
+  border-color: #c4b5fd;
+}
+
+.text-answer-input:focus {
+  outline: none;
+  border-color: #6c4cdc;
+  box-shadow: 0 0 0 4px rgba(108, 76, 220, 0.1);
+}
