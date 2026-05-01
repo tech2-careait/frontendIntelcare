@@ -473,7 +473,9 @@ const HRAdminView = ({
                       <h2>
                         {
                           smartCandidates.filter(
-                            item => item.screening_test_status === "pending"
+                            item =>
+                              item.send_test_email_status === "sent" &&
+                              item.screening_test_status === "pending"
                           ).length
                         }
                       </h2>
@@ -575,6 +577,7 @@ const HRAdminView = ({
 
                   const score = item.candidateResumeScore || 0;
                   const testResult = testResultsById[item.candidateId];
+                  console.log("test result", testResult);
                   const testScore = testResult?.candidate_test_score;
                   const testStatusRaw = testResult?.candidate_test_status;
                   const testStatusLabel = testStatusRaw
@@ -583,6 +586,17 @@ const HRAdminView = ({
                     : null;
                   const isPass = testStatusRaw &&
                     String(testStatusRaw).toLowerCase() === "pass";
+
+                  const docsStatus = String(item.docs_verification_status || "").toLowerCase();
+                  const testStatus = String(item.screening_test_status || "").toLowerCase();
+                  let displayStage;
+                  if (docsStatus === "completed" || docsStatus === "verified") {
+                    displayStage = "TRAINING";
+                  } else if (testStatus === "completed" || testResult) {
+                    displayStage = "DOCUMENT VERIFICATION PENDING";
+                  } else {
+                    displayStage = "SCREENING TEST PENDING";
+                  }
 
                   return (
                     <div className="resume-candidate-card" key={item.candidateId}>
@@ -624,7 +638,7 @@ const HRAdminView = ({
                             {item.candidateEmail || "No email"}
                           </p>
                           <span className="resume-stage">
-                            ● STAGE: {item.stage.replaceAll("_", " ").toUpperCase()}
+                            ● STAGE: {displayStage}
                           </span>
                         </div>
                       </div>
@@ -634,8 +648,11 @@ const HRAdminView = ({
                           <h4>RESUME ASSESSMENT</h4>
                           <p>
                             "
-                            {item.resumeSummary?.slice(0, 120) ||
-                              "Candidate profile available."}
+                            {item.resumeSummary
+                              ? item.resumeSummary.length > 220
+                                ? `${item.resumeSummary.slice(0, 220).trimEnd()}...`
+                                : item.resumeSummary
+                              : "Candidate profile available."}
                             "
                           </p>
 

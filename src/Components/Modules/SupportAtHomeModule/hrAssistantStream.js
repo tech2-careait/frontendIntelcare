@@ -12,7 +12,7 @@ export const useHRChat = () => {
   });
 
   // Paces incoming events so they don't flash by — each event surfaces with a
-  // 2–4 second gap, and the final hr_complete/hr_error waits for the queue to
+  // 1 second gap, and the final hr_complete/hr_error waits for the queue to
   // drain so the bot reply doesn't appear before its preceding status updates.
   const queueRef = useRef({
     items: [],
@@ -22,8 +22,7 @@ export const useHRChat = () => {
     firstEventShown: false
   });
 
-  const MIN_EVENT_DELAY_MS = 2000;
-  const MAX_EVENT_DELAY_MS = 4000;
+  const EVENT_DELAY_MS = 1000;
 
   useEffect(() => {
     console.log("[HR CHAT] Initializing socket");
@@ -83,11 +82,6 @@ export const useHRChat = () => {
       );
     };
 
-    const getRandomEventDelay = () =>
-      Math.floor(
-        Math.random() * (MAX_EVENT_DELAY_MS - MIN_EVENT_DELAY_MS + 1)
-      ) + MIN_EVENT_DELAY_MS;
-
     const processQueue = () => {
       const queue = queueRef.current;
       if (queue.processing) return;
@@ -112,8 +106,8 @@ export const useHRChat = () => {
       const next = queue.items.shift();
       callbacksRef.current.onEvent?.(next.eventName, next.data);
 
-      // First event surfaces immediately; subsequent events wait 2–4s.
-      const delay = queue.firstEventShown ? getRandomEventDelay() : 0;
+      // First event surfaces immediately; subsequent events wait 1s.
+      const delay = queue.firstEventShown ? EVENT_DELAY_MS : 0;
       queue.firstEventShown = true;
 
       setTimeout(() => {
