@@ -1181,12 +1181,85 @@ html,
   padding: 14px;
   border-radius: 16px;
   border: 1px solid #eee;
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .hr-upload-boxes {
   display: flex;
+  flex-direction: column;
   gap: 10px;
-  flex-wrap: wrap;
+  width: 100%;
+  min-width: 0;
+}
+
+/* ===== Fixed-size upload box inside the HR Ask-AI flow only ===== */
+.hr-upload-wrap .data-upload-card {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.hr-upload-wrap .data-upload-droparea {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.hr-upload-wrap .data-upload-droparea > * {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Stacked file list — no scroll, no horizontal expansion */
+.hr-upload-wrap .data-upload-filelist {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Each row keeps a stable layout regardless of file-name length */
+.hr-upload-wrap .data-upload-file {
+  width: 100%;
+  min-width: 0;
+  gap: 10px;
+}
+
+.hr-upload-wrap .data-upload-fileinfo {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Allow the inner (unnamed) wrapper of filename + status to shrink so
+   the filename can truncate instead of pushing the row wider */
+.hr-upload-wrap .data-upload-fileinfo > div {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.hr-upload-wrap .data-upload-filename {
+  display: block;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hr-upload-wrap .data-upload-actions {
+  flex: 0 0 auto;
+}
+
+/* Responsive cap on narrow screens */
+@media (max-width: 600px) {
+  .hr-upload-wrap {
+    max-width: 100%;
+  }
 }
 
 /* ENHANCED RESULTS SECTION */
