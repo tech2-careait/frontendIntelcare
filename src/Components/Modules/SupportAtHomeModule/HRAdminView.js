@@ -42,7 +42,7 @@ const HRAdminView = ({
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeletingCandidate, setIsDeletingCandidate] = useState(false);
   const [deleteError, setDeleteError] = useState("");
-
+  
   useEffect(() => {
     const fetchOrganizationId = async () => {
       const email = user?.email;
@@ -68,30 +68,30 @@ const HRAdminView = ({
     fetchOrganizationId();
   }, [user?.email]);
 
-  useEffect(() => {
-    const fetchTestResults = async () => {
-      if (!organizationId) return;
+  const fetchTestResults = useCallback(async () => {
+    if (!organizationId) return;
 
-      try {
-        const res = await fetch(
-          `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/get-test-results?organisation_id=${encodeURIComponent(organizationId)}`
-        );
-        const data = await res.json();
+    try {
+      const res = await fetch(
+        `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/get-test-results?organisation_id=${encodeURIComponent(organizationId)}`
+      );
+      const data = await res.json();
 
-        if (data?.ok && Array.isArray(data.results)) {
-          const map = {};
-          data.results.forEach((r) => {
-            if (r.candidateId) map[r.candidateId] = r;
-          });
-          setTestResultsById(map);
-        }
-      } catch (error) {
-        console.error("fetchTestResults error:", error);
+      if (data?.ok && Array.isArray(data.results)) {
+        const map = {};
+        data.results.forEach((r) => {
+          if (r.candidateId) map[r.candidateId] = r;
+        });
+        setTestResultsById(map);
       }
-    };
-
-    fetchTestResults();
+    } catch (error) {
+      console.error("fetchTestResults error:", error);
+    }
   }, [organizationId]);
+
+  useEffect(() => {
+    fetchTestResults();
+  }, [fetchTestResults]);
 
   const fetchAllCandidates = useCallback(async () => {
     if (!user?.email || !organizationId) return;
@@ -161,6 +161,30 @@ const HRAdminView = ({
       window.removeEventListener("hr:candidates-shortlisted", handleShortlisted);
     };
   }, [organizationId, fetchAllCandidates]);
+
+  useEffect(() => {
+    if (!organizationId) return;
+    if (activeTab !== "Resume Screening") return;
+
+    const refresh = () => {
+      fetchAllCandidates();
+      fetchTestResults();
+    };
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+
+    const intervalId = setInterval(refresh, 8000);
+    document.addEventListener("visibilitychange", handleVisibility);
+    window.addEventListener("focus", refresh);
+
+    return () => {
+      clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", handleVisibility);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [organizationId, activeTab, fetchAllCandidates, fetchTestResults]);
 
   const parseTestAnalysis = (analysis) => {
     if (!analysis) return [];
@@ -338,7 +362,7 @@ const HRAdminView = ({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            organisation_id: organizationId,
+            organisation_id: organizationId ? organizationId : user?.email,
             candidate_id: candidate.candidateId,
           }),
         }
@@ -504,7 +528,8 @@ const HRAdminView = ({
                         setMessages([
                           {
                             sender: "bot",
-                            text: "Hello! I'm Alex, your AI recruitment partner. How can I help you add a new candidate today?"
+                            text: "Hello! I'm Alex, your AI recruitment partner. How can I help you add a new candidate today?",
+                            isWelcomeMessage: true
                           },
                           {
                             sender: "bot",

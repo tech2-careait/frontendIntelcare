@@ -44,7 +44,7 @@ const fetchOrganisation = async (email) => {
     console.log("Organisation fetch response:", res.data);
     if (res.data?.ok) {
       setOrganisationId(
-        res.data.organisation_id
+        res.data.organisation_id 
       );
 
       setCandidateId(
