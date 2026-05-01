@@ -11,6 +11,20 @@ export const useHRChat = () => {
     onError: null
   });
 
+  // Paces incoming events so they don't flash by — each event surfaces with a
+  // 2–4 second gap, and the final hr_complete/hr_error waits for the queue to
+  // drain so the bot reply doesn't appear before its preceding status updates.
+  const queueRef = useRef({
+    items: [],
+    processing: false,
+    pendingComplete: null,
+    pendingError: null,
+    firstEventShown: false
+  });
+
+  const MIN_EVENT_DELAY_MS = 2000;
+  const MAX_EVENT_DELAY_MS = 4000;
+
   useEffect(() => {
     console.log("[HR CHAT] Initializing socket");
 
@@ -69,6 +83,45 @@ export const useHRChat = () => {
       );
     };
 
+    const getRandomEventDelay = () =>
+      Math.floor(
+        Math.random() * (MAX_EVENT_DELAY_MS - MIN_EVENT_DELAY_MS + 1)
+      ) + MIN_EVENT_DELAY_MS;
+
+    const processQueue = () => {
+      const queue = queueRef.current;
+      if (queue.processing) return;
+
+      if (queue.items.length === 0) {
+        if (queue.pendingError) {
+          const errData = queue.pendingError;
+          queue.pendingError = null;
+          queue.pendingComplete = null;
+          callbacksRef.current.onError?.(errData);
+          return;
+        }
+        if (queue.pendingComplete) {
+          const completeData = queue.pendingComplete;
+          queue.pendingComplete = null;
+          callbacksRef.current.onComplete?.(completeData);
+        }
+        return;
+      }
+
+      queue.processing = true;
+      const next = queue.items.shift();
+      callbacksRef.current.onEvent?.(next.eventName, next.data);
+
+      // First event surfaces immediately; subsequent events wait 2–4s.
+      const delay = queue.firstEventShown ? getRandomEventDelay() : 0;
+      queue.firstEventShown = true;
+
+      setTimeout(() => {
+        queue.processing = false;
+        processQueue();
+      }, delay);
+    };
+
     const handleEvent = (eventName, data) => {
       console.log(`[HR CHAT] ${eventName}`, data);
 
@@ -77,9 +130,8 @@ export const useHRChat = () => {
         return;
       }
 
-      if (callbacksRef.current.onEvent) {
-        callbacksRef.current.onEvent(eventName, data);
-      }
+      queueRef.current.items.push({ eventName, data });
+      processQueue();
     };
 
     newSocket.on("hr_status", (data) => handleEvent("status", data));
@@ -92,11 +144,13 @@ export const useHRChat = () => {
     );
 
     newSocket.on("hr_complete", (data) => {
-      callbacksRef.current.onComplete?.(data);
+      queueRef.current.pendingComplete = data;
+      processQueue();
     });
 
     newSocket.on("hr_error", (data) => {
-      callbacksRef.current.onError?.(data);
+      queueRef.current.pendingError = data;
+      processQueue();
     });
 
     newSocket.on("hr_candidates_shortlisted", (data) => {
@@ -117,6 +171,14 @@ export const useHRChat = () => {
         onError: null
       };
 
+      queueRef.current = {
+        items: [],
+        processing: false,
+        pendingComplete: null,
+        pendingError: null,
+        firstEventShown: false
+      };
+
       newSocket.disconnect();
     };
   }, []);
@@ -131,6 +193,14 @@ export const useHRChat = () => {
       onEvent,
       onComplete,
       onError
+    };
+
+    queueRef.current = {
+      items: [],
+      processing: false,
+      pendingComplete: null,
+      pendingError: null,
+      firstEventShown: false
     };
 
     socket.emit("hr_chat", payload);

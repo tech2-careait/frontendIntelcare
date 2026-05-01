@@ -802,7 +802,8 @@ const HomePage = () => {
       setMessages([
         {
           sender: "bot",
-          text: "Hello! I'm Alex, your AI recruitment partner. How can I help you streamline the staff onboarding today?"
+          text: "Hello! I'm Alex, your AI recruitment partner. How can I help you streamline the staff onboarding today?",
+          isWelcomeMessage: true
         }
       ]);
     }
@@ -943,12 +944,6 @@ const HomePage = () => {
           ? "resume_screening"
           : "general",
 
-      ...(hrMode === "general" && {
-        screened_candidates: candidatesData
-      }),
-
-      attachments,
-
       conversation_history: messages
         .filter((m) => !m.temp)
         .map((m) => ({
@@ -959,6 +954,9 @@ const HomePage = () => {
       admin_name: user?.displayName || "HR Admin",
       admin_email: user?.email
     };
+    if (attachments.length > 0) {
+      payload.attachments = attachments;
+    }
     if (hrMode === "resume_screening" && attachments.length > 0) {
       setJdFiles([]);
       setResumeFiles([]);
@@ -1647,11 +1645,12 @@ const HomePage = () => {
     setMessages(
       isHRAsk
         ? [
-            {
-              sender: "bot",
-              text: "Hello! I'm Alex, your AI recruitment partner. How can I help you streamline the staff onboarding today?"
-            }
-          ]
+          {
+            sender: "bot",
+            text: "Hello! I'm Alex, your AI recruitment partner. How can I help you streamline the staff onboarding today?",
+            isWelcomeMessage: true
+          }
+        ]
         : []
     );
     setFinancialAiHistoryPayload([]);
