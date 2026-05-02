@@ -22,7 +22,7 @@ export const useHRChat = () => {
     firstEventShown: false
   });
 
-  const EVENT_DELAY_MS = 1000;
+  const EVENT_DELAY_MS = 200;
 
   useEffect(() => {
     console.log("[HR CHAT] Initializing socket");
