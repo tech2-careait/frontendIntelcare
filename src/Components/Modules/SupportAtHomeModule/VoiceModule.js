@@ -55,6 +55,8 @@ import beforeRecordingAnimation from "../../../Images/beforeRecordingAnimation.j
 import { HiOutlineDocumentAdd } from "react-icons/hi";
 import generatingDocAnimation from "../../../Images/generatingDocAnimation.json"
 import generatingDocAnimationVideo from "../../../Images/generatingDocAnimationVideo.mp4"
+import { RiSettingsLine } from "react-icons/ri";
+import AccessManagementForm from "../../AccessManagementForm";
 const VoiceModule = (props) => {
     const userEmail = props?.user?.email;
     // const userEmail = "mboutros@tenderlovingcaredisability.com.au";
@@ -87,6 +89,7 @@ const VoiceModule = (props) => {
         "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net";
 
     const [role, setRole] = useState("Admin");
+    const [openAccessManagement, setOpenAccessManagement] = useState(false);
     const [templateFile, setTemplateFile] = useState(null);
     const [sampleFiles, setSampleFiles] = useState([]);
     const [sessionId, setSessionId] = useState(null);
@@ -2350,51 +2353,64 @@ const VoiceModule = (props) => {
                     <div style={{ textAlign: 'center', fontSize: '20px', fontWeight: '500', }}>Care Voice</div>
                 </div>
             }
-            <div className="voice-top-row">
-                <MultiSelectCustom
-                    placeholder="Role"
-                    leftIcon={voiceRoleIcon}
-                    rightIcon={props.isMobileOrTablet ? null : TlcPayrollDownArrow}  // optional arrow
-                    options={[
-                        { label: "Admin", value: "Admin" },
-                        { label: "Staff", value: "Staff" },
-                    ]}
-                    selected={[{ label: role, value: role }]}
-                    setSelected={(arr) => setRole(arr?.[0]?.value || "Admin")}
-                    isSingleSelect={true}
-                    disabled={props.isMobileOrTablet}
-                />
+            <div className="voice-top-bar">
+                <div className="voice-top-row">
+                    <MultiSelectCustom
+                        placeholder="Role"
+                        leftIcon={voiceRoleIcon}
+                        rightIcon={props.isMobileOrTablet ? null : TlcPayrollDownArrow}  // optional arrow
+                        options={[
+                            { label: "Admin", value: "Admin" },
+                            { label: "Staff", value: "Staff" },
+                        ]}
+                        selected={[{ label: role, value: role }]}
+                        setSelected={(arr) => setRole(arr?.[0]?.value || "Admin")}
+                        isSingleSelect={true}
+                        disabled={props.isMobileOrTablet}
+                    />
 
-                {role === "Staff" && !showGeneratedFilesUI && (
-                    <>
-                        <div className="voice-field">
-                            <img
-                                src={voiceNameIcon}
-                                alt="name"
-                                style={{ width: "16px", height: "15px" }}
-                            />
-                            <input
-                                className="voice-input"
-                                placeholder="Name"
-                                value={staffName}
-                                onChange={(e) => setStaffName(e.target.value)}
-                            />
-                        </div>
+                    {role === "Staff" && !showGeneratedFilesUI && (
+                        <>
+                            <div className="voice-field">
+                                <img
+                                    src={voiceNameIcon}
+                                    alt="name"
+                                    style={{ width: "16px", height: "15px" }}
+                                />
+                                <input
+                                    className="voice-input"
+                                    placeholder="Name"
+                                    value={staffName}
+                                    onChange={(e) => setStaffName(e.target.value)}
+                                />
+                            </div>
 
-                        <div className="voice-field">
-                            <img
-                                src={voiceMailIcon}
-                                alt="email"
-                                style={{ width: "17px", height: "13px" }}
-                            />
-                            <input
-                                className="voice-input"
-                                placeholder="Email Address"
-                                value={staffEmail}
-                                onChange={(e) => setStaffEmail(e.target.value)}
-                            />
-                        </div>
-                    </>
+                            <div className="voice-field">
+                                <img
+                                    src={voiceMailIcon}
+                                    alt="email"
+                                    style={{ width: "17px", height: "13px" }}
+                                />
+                                <input
+                                    className="voice-input"
+                                    placeholder="Email Address"
+                                    value={staffEmail}
+                                    onChange={(e) => setStaffEmail(e.target.value)}
+                                />
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                {role === "Admin" && (
+                    <button
+                        className="access-mgmt-trigger-btn"
+                        onClick={() => setOpenAccessManagement(true)}
+                        type="button"
+                    >
+                        <RiSettingsLine size={18} color="#707493" />
+                        Access Management
+                    </button>
                 )}
             </div>
 
@@ -3854,6 +3870,13 @@ const VoiceModule = (props) => {
                 staffEmail={staffEmail}
                 staffName={staffName}
             />
+
+            {openAccessManagement && (
+                <AccessManagementForm
+                    onClose={() => setOpenAccessManagement(false)}
+                    userEmail={userEmail}
+                />
+            )}
         </div>
     );
 };

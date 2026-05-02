@@ -1183,6 +1183,14 @@ const HomePage = () => {
       setHasResumeRunStarted(true);
     }
 
+    // Drop the "Please upload…" prompt and its upload boxes together the
+    // instant the user submits — the upload step is done.
+    setMessages((prev) =>
+      prev.some((m) => m.isUploadPrompt)
+        ? prev.filter((m) => !m.isUploadPrompt)
+        : prev
+    );
+
     // show user message and temp bot message
     if (finalQuery) {
       setMessages((prev) => [...prev, { sender: "user", text: finalQuery }]);
@@ -2203,6 +2211,7 @@ const HomePage = () => {
                             setMessages([]);
                             setFeedbackState({});
                             setFeedbackMode(null);
+                            setHrMode("general");
                             setHrStep("IDLE");
                             setJdFiles([]);
                             setResumeFiles([]);
@@ -2332,7 +2341,7 @@ const HomePage = () => {
                                   <div
                                     style={{
                                       backgroundColor: "#F9F8FF",
-                                      padding: "24px 24px",
+                                      padding: "14px",
                                       borderRadius: "26px",
                                       width: "100%",        // ✅ full width
                                       maxWidth: "100%",
