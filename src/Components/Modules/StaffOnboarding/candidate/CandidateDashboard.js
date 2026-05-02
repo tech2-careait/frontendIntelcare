@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import HRStaffView from "./Modules/SupportAtHomeModule/HRStaffView";
+import { useNavigate, useParams } from "react-router-dom";
+import HRStaffView from "../onboarding/HRStaffView";
 import {
   getCandidateSession,
   clearCandidateSession,
 } from "./candidateAuth";
-import curkiLogo from "../Images/Black_logo.png";
-import "../Styles/CandidateLogin.css";
+import curkiLogo from "../../../../Images/Black_logo.png";
+import "../../../../Styles/CandidateLogin.css";
 
 const CandidateDashboard = () => {
   const navigate = useNavigate();
+  const { tab } = useParams();
   const [session, setSession] = useState(() => getCandidateSession());
 
   useEffect(() => {
@@ -65,6 +66,10 @@ const CandidateDashboard = () => {
           user={candidateUser}
           handleClick={() => {}}
           setShowFeedbackPopup={() => {}}
+          activeTab={tab}
+          onTabChange={(slug) =>
+            navigate(`/hr-candidate/dashboard/${slug}`, { replace: true })
+          }
         />
       </main>
     </div>

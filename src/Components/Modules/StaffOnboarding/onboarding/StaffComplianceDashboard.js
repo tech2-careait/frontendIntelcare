@@ -11,10 +11,10 @@ import {
   Filler,
   Legend,
 } from "chart.js";
-import "../../../Styles/StaffComplianceDashboard.css";
-import Report from "../RosteringModule/Report"; // import the insights
+import "../../../../Styles/StaffComplianceDashboard.css";
+import Report from "../../RosteringModule/Report"; // import the insights
 import StaffInsights from "./StaffInsights";
-import StaffCompliance from '../../../Images/StaffCompliance.jpeg';
+import StaffCompliance from '../../../../Images/StaffCompliance.jpeg';
 
 ChartJS.register(
   CategoryScale,

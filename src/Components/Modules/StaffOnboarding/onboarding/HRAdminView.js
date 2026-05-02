@@ -1,15 +1,18 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import "../../../Styles/SmartOnboarding.enhanced.css";
-import "../../../Styles/ResumeScreening.css";
-import "../../../Styles/NewSmartOnboardingHrView.css"
+import "../../../../Styles/SmartOnboarding.enhanced.css";
+import "../../../../Styles/ResumeScreening.css";
+import "../../../../Styles/NewSmartOnboardingHrView.css"
 import StaffOnboarding from "./StaffOnboarding";
 import StaffComplianceDashboard from "./StaffComplianceDashboard";
-import UploadFiles from "../../UploadFiles";
+import UploadFiles from "../../../UploadFiles";
 import ScreeningTestCreation from "./ScreeningTestCreation";
 import AdminDocumentVerification from "./AdminDocumentVerification";
+// LMS v1 (legacy) — kept for rollback. Active LMS is v2 below.
 import AdminCourseCreation from "./AdminCourseCreation";
-import incrementAnalysisCount from "../FinancialModule/TLcAnalysisCount";
-import incrementCareVoiceAnalysisCount from "./careVoiceCostAnalysis";
+// LMS v2 — replaces AdminCourseCreation in the Edit Training tab.
+import AdminCourseCreation_v2 from "../lms/LMSRedesign";
+import incrementAnalysisCount from "../../FinancialModule/TLcAnalysisCount";
+import incrementCareVoiceAnalysisCount from "../../SupportAtHomeModule/careVoiceCostAnalysis";
 
 const HRAdminView = ({
   handleClick,
@@ -44,28 +47,47 @@ const HRAdminView = ({
   const [deleteError, setDeleteError] = useState("");
   
   useEffect(() => {
-    const fetchOrganizationId = async () => {
-      const email = user?.email;
-      if (!email) return;
+    // Resolve organizationId from the new `organizations` container.
+    // On failure we leave organizationId as null and retry instead of
+    // falling back to the user's email — the email-fallback caused
+    // sticky broken state during transient backend restarts.
+    const MAX_ATTEMPTS = 3;
+    const RETRY_DELAY_MS = 1500;
+    let cancelled = false;
 
+    const fetchOrganizationId = async (attempt = 1) => {
+      const email = user?.email;
+      if (!email || cancelled) return;
       try {
         const res = await fetch(
-          `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/teamMembers/hierarchy?email=${encodeURIComponent(email)}`
+          `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/organizations/by-email?email=${encodeURIComponent(email)}`
         );
         const data = await res.json();
-        console.log("Organization hierarchy response:", data);  
-        if (res.ok && data?.groupData?.id) {
-          setOrganizationId(data?.groupData?.id);
-        } else {
-          setOrganizationId(email);
+        console.log(
+          `Organizations by-email response (attempt ${attempt}):`,
+          data
+        );
+        if (cancelled) return;
+        const firstOrgId = data?.organizations?.[0]?.organizationId;
+        if (res.ok && firstOrgId) {
+          setOrganizationId(firstOrgId);
+          return;
         }
+        console.warn(
+          `[organizations] no org for ${email} — leaving organizationId null`
+        );
       } catch (error) {
-        console.error("fetchOrganizationId error:", error);
-        setOrganizationId(email);
+        console.error(`fetchOrganizationId error (attempt ${attempt}):`, error);
+        if (!cancelled && attempt < MAX_ATTEMPTS) {
+          setTimeout(() => fetchOrganizationId(attempt + 1), RETRY_DELAY_MS);
+        }
       }
     };
 
     fetchOrganizationId();
+    return () => {
+      cancelled = true;
+    };
   }, [user?.email]);
 
   const fetchTestResults = useCallback(async () => {
@@ -813,7 +835,9 @@ const HRAdminView = ({
           {activeTab === "Screening Test Creation" && <ScreeningTestCreation user={user} organizationId={organizationId} />}
         </div>
         <div className="content-areasss">
-          {activeTab === "Staff Onboarding" && <AdminCourseCreation user={user} />}
+          {activeTab === "Staff Onboarding" && (
+            <AdminCourseCreation_v2 user={user} organizationId={organizationId} />
+          )}
           {/* {activeTab === "Document Verfication" && <AdminDocumentVerification />} */}
         </div>
       </div>

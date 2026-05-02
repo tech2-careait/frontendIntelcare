@@ -24,7 +24,7 @@ import {
 } from "react-icons/fi";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import "../../../Styles/NewScreeningTestCreation.css";
+import "../../../../Styles/NewScreeningTestCreation.css";
 
 const BASE_URL =
   "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api";

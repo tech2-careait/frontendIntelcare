@@ -2,10 +2,10 @@
 import React, { useState, useRef } from "react";
 import { FiSend, FiX } from "react-icons/fi";
 import axios from "axios";
-import "../../../Styles/NewSmartOnboardingChatBot.css";
+import "../../../../Styles/NewSmartOnboardingChatBot.css";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import TlcUploadBox from "../FinancialModule/TlcUploadBox";
+import TlcUploadBox from "../../FinancialModule/TlcUploadBox";
 
 const SmartOnboardingChat = ({
     open,

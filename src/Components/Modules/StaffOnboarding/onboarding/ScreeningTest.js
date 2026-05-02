@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import "../../../Styles/ScreenTest.css";
+import "../../../../Styles/ScreenTest.css";
 import { useParams } from "react-router-dom";
 import { getAuth } from "firebase/auth";
 

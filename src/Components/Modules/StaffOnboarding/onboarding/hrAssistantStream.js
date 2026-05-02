@@ -1,6 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import io from "socket.io-client";
 
+// Host resolution mirrors the LMS v2 api.js pattern so that local dev hits
+// the local backend instead of production. WebSockets bypass the axios/fetch
+// interceptor in src/index.js, so we have to do this explicitly here.
+const PROD_HR_WS_HOST =
+  "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net";
+const LOCAL_HR_WS_HOST = "http://localhost:5000";
+
+const isLocalhost =
+  typeof window !== "undefined" &&
+  /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(window.location.hostname);
+
+const HR_WS_HOST = isLocalhost ? LOCAL_HR_WS_HOST : PROD_HR_WS_HOST;
+
 export const useHRChat = () => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
@@ -27,15 +40,13 @@ export const useHRChat = () => {
   useEffect(() => {
     console.log("[HR CHAT] Initializing socket");
 
-    const newSocket = io(
-      "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net",
-      {
-        transports: ["websocket"],
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000
-      }
-    );
+    console.log(`[HR CHAT] Connecting to ${HR_WS_HOST}`);
+    const newSocket = io(HR_WS_HOST, {
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000
+    });
 
     newSocket.on("connect", () => {
       console.log("[HR CHAT] Connected", newSocket.id);

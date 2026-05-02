@@ -1,19 +1,33 @@
 import React, { useState } from "react";
-import "../../../Styles/SmartOnboarding.enhanced.css";
-import "../../../Styles/ResumeScreening.css";
-import ScreeningTest from "./ScreeningTest";
-import StaffOnboarding from "./StaffOnboarding";
+import "../../../../Styles/SmartOnboarding.enhanced.css";
+import "../../../../Styles/ResumeScreening.css";
 import DocumentVerification from "./DocumentVerification";
+import LMSLearner from "../lms/LMSLearner";
+
+const TABS = [
+  { slug: "documents", label: "Document Verification" },
+  { slug: "training", label: "Training" },
+];
+const DEFAULT_TAB = "documents";
 
 const HRStaffView = ({
-  selectedRole,
   handleClick,
   setShowFeedbackPopup,
-  user
+  user,
+  activeTab: activeTabProp,
+  onTabChange,
 }) => {
+  // When the parent provides activeTab/onTabChange we run as a controlled
+  // component (used by CandidateDashboard to sync with the URL). Otherwise
+  // fall back to local state for legacy callers.
+  const [internalTab, setInternalTab] = useState(DEFAULT_TAB);
+  const activeTab =
+    activeTabProp && TABS.some((t) => t.slug === activeTabProp)
+      ? activeTabProp
+      : internalTab;
+
   const [selectedFile, setSelectedFile] = useState([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [activeTab, setActiveTab] = useState("Document Verfication");
   const [showResults, setShowResults] = useState(false);
   const [selectedCandidates, setSelectedCandidates] = useState(new Set());
 
@@ -71,8 +85,12 @@ const HRStaffView = ({
     }
   };
 
-  const handleTabClick = (tabName) => {
-    setActiveTab(tabName);
+  const handleTabClick = (slug) => {
+    if (onTabChange) {
+      onTabChange(slug);
+    } else {
+      setInternalTab(slug);
+    }
     setShowResults(false);
     setSelectedCandidates(new Set());
   };
@@ -141,33 +159,20 @@ const HRStaffView = ({
   return (
     <div className="hr-analysis-container">
       <div className="top-nav">
-        {/* <button
-          className={`nav-tab ${activeTab === "Screening Test" ? "active" : ""
-            }`}
-          onClick={() => handleTabClick("Screening Test")}
-        >
-          Screening Test
-        </button> */}
-        <button
-          className={`nav-tab ${activeTab === "Document Verfication" ? "active" : ""
-            }`}
-          onClick={() => handleTabClick("Document Verfication")}
-        >
-          Document Verfication
-        </button>
-        <button
-          className={`nav-tab ${activeTab === "Staff Onboarding" ? "active" : ""
-            }`}
-          onClick={() => handleTabClick("Staff Onboarding")}
-        >
-          Staff Onboarding
-        </button>
+        {TABS.map((t) => (
+          <button
+            key={t.slug}
+            className={`nav-tab ${activeTab === t.slug ? "active" : ""}`}
+            onClick={() => handleTabClick(t.slug)}
+          >
+            {t.label}
+          </button>
+        ))}
       </div>
 
       <div className="content-area">
-        {/* {activeTab === "Screening Test" && <ScreeningTest />} */}
-        {activeTab === "Staff Onboarding" && <StaffOnboarding user={user} />}
-        {activeTab === "Document Verfication" && <DocumentVerification user={user} />}
+        {activeTab === "documents" && <DocumentVerification user={user} />}
+        {activeTab === "training" && <LMSLearner user={user} />}
       </div>
     </div>
   );

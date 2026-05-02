@@ -8,8 +8,8 @@ import {
 import { MdOutlineEmail } from "react-icons/md";
 import { FiLock } from "react-icons/fi";
 import { PiEyeLight, PiEyeSlash } from "react-icons/pi";
-import curkiLogo from "../Images/Black_logo.png";
-import "../Styles/CandidateLogin.css";
+import curkiLogo from "../../../../Images/Black_logo.png";
+import "../../../../Styles/CandidateLogin.css";
 
 const HR_CANDIDATE_AUTH_BASE = "https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/hr-candidate";
 

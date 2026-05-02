@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from "react";
-import "../../../Styles/AdminCourseCreation.css";
+import "../../../../Styles/AdminCourseCreation.css";
 import { createLectureApi, createModuleApi, deleteModuleApi, editModuleApi, getAllModulesApi, updateLectureApi } from "./AdminCourseApis";
-import lms_file_icon from "../../../Images/lms_file_icon.png"
-import lms_play_icon1 from "../../../Images/lms_play_icon1.png"
-import lms_play_icon2 from "../../../Images/lms_play_icon2.png";
-import lms_tab_icon1 from "../../../Images/lms_tab_icon1.png"
-import lms_tab_icon2 from "../../../Images/lms_tab_icon2.png"
-import lms_tab_icon3 from "../../../Images/lms_tab_icon3.png"
-import lms_tab_icon4 from "../../../Images/lms_tab_icon4.png"
-import lms_plus_icon from "../../../Images/lms_plus_icon.png"
+import lms_file_icon from "../../../../Images/lms_file_icon.png"
+import lms_play_icon1 from "../../../../Images/lms_play_icon1.png"
+import lms_play_icon2 from "../../../../Images/lms_play_icon2.png";
+import lms_tab_icon1 from "../../../../Images/lms_tab_icon1.png"
+import lms_tab_icon2 from "../../../../Images/lms_tab_icon2.png"
+import lms_tab_icon3 from "../../../../Images/lms_tab_icon3.png"
+import lms_tab_icon4 from "../../../../Images/lms_tab_icon4.png"
+import lms_plus_icon from "../../../../Images/lms_plus_icon.png"
 const AdminCourseCreation = (props) => {
   // console.log('AdminCourseCreation props', props);
   const [modules, setModules] = useState([]);

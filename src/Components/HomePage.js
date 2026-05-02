@@ -29,11 +29,11 @@ import CareServicesEligibility from "./Modules/SupportAtHomeModule/CareServicesE
 import IncidentReport from "./Modules/SupportAtHomeModule/IncidentReport";
 import QualityandRisk from "./Modules/SupportAtHomeModule/QualityandRisk";
 import AiRostering from "./Modules/RosteringModule/Rostering";
-import ResumeScreening from "./Modules/SupportAtHomeModule/HRStaffView";
+import ResumeScreening from "./Modules/StaffOnboarding/onboarding/HRStaffView";
 import Client_Event_Reporting from "./Modules/NDISModule/Client_Event_Reporting";
 import SoftwareConnect from "./Modules/ConnectModule/SoftwareConnect";
 import RosteringDashboard from "./Modules/RosteringModule/SmartRostering";
-import HRAnalysis from "./Modules/SupportAtHomeModule/HRAnalysis";
+import HRAnalysis from "./Modules/StaffOnboarding/onboarding/HRAnalysis";
 import IncidentAuditing from "./Modules/NDISModule/IncidentAuditing";
 // import TlcCustomerReporting from "./Modules/FinancialModule/TlcCustomReporting";
 import ReactMarkdown from "react-markdown";
@@ -75,7 +75,7 @@ import { IoChevronForward, IoChevronDown } from "react-icons/io5";
 import { BiDislike, BiLike, BiSolidDislike, BiSolidLike } from "react-icons/bi";
 import incrementCareVoiceAnalysisCount from "./Modules/SupportAtHomeModule/careVoiceCostAnalysis";
 import TlcUploadBox from "./Modules/FinancialModule/TlcUploadBox";
-import { useHRChat } from "./Modules/SupportAtHomeModule/hrAssistantStream";
+import { useHRChat } from "./Modules/StaffOnboarding/onboarding/hrAssistantStream";
 const HomePage = () => {
   const [sidebarVisible, setSidebarVisible] = useState(true);
   const [documentString, setDocumentString] = useState("");
@@ -429,31 +429,41 @@ const HomePage = () => {
     ],
     default: []
   };
-  // Add this function inside HomePage component
-  const fetchOrganizationId = async (email) => {
+  // Resolve organizationId from the new `organizations` container (admins[].email).
+  // On failure we leave organizationId as null instead of falling back to the
+  // user's email — the email-fallback caused real bugs where a transient
+  // backend blip (e.g. nodemon restart) put React state into a broken
+  // configuration that silently sent every request with the wrong orgId,
+  // looking like a 403 / empty-data bug to the user. Better to short-circuit
+  // downstream calls and retry the lookup automatically.
+  const fetchOrganizationId = async (email, attempt = 1) => {
+    if (!email) return;
+    const MAX_ATTEMPTS = 3;
+    const RETRY_DELAY_MS = 1500;
     try {
-      if (!email) return;
-
-      console.log("Fetching organizationId for:", email);
-
-      const res = await fetch(
-        `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/teamMembers/hierarchy?email=${encodeURIComponent(email)}`
+      console.log(
+        `Fetching organizationId for: ${email} (attempt ${attempt}/${MAX_ATTEMPTS})`
       );
-
+      const res = await fetch(
+        `https://curki-test-prod-auhyhehcbvdmh3ef.canadacentral-01.azurewebsites.net/api/organizations/by-email?email=${encodeURIComponent(email)}`
+      );
       const data = await res.json();
-
-      console.log("Hierarchy response:", data);
-
-      if (res.ok && data?.groupData?.id) {
-        setOrganizationId(data.groupData.id);
-        console.log("organizationId set:", data.groupData.id);
-      } else {
-        setOrganizationId(email);
-        console.log("Fallback organizationId:", email);
+      console.log("Organizations by-email response:", data);
+      const firstOrgId = data?.organizations?.[0]?.organizationId;
+      if (res.ok && firstOrgId) {
+        setOrganizationId(firstOrgId);
+        console.log("organizationId set:", firstOrgId);
+        return;
       }
+      // No org found for this email. Leave state null; downstream calls won't fire.
+      console.warn(
+        `[organizations] no org for ${email} — leaving organizationId null`
+      );
     } catch (error) {
-      console.error("fetchOrganizationId error:", error);
-      setOrganizationId(email);
+      console.error(`fetchOrganizationId error (attempt ${attempt}):`, error);
+      if (attempt < MAX_ATTEMPTS) {
+        setTimeout(() => fetchOrganizationId(email, attempt + 1), RETRY_DELAY_MS);
+      }
     }
   };
 
