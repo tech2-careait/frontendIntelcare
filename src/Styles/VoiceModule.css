@@ -4,6 +4,15 @@
   padding: 24px 4%;
 }
 
+/* ================= TOP BAR (wraps the role row + Access Management button) ================= */
+.voice-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
 /* ================= TOP ROW ================= */
 .voice-top-row {
   display: flex;
@@ -1821,6 +1830,11 @@
 
 /* ================= RESPONSIVE ADJUSTMENTS ================= */
 @media (max-width: 768px) {
+  .voice-top-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
   .voice-top-row {
     width: 100%;
     flex-direction: column;
