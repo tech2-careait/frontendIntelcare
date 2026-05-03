@@ -7,7 +7,7 @@
 .ulrn-page {
   width: 100%;
   min-height: 100vh;
-  padding: 24px;
+  padding: 0 32px 40px 32px;
   background: #f1f0f7;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   box-sizing: border-box;
@@ -17,8 +17,8 @@
 
 .ulrn-wrap {
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: 1280px;
+  margin: 24px auto;
   background: #fff;
   border-radius: 14px;
   overflow: hidden;
@@ -145,7 +145,7 @@
 
 .ulrn-cat-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: 22px;
 }
@@ -264,7 +264,7 @@
 
 .ulrn-cat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 18px;
 }
 .ulrn-tile {
@@ -437,8 +437,9 @@
 
 .ulrn-detail-grid {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 1fr 340px;
   gap: 22px;
+  align-items: start;
 }
 @media (max-width: 900px) {
   .ulrn-detail-grid { grid-template-columns: 1fr; }
@@ -535,7 +536,7 @@
   gap: 14px;
   align-self: flex-start;
   position: sticky;
-  top: 24px;
+  top: 80px;
 }
 .ulrn-detail-progress {
   background: #fff;
@@ -1090,3 +1091,61 @@
   font-size: 14px;
   line-height: 1.5;
 }
+
+/* ============================================================
+   Training Page UI Enhancements — Brand: #6C4CDC
+   Palette: dark #4f30b8 | base #6C4CDC | light #8b6ee8
+   ============================================================ */
+
+.ulrn-page { background: #f4f3fb !important; }
+.ulrn-wrap { box-shadow: 0 2px 16px rgba(108,76,220,0.10); }
+.ulrn-topbar { border-bottom: 1px solid #eeebfb; }
+
+/* Stat tiles */
+.ulrn-stat-tile { background: #faf9fe; border: 1px solid #e0d9f7; border-radius: 12px; padding: 20px; text-align: center; transition: box-shadow 0.2s; }
+.ulrn-stat-tile:hover { box-shadow: 0 4px 14px rgba(108,76,220,0.15); border-color: #b8a8ef; }
+.ulrn-stat-num { font-size: 2rem; font-weight: 800; color: #6C4CDC; }
+.ulrn-stat-label { font-size: 0.70rem; font-weight: 700; letter-spacing: 0.08em; color: #9585cc; margin-top: 5px; text-transform: uppercase; }
+
+/* Filter pills */
+.ulrn-cat-tab.active, .ulrn-filter-btn.active { background: #6C4CDC; color: #fff; border-color: #6C4CDC; }
+
+/* Course tile grid */
+.ulrn-cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; padding: 16px 32px 32px; }
+
+/* Course tiles */
+.ulrn-tile { border-radius: 14px; overflow: hidden; border: 1px solid #e0d9f7; box-shadow: 0 2px 8px rgba(108,76,220,0.06); transition: transform 0.18s, box-shadow 0.18s, border-color 0.18s; cursor: pointer; background: #fff; }
+.ulrn-tile:hover { transform: translateY(-3px); box-shadow: 0 8px 28px rgba(108,76,220,0.18); border-color: #b8a8ef; }
+.ulrn-tile-cat { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #6C4CDC; }
+.ulrn-tile button { width: 100%; padding: 9px 0; border-radius: 8px; border: 1.5px solid #6C4CDC; background: #fff; color: #6C4CDC; font-weight: 600; cursor: pointer; margin-top: 10px; transition: background 0.18s, color 0.18s; }
+.ulrn-tile button:hover { background: #6C4CDC; color: #fff; }
+
+/* Hero/banner */
+.ulrn-cat-hero, .ulrn-detail-hero, .ulrn-hero, .ulrn-banner { background: linear-gradient(135deg, #4f30b8 0%, #6C4CDC 60%, #8b6ee8 100%) !important; border-radius: 14px; }
+
+/* Detail content cards */
+.ulrn-detail-card { background: #faf9fe; border: 1px solid #e0d9f7; border-radius: 12px; padding: 24px; margin-bottom: 20px; }
+
+/* Curriculum rows */
+.ulrn-detail-sec { background: #fff; border: 1px solid #e0d9f7; border-radius: 10px; padding: 14px 18px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+.ulrn-detail-sec:hover { background: #f5f2fe; border-color: #b8a8ef; }
+
+/* Side panel */
+.ulrn-detail-side { position: sticky; top: 24px; background: #fff; border: 1.5px solid #c5b8f0; border-radius: 14px; box-shadow: 0 4px 24px rgba(108,76,220,0.14); overflow: hidden; }
+
+/* Progress section */
+.ulrn-detail-progress { padding: 22px 24px 16px; border-bottom: 1px solid #eeebfb; background: #f5f2fe; }
+.ulrn-detail-progress-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.ulrn-detail-progress-row span { font-size: 0.78rem; font-weight: 700; color: #6C4CDC; text-transform: uppercase; letter-spacing: 0.07em; }
+.ulrn-detail-progress-row strong { font-size: 1.6rem; font-weight: 800; color: #4f30b8; line-height: 1; }
+.ulrn-detail-progress-bar { height: 8px; border-radius: 99px; background: #e8e2f8; overflow: hidden; }
+.ulrn-detail-progress-fill { height: 100%; background: linear-gradient(90deg, #4f30b8, #6C4CDC, #8b6ee8); border-radius: 99px; min-width: 4px; }
+.ulrn-detail-progress-meta { font-size: 0.78rem; color: #9585cc; margin-top: 8px; }
+
+/* CTA button */
+.ulrn-detail-cta { display: block; width: 100%; padding: 16px 0; background: #6C4CDC; color: #fff; font-weight: 700; font-size: 1rem; text-align: center; border: none; border-radius: 0; cursor: pointer; letter-spacing: 0.03em; transition: background 0.18s; box-sizing: border-box; }
+.ulrn-detail-cta:hover { background: #4f30b8; }
+
+/* Back button */
+.ulrn-back-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; border: 1.5px solid #c5b8f0; background: #fff; color: #6C4CDC; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-bottom: 20px; transition: background 0.15s, border-color 0.15s; }
+.ulrn-back-btn:hover { background: #f5f2fe; border-color: #6C4CDC; }

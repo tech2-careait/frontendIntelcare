@@ -6,9 +6,9 @@
 
 .ulms-page {
   width: 100%;
-  min-height: 100vh;
-  padding: 24px;
-  background: #f1f0f7;
+  padding: 0;
+  background: transparent;
+  min-height: unset;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   box-sizing: border-box;
   color: #1a1a2e;
@@ -17,13 +17,16 @@
 
 .ulms-wrap {
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  max-width: 100%;
+  margin: 0;
   background: #fff;
-  border-radius: 14px;
+  border-radius: 0;
   overflow: hidden;
   border: 1px solid #ebebf0;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  box-shadow: none;
 }
 
 /* =========================================================
@@ -105,24 +108,27 @@
    ========================================================= */
 .ulms-editor {
   display: flex;
-  height: calc(100vh - 230px);
-  min-height: 600px;
+  flex-direction: column;
+  min-height: calc(100vh - 230px);
 }
 .ulms-editor-nav {
-  width: 240px;
-  min-width: 240px;
-  background: #1a1a2e;
-  padding: 22px 0;
+  width: 100%;
+  min-width: unset;
+  background: linear-gradient(145deg, #f8f6ff 0%, #f1eeff 50%, #ede9fe 100%);
+  padding: 0;
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  gap: 0;
   flex-shrink: 0;
+  height: 56px;
+  align-items: stretch;
+  border-bottom: 2px solid rgba(108, 76, 220, 0.18);
 }
 .ulms-editor-main {
   flex: 1;
   overflow-y: auto;
-  background: #f7f6fb;
-  padding: 28px 32px;
+  background: #ffffff;
+  padding: 28px 0px;
 }
 
 /* NAV ITEMS */
@@ -133,12 +139,12 @@
   padding: 11px 14px;
   cursor: pointer;
   font-size: 14px;
-  color: #bbbbd0;
+  color: #7c5cbf;
   transition: all 0.15s;
   margin: 0 10px;
   border-radius: 8px;
 }
-.ulms-nav-item:hover { background: rgba(255, 255, 255, 0.08); color: #fff; }
+.ulms-nav-item:hover { background: rgba(108, 76, 220, 0.10); color: #5b21b6; }
 .ulms-nav-item.active { background: #7c5cbf; color: #fff; }
 .ulms-nav-item.done .ulms-nav-dot {
   background: #4caf77;
@@ -149,16 +155,16 @@
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  border: 2px solid #555577;
+  border: 2px solid #c4b5f4;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
   font-weight: 700;
-  color: #bbb;
+  color: #7c5cbf;
   flex-shrink: 0;
   transition: all 0.15s;
-  background: #1a1a2e;
+  background: #ede9fe;
 }
 .ulms-nav-item.active .ulms-nav-dot {
   background: #fff;
@@ -167,6 +173,7 @@
 }
 .ulms-nav-spacer { flex: 1; }
 .ulms-nav-tip {
+  display: none;
   margin: 12px;
   padding: 14px;
   background: rgba(255,255,255,0.05);
@@ -202,6 +209,16 @@
   gap: 20px;
 }
 .ulms-info-grid .ulms-full { grid-column: 1 / -1; }
+
+.ulms-info-grid .ulms-field-group:nth-child(1),
+.ulms-info-grid .ulms-field-group:nth-child(2) {
+  grid-column: span 1;
+}
+
+.ulms-info-grid .ulms-field-group:nth-child(5),
+.ulms-info-grid .ulms-field-group:nth-child(6) {
+  grid-column: span 1;
+}
 
 .ulms-field-group { display: flex; flex-direction: column; gap: 6px; }
 .ulms-label {

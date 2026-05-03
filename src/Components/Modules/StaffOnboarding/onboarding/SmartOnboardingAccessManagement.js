@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import "../../../../Styles/SmartOnboardingAccessManagement.css";
 
-const ROLE_OPTIONS = [
-  { label: "Admin", value: "admin" },
-  { label: "Staff", value: "staff" },
-];
+// Only "admin" is supported on this surface. The previous "staff" role was
+// never enforced server-side, so the dropdown was replaced with a static
+// label to make the available role obvious without offering a fake choice.
+const INVITE_ROLE = "admin";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -24,10 +24,10 @@ const API_BASE =
 const SmartOnboardingAccessManagement = ({ onClose, userEmail, organizationId }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState("staff");
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [revokingId, setRevokingId] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
@@ -82,17 +82,13 @@ const SmartOnboardingAccessManagement = ({ onClose, userEmail, organizationId })
       setError("A valid email is required");
       return;
     }
-    if (!["admin", "staff"].includes(role)) {
-      setError("Role must be admin or staff");
-      return;
-    }
 
     setInviting(true);
     try {
       console.log("[SmartOnboarding/Access] invite", {
         name: trimmedName,
         email: trimmedEmail,
-        role,
+        role: INVITE_ROLE,
       });
       const res = await fetch(`${API_BASE}/invite`, {
         method: "POST",
@@ -100,7 +96,7 @@ const SmartOnboardingAccessManagement = ({ onClose, userEmail, organizationId })
         body: JSON.stringify({
           name: trimmedName,
           email: trimmedEmail,
-          role,
+          role: INVITE_ROLE,
         }),
       });
       const data = await res.json();
@@ -116,7 +112,6 @@ const SmartOnboardingAccessManagement = ({ onClose, userEmail, organizationId })
 
       setName("");
       setEmail("");
-      setRole("staff");
 
       await fetchUsers();
     } catch (err) {
@@ -126,6 +121,50 @@ const SmartOnboardingAccessManagement = ({ onClose, userEmail, organizationId })
       setInviting(false);
     }
   };
+
+  const handleRemove = async (user) => {
+    if (!user?.id) return;
+    const isActive = user.status === "active";
+    const confirmMessage = isActive
+      ? `Remove access for ${user.email}? They will lose access immediately and need to be re-invited to come back.`
+      : `Revoke invite for ${user.email}? They will lose access until re-invited.`;
+    if (!window.confirm(confirmMessage)) return;
+
+    setError("");
+    setSuccess("");
+    setRevokingId(user.id);
+    try {
+      console.log("[SmartOnboarding/Access] remove", {
+        id: user.id,
+        email: user.email,
+        status: user.status,
+      });
+      const res = await fetch(
+        `${API_BASE}/users/${encodeURIComponent(user.id)}`,
+        { method: "DELETE", headers: requestHeaders() }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to remove user");
+      }
+      setSuccess(
+        isActive
+          ? `Removed access for ${user.email}`
+          : `Invite revoked for ${user.email}`
+      );
+      await fetchUsers();
+    } catch (err) {
+      console.error("[SmartOnboarding/Access] remove failed", err);
+      setError(err.message || "Failed to remove user");
+    } finally {
+      setRevokingId("");
+    }
+  };
+
+  const isSelf = (user) =>
+    !!userEmail &&
+    !!user?.email &&
+    user.email.trim().toLowerCase() === userEmail.trim().toLowerCase();
 
   const roleClass = (value) =>
     `so-access-badge so-access-role-${(value || "").toLowerCase()}`;
@@ -194,20 +233,11 @@ const SmartOnboardingAccessManagement = ({ onClose, userEmail, organizationId })
 
           <div className="so-access-row so-access-row-invite">
             <div className="so-access-field">
-              <label className="so-access-label">
-                Role <sup className="so-access-required">*</sup>
-              </label>
-              <select
-                className="so-access-select"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-              >
-                {ROLE_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <div className="so-access-role-static">
+                <span className="so-access-badge so-access-role-admin">
+                  Admin
+                </span>
+              </div>
             </div>
 
             <div className="so-access-invite-cell">
@@ -247,6 +277,7 @@ const SmartOnboardingAccessManagement = ({ onClose, userEmail, organizationId })
                     <div>Email</div>
                     <div>Role</div>
                     <div>Status</div>
+                    <div>Actions</div>
                   </div>
                   {users.map((u) => (
                     <div key={u.id || u.email} className="so-access-table-row">
@@ -257,6 +288,37 @@ const SmartOnboardingAccessManagement = ({ onClose, userEmail, organizationId })
                       </div>
                       <div>
                         <span className={statusClass(u.status)}>{u.status}</span>
+                      </div>
+                      <div className="so-access-actions-cell">
+                        {(u.status === "invited" || u.status === "active") &&
+                        !isSelf(u) ? (
+                          <button
+                            type="button"
+                            className="so-access-revoke-btn"
+                            onClick={() => handleRemove(u)}
+                            disabled={revokingId === u.id}
+                            aria-label={
+                              u.status === "active"
+                                ? `Remove access for ${u.email}`
+                                : `Revoke invite for ${u.email}`
+                            }
+                          >
+                            {revokingId === u.id
+                              ? u.status === "active"
+                                ? "Removing..."
+                                : "Revoking..."
+                              : u.status === "active"
+                              ? "Remove"
+                              : "Revoke"}
+                          </button>
+                        ) : (
+                          <span
+                            className="so-access-actions-empty"
+                            title={isSelf(u) ? "You cannot remove your own access" : undefined}
+                          >
+                            —
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}

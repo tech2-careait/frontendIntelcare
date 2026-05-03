@@ -58,6 +58,13 @@
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 24px;
+  position: relative;
+}
+
+.so-access-header > div:first-child {
+  flex: 1;
+  text-align: center;
+  min-width: 0;
 }
 
 .so-access-title {
@@ -69,8 +76,9 @@
 .so-access-subtitle {
   font-size: 13px;
   color: #6b6f8d;
-  margin-top: 4px;
+  margin: 4px auto 0;
   max-width: 520px;
+  text-align: center;
 }
 
 .so-access-close {
@@ -82,6 +90,9 @@
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 8px;
+  position: absolute;
+  right: 0;
+  top: 0;
 }
 
 .so-access-close:hover {
@@ -145,6 +156,16 @@
 .so-access-select:focus {
   border-color: #6c4cdc;
   box-shadow: 0 0 0 3px rgba(108, 76, 220, 0.15);
+}
+
+/* Static role display — replaces the role <select> now that "admin" is the
+   only option. Matches the input row height so the Invite button stays
+   vertically aligned with the surrounding fields. */
+.so-access-role-static {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 4px;
 }
 
 .so-access-invite-cell {
@@ -243,7 +264,7 @@
 .so-access-table-header,
 .so-access-table-row {
   display: grid;
-  grid-template-columns: 1.4fr 1.8fr 0.8fr 0.8fr;
+  grid-template-columns: 1.4fr 1.8fr 0.8fr 0.8fr 0.9fr;
   gap: 12px;
   padding: 12px 16px;
   align-items: center;
@@ -314,6 +335,38 @@
   color: #6b6f8d;
 }
 
+.so-access-actions-cell {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.so-access-actions-empty {
+  color: #b8bbcd;
+  font-size: 13px;
+}
+
+.so-access-revoke-btn {
+  border: 1px solid #f3c2c2;
+  background: #fff5f5;
+  color: #b3261e;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.so-access-revoke-btn:hover:not(:disabled) {
+  background: #ffe9e9;
+  border-color: #e89898;
+}
+
+.so-access-revoke-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 @media (max-width: 720px) {
   .so-access-scroll {
     padding: 22px 20px 24px;
@@ -339,8 +392,10 @@
 
   .so-access-table-header > div:nth-child(3),
   .so-access-table-header > div:nth-child(4),
+  .so-access-table-header > div:nth-child(5),
   .so-access-table-row > div:nth-child(3),
-  .so-access-table-row > div:nth-child(4) {
+  .so-access-table-row > div:nth-child(4),
+  .so-access-table-row > div:nth-child(5) {
     grid-column: span 1;
   }
 }

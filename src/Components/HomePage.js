@@ -34,6 +34,7 @@ import Client_Event_Reporting from "./Modules/NDISModule/Client_Event_Reporting"
 import SoftwareConnect from "./Modules/ConnectModule/SoftwareConnect";
 import RosteringDashboard from "./Modules/RosteringModule/SmartRostering";
 import HRAnalysis from "./Modules/StaffOnboarding/onboarding/HRAnalysis";
+import NoOrgEmptyState from "./Modules/StaffOnboarding/onboarding/NoOrgEmptyState";
 import IncidentAuditing from "./Modules/NDISModule/IncidentAuditing";
 // import TlcCustomerReporting from "./Modules/FinancialModule/TlcCustomReporting";
 import ReactMarkdown from "react-markdown";
@@ -187,6 +188,11 @@ const HomePage = () => {
   const [showCandidateModal, setShowCandidateModal] = useState(false);
   const [candidatesData, setCandidatesData] = useState([]);
   const [organizationId, setOrganizationId] = useState(null);
+  // Tracks the lifecycle of the by-email org lookup so the HR admin view can
+  // distinguish "still loading" from "looked up and there is no org for this
+  // email". On "not_found" the HR view renders the NoOrgEmptyState (register
+  // CTA + ask-your-admin message) instead of the normal dashboard.
+  const [orgLookupStatus, setOrgLookupStatus] = useState("idle"); // idle | loading | found | not_found
   const { isConnected, sendHRChat } = useHRChat();
   const [hrScreenedCandidates, setHrScreenedCandidates] = useState([]);
   let eventQueue = [];
@@ -440,6 +446,7 @@ const HomePage = () => {
     if (!email) return;
     const MAX_ATTEMPTS = 3;
     const RETRY_DELAY_MS = 1500;
+    if (attempt === 1) setOrgLookupStatus("loading");
     try {
       console.log(
         `Fetching organizationId for: ${email} (attempt ${attempt}/${MAX_ATTEMPTS})`
@@ -452,12 +459,16 @@ const HomePage = () => {
       const firstOrgId = data?.organizations?.[0]?.organizationId;
       if (res.ok && firstOrgId) {
         setOrganizationId(firstOrgId);
+        setOrgLookupStatus("found");
         console.log("organizationId set:", firstOrgId);
         return;
       }
-      // No org found for this email. Leave state null; downstream calls won't fire.
+      // No org found for this email. Surface a "not_found" status so the HR
+      // admin view can render the register/ask-to-be-invited empty state.
+      setOrganizationId(null);
+      setOrgLookupStatus("not_found");
       console.warn(
-        `[organizations] no org for ${email} — leaving organizationId null`
+        `[organizations] no org for ${email} — rendering empty state`
       );
     } catch (error) {
       console.error(`fetchOrganizationId error (attempt ${attempt}):`, error);
@@ -2075,8 +2086,15 @@ const HomePage = () => {
                       </div>
 
                       <div style={{ display: selectedRole === "Smart Onboarding (Staff)" ? "block" : "none" }}>
-                        <HRAnalysis handleClick={handleClick} selectedRole="Smart Onboarding (Staff)" setShowFeedbackPopup={setShowFeedbackPopup} user={user} setManualResumeZip={setManualResumeZip} setShowAIChat={setShowAIChat}
-                          setMessages={setMessages} setHrMode={setHrMode} setHrStep={setHrStep} organizationId={organizationId} />
+                        {orgLookupStatus === "not_found" ? (
+                          <NoOrgEmptyState
+                            user={user}
+                            onRegistered={() => fetchOrganizationId(user?.email)}
+                          />
+                        ) : (
+                          <HRAnalysis handleClick={handleClick} selectedRole="Smart Onboarding (Staff)" setShowFeedbackPopup={setShowFeedbackPopup} user={user} setManualResumeZip={setManualResumeZip} setShowAIChat={setShowAIChat}
+                            setMessages={setMessages} setHrMode={setHrMode} setHrStep={setHrStep} organizationId={organizationId} />
+                        )}
                       </div>
                       <div style={{ display: selectedRole === "Care Voice" ? "block" : "none" }}>
                         <VoiceModule user={user} isMobileOrTablet={isMobileOrTablet} setCareVoiceFiles={setCareVoiceFiles} setIsCareVoiceGeneratingDocs={setIsCareVoiceGeneratingDocs}
